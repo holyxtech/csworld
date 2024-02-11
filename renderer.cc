@@ -132,33 +132,10 @@ Renderer::Renderer() {
 }
 
 void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
-  auto diffs = mesh_generator.get_diffs();
+  auto& diffs = mesh_generator.get_diffs();
   auto& meshes = mesh_generator.get_meshes();
 
-  std::sort(
-    diffs.begin(),
-    diffs.end(),
-    [](const MeshGenerator::Diff& diff1, const MeshGenerator::Diff& diff2) {
-      return diff1.kind == MeshGenerator::Diff::deletion;
-    });
-
-  int i = 0;
-  while (i < diffs.size()) {
-    auto& diff = diffs[i];
-    if (diff.kind != MeshGenerator::Diff::deletion)
-      break;
-
-    // find associated vbo if exists and unassign
-
-    // need to go location -> vbo
-    GLuint vbo = vbo_map__[diff.location];
-
-    // vbo_map_.erase()
-    ++i;
-  }
-
-  while (i < diffs.size()) {
-    auto& diff = diffs[i];
+  for (auto& diff : diffs) {
     if (diff.kind == MeshGenerator::Diff::creation) {
       auto& loc = diff.location;
       auto& mesh = meshes.at(loc);
@@ -175,9 +152,13 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
       glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * mesh.size(), mesh.data());
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       vbo_map_[vbo_to_use] = loc;
+      loc_map_[loc] = vbo_to_use;
       mesh_size_map_[vbo_to_use] = mesh.size();
+
+    } else if (diff.kind == MeshGenerator::Diff::deletion) {
+      GLuint vbo = loc_map_[diff.location];
+      vbo_map_.erase(vbo);
     }
-    ++i;
   }
 
   mesh_generator.clear_diffs();
@@ -202,7 +183,7 @@ void Renderer::render() const {
     auto vbo = vbos_[i];
     auto vao = vaos_[i];
 
-    if (vbo_map_.count(vbo) == 0)
+    if (!vbo_map_.contains(vbo))
       continue;
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);

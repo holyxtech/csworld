@@ -7,6 +7,10 @@
 
 class Chunk {
 public:
+  enum Flags : uint32_t {
+    DELETED = 1 << 0,
+  };
+
   Chunk(int x, int y, int z);
 
   const Location& get_location() const;
@@ -17,6 +21,10 @@ public:
   void set_voxel(int x, int y, int z, Voxel::VoxelType value);
   void set_voxel(int i, Voxel::VoxelType value);
 
+  void set_flag(Flags flag);
+  void unset_flag(Flags flag);
+  bool check_flag(Flags flag);
+
   static constexpr int sz_uniform = 32;
   static constexpr int sz_x = sz_uniform;
   static constexpr int sz_y = sz_uniform;
@@ -26,6 +34,8 @@ public:
 private:
   std::vector<Voxel::VoxelType> voxels_;
   Location location_;
+
+  uint32_t flags_;
 };
 
 #endif

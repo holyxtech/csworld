@@ -12,7 +12,7 @@ public:
       creation,
       deletion
     };
-    const Location& loc;
+    Location loc;
     Kind kind;
   };
 
@@ -25,8 +25,6 @@ public:
   static constexpr int max_sz = 64;
 
 private:
-  void delete_chunk(Chunk& chunk);
-
   std::vector<Chunk> chunks_;
   std::vector<Diff> diffs_;
 };

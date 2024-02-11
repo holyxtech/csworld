@@ -24,3 +24,15 @@ Voxel::VoxelType Chunk::get_voxel(int i) const {
 void Chunk::set_voxel(int i, Voxel::VoxelType value) {
   voxels_[i] = value;
 }
+
+void Chunk::set_flag(Flags flag) {
+  flags_ |= flag;
+}
+
+void Chunk::unset_flag(Flags flag) {
+  flags_ &= ~flag;
+}
+
+bool Chunk::check_flag(Flags flag) {
+  return flags_ & flag;
+}

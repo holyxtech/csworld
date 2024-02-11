@@ -18,7 +18,7 @@ private:
   std::array<GLuint, Region::max_sz> vaos_;
   std::array<GLuint, Region::max_sz> vbos_;
   std::unordered_map<GLuint, Location> vbo_map_;
-  std::unordered_map<Location, GLuint, LocationHash> vbo_map__;  
+  std::unordered_map<Location, GLuint, LocationHash> loc_map_;
   std::unordered_map<GLuint, int> mesh_size_map_;
   GLuint shader_;
 
