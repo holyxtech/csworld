@@ -1,0 +1,116 @@
+#include "sim.h"
+#include <iostream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include "chunk.h"
+#include "fbs/cs_generated.h"
+#include "input.h"
+#include "readerwriterqueue.h"
+
+Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
+    : window_(window), tcp_client_(tcp_client) {
+
+  flatbuffers::FlatBufferBuilder builder(1024);
+
+  std::vector<flatbuffers::Offset<fbs::Chunk>> chunks;
+
+  int sz_x = 4;
+  int sz_y = 1;
+  int sz_z = 4;
+  for (int x = 0; x < sz_x; ++x) {
+    for (int y = 0; y < sz_y; ++y) {
+      for (int z = 0; z < sz_z; ++z) {
+        fbs::LocationI loc(x, y, z);
+        auto chunk = fbs::CreateChunk(builder, &loc);
+        chunks.push_back(std::move(chunk));
+      }
+    }
+  }
+
+  auto region = CreateRegionUpdate(builder, builder.CreateVector(chunks));
+  auto update_kind = fbs::UpdateKind_Region;
+  auto update = CreateUpdate(builder, fbs::UpdateKind_Region, region.Union());
+
+  FinishSizePrefixedUpdateBuffer(builder, update);
+
+  const auto* buffer_pointer = builder.GetBufferPointer();
+  const auto buffer_size = builder.GetSize();
+
+  Message message(buffer_size);
+  std::memcpy(message.data(), buffer_pointer, buffer_size);
+  tcp_client_.write(std::move(message));
+}
+
+void Sim::step() {
+
+  Message message;
+  auto& q = tcp_client_.get_queue();
+  bool success = q.try_dequeue(message);
+  while (success) {
+    std::cout << "suc " << message.size() << std::endl;
+    auto* update = fbs::GetUpdate(message.data());
+    switch (update->kind_type()) {
+    case fbs::UpdateKind_Region:
+      auto* region = update->kind_as_Region();
+      auto* chunks = region->chunks();
+      for (int i = 0; i < chunks->size(); ++i) {
+        auto* loc = chunks->Get(i)->location();
+        std::cout
+          << "Received chunk at "
+          << loc->x() << "," << loc->y() << "," << loc->z() << std::endl;
+        auto x = loc->x(), y = loc->y(), z = loc->z();
+        auto chunk = Chunk(x, y, z);
+        world_generator_.fill_chunk(chunk);
+        region_.add_chunk(std::move(chunk));
+      }
+      mesh_generator_.consume_region(region_);
+      renderer_.consume_mesh_generator(mesh_generator_);
+      break;
+    }
+    success = q.try_dequeue(message);
+  }
+
+  // check position, determine if need to request new chunks OR drop existing chunks...
+}
+
+void Sim::draw() {
+  double xpos, ypos;
+  glfwGetCursorPos(window_, &xpos, &ypos);
+
+  int mouse_right_state = glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT);
+  if (mouse_right_state == GLFW_PRESS) {
+    auto& cursor_start_pos = Input::instance()->get_cursor_start_pos();
+    auto xoff = xpos - cursor_start_pos[0];
+    auto yoff = cursor_start_pos[1] - ypos;
+    camera_.pan(xoff, yoff);
+  }
+  Input::instance()->set_cursor_start_pos(xpos, ypos);
+
+  if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS) {
+    camera_.move_forward();
+  } else if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS) {
+    camera_.move_backward();
+  } else if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS) {
+    camera_.move_up();
+  } else if (glfwGetKey(window_, GLFW_KEY_X) == GLFW_PRESS) {
+    camera_.move_down();
+  }
+
+  if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS) {
+    if (mouse_right_state == GLFW_PRESS) {
+      camera_.move_left();
+    } else {
+      camera_.turn_left();
+    }
+  } else if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS) {
+    if (mouse_right_state == GLFW_PRESS) {
+      camera_.move_right();
+    } else {
+      camera_.turn_right();
+    }
+  }
+
+  renderer_.consume_camera(camera_);
+  renderer_.render();
+}
