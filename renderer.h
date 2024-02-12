@@ -22,7 +22,8 @@ private:
   std::unordered_map<GLuint, int> mesh_size_map_;
   GLuint shader_;
 
-  static constexpr int chunk_max_vertices_ = Chunk::sz * 36;
+  // 36 is strictly necessary...
+  static constexpr int chunk_max_vertices_ = Chunk::sz * 9;
 };
 
 #endif

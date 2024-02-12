@@ -17,6 +17,7 @@ public:
   void turn_right();
 
   glm::mat4 get_view() const;
+  const glm::vec3& get_position() const;
 
 private:
   void update_orientation();

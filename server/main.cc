@@ -84,7 +84,7 @@ private:
 
       asio::async_read(
         socket_,
-        asio::buffer(read_buffer_, buffer_size),
+        asio::buffer(read_buffer_, header_length),
         boost::bind(&TCPConnection::handle_read_header, this, asio::placeholders::error));
     }
   }
@@ -147,7 +147,12 @@ public:
     while (success) {
       auto id = msg_with_id.id;
       auto& message = msg_with_id.message;
+
       auto* update = fbs::GetUpdate(message.data());
+      for (uint8_t value : message) {
+        std::cout << static_cast<int>(value) << " ";
+      } 
+      std::cout<<std::endl<<std::endl; 
       switch (update->kind_type()) {
       case fbs::UpdateKind_Region:
         auto* region = update->kind_as_Region();

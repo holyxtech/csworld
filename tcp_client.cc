@@ -61,7 +61,7 @@ void TCPClient::handle_read_body(const asio::error_code& error, uint32_t body_le
 
   asio::async_read(
     socket_,
-    asio::buffer(read_buffer_, buffer_size_),
+    asio::buffer(read_buffer_, header_length_),
     boost::bind(
       &TCPClient::handle_read_header, this,
       asio::placeholders::error));

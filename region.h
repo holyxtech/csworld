@@ -17,13 +17,14 @@ public:
     Kind kind;
   };
 
-  const Chunk& get_chunk(Location loc) const;
+  Chunk& get_chunk(Location loc);
+  bool has_chunk(Location loc) const;
   const std::vector<Chunk>& get_chunks() const;
   void add_chunk(Chunk&& chunk);
   const std::vector<Diff>& get_diffs() const;
   void clear_diffs();
 
-  static constexpr int max_sz = 64;
+  static constexpr int max_sz = 256;
 
 private:
   std::unordered_map<Location, Chunk, LocationHash> chunks_;

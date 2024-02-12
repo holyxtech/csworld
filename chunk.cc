@@ -5,6 +5,8 @@ Chunk::Chunk(int x, int y, int z)
     : location_{x, y, z}, voxels_(sz, Voxel::empty) {
 }
 
+Chunk::Chunk(Location location) : location_{location[0], location[1], location[2]}, voxels_(sz, Voxel::empty) {}
+
 const Location& Chunk::get_location() const {
   return location_;
 }
@@ -35,4 +37,8 @@ void Chunk::unset_flag(Flags flag) {
 
 bool Chunk::check_flag(Flags flag) {
   return flags_ & flag;
+}
+
+Location Chunk::pos_to_loc(const std::array<double, 3>& position) {
+  return Location{static_cast<int>(position[0]) / sz_x, static_cast<int>(position[1]) / sz_y, static_cast<int>(position[2]) / sz_z};
 }

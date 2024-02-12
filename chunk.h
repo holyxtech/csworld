@@ -12,6 +12,7 @@ public:
   };
 
   Chunk(int x, int y, int z);
+  Chunk(Location location);
 
   const Location& get_location() const;
 
@@ -24,6 +25,8 @@ public:
   void set_flag(Flags flag);
   void unset_flag(Flags flag);
   bool check_flag(Flags flag);
+
+  static Location pos_to_loc(const std::array<double, 3>& position);
 
   static constexpr int sz_uniform = 32;
   static constexpr int sz_x = sz_uniform;

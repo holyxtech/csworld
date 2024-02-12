@@ -7,8 +7,8 @@
 
 class Player {
 public:
-  const std::array<double, 3>& get_position() const {}
-  void set_position(double x, double y, double z) {}
+  const std::array<double, 3>& get_position() const;
+  void set_position(double x, double y, double z);
 
 private:
   std::array<double, 3> position_;

@@ -8,22 +8,21 @@
 #include "input.h"
 #include "readerwriterqueue.h"
 
-
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window), tcp_client_(tcp_client) {
 
-  int sz_x = 10;
-  int sz_y = 1;
-  int sz_z = 10;
-  std::vector<Location> locs;
-  for (int x = 0; x < sz_x; ++x) {
-    for (int y = 0; y < sz_y; ++y) {
-      for (int z = 0; z < sz_z; ++z) {
-        locs.emplace_back(Location{x, y, z});
+  /*   int sz_x = 2;
+    int sz_y = 1;
+    int sz_z = 2;
+    std::vector<Location> locs;
+    for (int x = -sz_x; x < sz_x; ++x) {
+      for (int y = 0; y < sz_y; ++y) {
+        for (int z = -sz_z; z < sz_z; ++z) {
+          locs.emplace_back(Location{x, y, z});
+        }
       }
     }
-  }
-  get_chunks(locs);
+    get_chunks(locs); */
 }
 
 void Sim::step() {
@@ -44,9 +43,16 @@ void Sim::step() {
           << "Received chunk at "
           << loc->x() << "," << loc->y() << "," << loc->z() << std::endl;
         auto x = loc->x(), y = loc->y(), z = loc->z();
-        auto chunk = Chunk(x, y, z);
-        world_generator_.fill_chunk(chunk);
-        region_.add_chunk(std::move(chunk));
+        // TODO check if chunk already exists...
+        if (region_.has_chunk(Location{x, y, z})) {
+          auto& chunk = region_.get_chunk(Location{x,y,z});
+          world_generator_.fill_chunk(chunk);
+
+        } else {
+          auto chunk = Chunk(x, y, z);
+          world_generator_.fill_chunk(chunk);
+          region_.add_chunk(std::move(chunk));
+        }
       }
       mesh_generator_.consume_region(region_);
       renderer_.consume_mesh_generator(mesh_generator_);
@@ -57,11 +63,28 @@ void Sim::step() {
 
   // check position, determine if need to request new chunks
 
-  // check two furthest corner chunks for existence (up to height of map)
+  // check four furthest corner chunks (within set bound) for existence (up to height of map)
   // if they exist, do nothing
   // if they don't, scan all chunks toward player for existence and request
 
-  
+  // 1. get the chunk location the player is in
+  auto& pos = player_.get_position();
+  auto loc = Chunk::pos_to_loc(pos);
+  // std::cout<<loc[0]<<","<<loc[1]<<","<<loc[2]<<std::endl;
+
+  std::vector<Location> locs;
+  for (int x = -min_render_distance; x < min_render_distance; ++x) {
+    for (int z = -min_render_distance; z < min_render_distance; ++z) {
+      auto location = Location{loc[0] + x, 0, loc[2] + z};
+      if (!region_.has_chunk(location)) {
+        locs.emplace_back(location);
+        auto chunk = Chunk(location);
+        region_.add_chunk(std::move(chunk));
+      }
+    }
+  }
+  if (locs.size() > 0)
+    get_chunks(locs);
 }
 
 void Sim::get_chunks(std::vector<Location>& locs) {
@@ -85,7 +108,9 @@ void Sim::get_chunks(std::vector<Location>& locs) {
   const auto buffer_size = builder.GetSize();
 
   Message message(buffer_size);
+
   std::memcpy(message.data(), buffer_pointer, buffer_size);
+
   tcp_client_.write(std::move(message));
 }
 
@@ -128,6 +153,8 @@ void Sim::draw() {
       camera_.turn_right();
     }
   }
+  auto& camera_pos = camera_.get_position();
+  player_.set_position(camera_pos[0], camera_pos[1], camera_pos[2]);
 
   renderer_.consume_camera(camera_);
   renderer_.render();

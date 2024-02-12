@@ -1,8 +1,12 @@
 #include "region.h"
 #include <iostream>
 
-const Chunk& Region::get_chunk(Location loc) const {
+Chunk& Region::get_chunk(Location loc) {
   return chunks_.at(loc);
+}
+
+bool Region::has_chunk(Location loc) const {
+  return chunks_.contains(loc);
 }
 
 void Region::add_chunk(Chunk&& chunk) {
@@ -16,6 +20,7 @@ void Region::add_chunk(Chunk&& chunk) {
       auto& chunk = pair.second;
       if (chunk.check_flag(Chunk::Flags::DELETED))
         continue;
+        
       auto& location = chunk.get_location();
       int difference = LocationMath::difference(loc, location);
       if (difference > max_difference) {

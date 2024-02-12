@@ -4,7 +4,11 @@
 #include <glm/gtx/string_cast.hpp>
 
 Camera::Camera() {
-    update_orientation();
+  update_orientation();
+}
+
+const glm::vec3& Camera::get_position() const {
+  return position_;
 }
 
 glm::mat4 Camera::get_view() const {
