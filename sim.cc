@@ -11,18 +11,23 @@
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window), tcp_client_(tcp_client) {
 
-  /*   int sz_x = 2;
-    int sz_y = 1;
-    int sz_z = 2;
-    std::vector<Location> locs;
-    for (int x = -sz_x; x < sz_x; ++x) {
-      for (int y = 0; y < sz_y; ++y) {
-        for (int z = -sz_z; z < sz_z; ++z) {
-          locs.emplace_back(Location{x, y, z});
-        }
-      }
+  std::array<double, 3> starting_pos = {0, 30, 0};
+  camera_.set_position(glm::vec3{starting_pos[0], starting_pos[1], starting_pos[2]});
+  player_.set_position(starting_pos[0], starting_pos[1], starting_pos[2]);
+
+  auto loc = Chunk::pos_to_loc(starting_pos);
+  std::vector<Location> locs;
+  for (int x = -min_render_distance; x < min_render_distance; ++x) {
+    for (int z = -min_render_distance; z < min_render_distance; ++z) {
+      auto location = Location{loc[0] + x, 0, loc[2] + z};
+      locs.emplace_back(location);
+      auto chunk = Chunk(location);
+      region_.add_chunk(std::move(chunk));
     }
-    get_chunks(locs); */
+  }
+  if (locs.size() > 0)
+    get_chunks(locs);
+  player_.set_last_location(loc);
 }
 
 void Sim::step() {
@@ -43,9 +48,8 @@ void Sim::step() {
           << "Received chunk at "
           << loc->x() << "," << loc->y() << "," << loc->z() << std::endl;
         auto x = loc->x(), y = loc->y(), z = loc->z();
-        // TODO check if chunk already exists...
         if (region_.has_chunk(Location{x, y, z})) {
-          auto& chunk = region_.get_chunk(Location{x,y,z});
+          auto& chunk = region_.get_chunk(Location{x, y, z});
           world_generator_.fill_chunk(chunk);
 
         } else {
@@ -70,21 +74,23 @@ void Sim::step() {
   // 1. get the chunk location the player is in
   auto& pos = player_.get_position();
   auto loc = Chunk::pos_to_loc(pos);
-  // std::cout<<loc[0]<<","<<loc[1]<<","<<loc[2]<<std::endl;
-
-  std::vector<Location> locs;
-  for (int x = -min_render_distance; x < min_render_distance; ++x) {
-    for (int z = -min_render_distance; z < min_render_distance; ++z) {
-      auto location = Location{loc[0] + x, 0, loc[2] + z};
-      if (!region_.has_chunk(location)) {
-        locs.emplace_back(location);
-        auto chunk = Chunk(location);
-        region_.add_chunk(std::move(chunk));
+  auto& last_location = player_.get_last_location();
+  if (loc != last_location) {
+    std::vector<Location> locs;
+    for (int x = -min_render_distance; x < min_render_distance; ++x) {
+      for (int z = -min_render_distance; z < min_render_distance; ++z) {
+        auto location = Location{loc[0] + x, 0, loc[2] + z};
+        if (!region_.has_chunk(location)) {
+          locs.emplace_back(location);
+          auto chunk = Chunk(location);
+          region_.add_chunk(std::move(chunk));
+        }
       }
     }
+    if (locs.size() > 0)
+      get_chunks(locs);
+    player_.set_last_location(loc);
   }
-  if (locs.size() > 0)
-    get_chunks(locs);
 }
 
 void Sim::get_chunks(std::vector<Location>& locs) {

@@ -11,6 +11,10 @@ const glm::vec3& Camera::get_position() const {
   return position_;
 }
 
+void Camera::set_position(glm::vec3 position) {
+  position_ = position;
+}
+
 glm::mat4 Camera::get_view() const {
   return glm::lookAt(position_, position_ + front_, up_);
 }

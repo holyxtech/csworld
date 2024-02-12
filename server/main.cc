@@ -149,10 +149,7 @@ public:
       auto& message = msg_with_id.message;
 
       auto* update = fbs::GetUpdate(message.data());
-      for (uint8_t value : message) {
-        std::cout << static_cast<int>(value) << " ";
-      } 
-      std::cout<<std::endl<<std::endl; 
+      
       switch (update->kind_type()) {
       case fbs::UpdateKind_Region:
         auto* region = update->kind_as_Region();

@@ -18,11 +18,12 @@ public:
 
   glm::mat4 get_view() const;
   const glm::vec3& get_position() const;
+  void set_position(glm::vec3 position);
 
 private:
   void update_orientation();
 
-  glm::vec3 position_ = glm::vec3(0, 0, 0);
+  glm::vec3 position_;
   glm::vec3 front_;
   glm::vec3 up_;
 
