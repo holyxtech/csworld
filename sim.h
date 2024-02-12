@@ -19,6 +19,8 @@ public:
   void draw();
 
 private:
+  void get_chunks(std::vector<Location>& locs);
+
   GLFWwindow* window_;
   TCPClient& tcp_client_;
   Region region_;

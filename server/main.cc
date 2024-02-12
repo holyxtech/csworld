@@ -84,7 +84,7 @@ private:
 
       asio::async_read(
         socket_,
-        asio::buffer(read_buffer_, buffer_size_),
+        asio::buffer(read_buffer_, buffer_size),
         boost::bind(&TCPConnection::handle_read_header, this, asio::placeholders::error));
     }
   }
@@ -94,8 +94,8 @@ private:
   int id_;
   tcp::socket socket_;
   static constexpr int header_length = 4;
-  static constexpr int buffer_size_ = 8192;
-  uint8_t read_buffer_[buffer_size_];
+  static constexpr int buffer_size = 8192;
+  uint8_t read_buffer_[buffer_size];
 };
 
 class TCPServer {
@@ -140,8 +140,7 @@ private:
 
 class SimServer {
 public:
-  SimServer(TCPServer& tcp_server) : tcp_server_(tcp_server) {
-  }
+  SimServer(TCPServer& tcp_server) : tcp_server_(tcp_server) {}
   void step() {
     MessageWithId msg_with_id;
     bool success = q.try_dequeue(msg_with_id);

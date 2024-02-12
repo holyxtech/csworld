@@ -16,8 +16,6 @@ TCPClient::TCPClient(asio::io_context& io_context)
 }
 
 void TCPClient::write(Message&& message) {
-
-  asio::error_code ignored_error;
   asio::async_write(
     socket_,
     asio::buffer(message.data(), message.size()),

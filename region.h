@@ -2,6 +2,7 @@
 #define REGION_H
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 #include "chunk.h"
 
@@ -12,11 +13,11 @@ public:
       creation,
       deletion
     };
-    Location loc;
+    Location location;
     Kind kind;
   };
 
-  const Chunk* get_chunk(Location loc) const;
+  const Chunk& get_chunk(Location loc) const;
   const std::vector<Chunk>& get_chunks() const;
   void add_chunk(Chunk&& chunk);
   const std::vector<Diff>& get_diffs() const;
@@ -25,7 +26,7 @@ public:
   static constexpr int max_sz = 64;
 
 private:
-  std::vector<Chunk> chunks_;
+  std::unordered_map<Location, Chunk, LocationHash> chunks_;
   std::vector<Diff> diffs_;
 };
 

@@ -161,10 +161,10 @@ void MeshGenerator::mesh_chunk(const Chunk& chunk) {
 void MeshGenerator::consume_region(Region& region) {
   auto& diffs = region.get_diffs();
   for (auto& diff : diffs) {
-    auto& loc = diff.loc;
+    auto& loc = diff.location;
 
     if (diff.kind == Region::Diff::creation) {
-      auto& chunk = *region.get_chunk(loc);
+      auto& chunk = region.get_chunk(loc);
       mesh_chunk(chunk);
 
     } else if (diff.kind == Region::Diff::deletion) {
@@ -179,7 +179,6 @@ const std::vector<MeshGenerator::Diff>& MeshGenerator::get_diffs() const {
 }
 
 void MeshGenerator::clear_diffs() {
-  // process all the deletions...
   for (auto& diff : diffs_) {
     auto& loc = diff.location;
     if (diff.kind == MeshGenerator::Diff::deletion) {

@@ -8,38 +8,22 @@
 #include "input.h"
 #include "readerwriterqueue.h"
 
+
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window), tcp_client_(tcp_client) {
 
-  flatbuffers::FlatBufferBuilder builder(1024);
-
-  std::vector<flatbuffers::Offset<fbs::Chunk>> chunks;
-
-  int sz_x = 4;
+  int sz_x = 10;
   int sz_y = 1;
-  int sz_z = 4;
+  int sz_z = 10;
+  std::vector<Location> locs;
   for (int x = 0; x < sz_x; ++x) {
     for (int y = 0; y < sz_y; ++y) {
       for (int z = 0; z < sz_z; ++z) {
-        fbs::LocationI loc(x, y, z);
-        auto chunk = fbs::CreateChunk(builder, &loc);
-        chunks.push_back(std::move(chunk));
+        locs.emplace_back(Location{x, y, z});
       }
     }
   }
-
-  auto region = CreateRegionUpdate(builder, builder.CreateVector(chunks));
-  auto update_kind = fbs::UpdateKind_Region;
-  auto update = CreateUpdate(builder, fbs::UpdateKind_Region, region.Union());
-
-  FinishSizePrefixedUpdateBuffer(builder, update);
-
-  const auto* buffer_pointer = builder.GetBufferPointer();
-  const auto buffer_size = builder.GetSize();
-
-  Message message(buffer_size);
-  std::memcpy(message.data(), buffer_pointer, buffer_size);
-  tcp_client_.write(std::move(message));
+  get_chunks(locs);
 }
 
 void Sim::step() {
@@ -71,7 +55,38 @@ void Sim::step() {
     success = q.try_dequeue(message);
   }
 
-  // check position, determine if need to request new chunks OR drop existing chunks...
+  // check position, determine if need to request new chunks
+
+  // check two furthest corner chunks for existence (up to height of map)
+  // if they exist, do nothing
+  // if they don't, scan all chunks toward player for existence and request
+
+  
+}
+
+void Sim::get_chunks(std::vector<Location>& locs) {
+  flatbuffers::FlatBufferBuilder builder(1024);
+
+  std::vector<flatbuffers::Offset<fbs::Chunk>> chunks;
+
+  for (auto& loc : locs) {
+    fbs::LocationI locI(loc[0], loc[1], loc[2]);
+    auto chunk = fbs::CreateChunk(builder, &locI);
+    chunks.push_back(std::move(chunk));
+  }
+
+  auto region = CreateRegionUpdate(builder, builder.CreateVector(chunks));
+  auto update_kind = fbs::UpdateKind_Region;
+  auto update = CreateUpdate(builder, fbs::UpdateKind_Region, region.Union());
+
+  FinishSizePrefixedUpdateBuffer(builder, update);
+
+  const auto* buffer_pointer = builder.GetBufferPointer();
+  const auto buffer_size = builder.GetSize();
+
+  Message message(buffer_size);
+  std::memcpy(message.data(), buffer_pointer, buffer_size);
+  tcp_client_.write(std::move(message));
 }
 
 void Sim::draw() {
@@ -87,6 +102,9 @@ void Sim::draw() {
   }
   Input::instance()->set_cursor_start_pos(xpos, ypos);
 
+  // TODO
+  // the camera move speed needs to be dependent on real time, not program speed
+  // basically, if you modify the camera movement speed by elapsed time since last draw it works
   if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS) {
     camera_.move_forward();
   } else if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS) {
