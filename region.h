@@ -24,7 +24,7 @@ public:
   const std::vector<Diff>& get_diffs() const;
   void clear_diffs();
 
-  static constexpr int max_sz = 256;
+  static constexpr int max_sz = 2048;
 
 private:
   std::unordered_map<Location, Chunk, LocationHash> chunks_;

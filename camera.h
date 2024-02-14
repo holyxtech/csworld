@@ -31,7 +31,7 @@ private:
   float pitch_ = 0.f;
 
   float pan_sensitivity_ = 0.1;
-  float translation_speed_ = 0.5;
+  float translation_speed_ = 1.5;
   float rotation_speed_ = 1;
 };
 

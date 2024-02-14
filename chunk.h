@@ -18,6 +18,7 @@ public:
 
   Voxel::VoxelType get_voxel(int x, int y, int z) const;
   Voxel::VoxelType get_voxel(int i) const;
+  std::array<Voxel::VoxelType, 6> get_adjacent(int x, int y, int z) const;
 
   void set_voxel(int x, int y, int z, Voxel::VoxelType value);
   void set_voxel(int i, Voxel::VoxelType value);

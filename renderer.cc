@@ -100,19 +100,19 @@ Renderer::Renderer() {
   int _width, _height, channels;
 
   auto* image_data0 = stbi_load("dirt.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::textures.at(Voxel::tex_dirt), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data0);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_dirt, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data0);
   stbi_image_free(image_data0);
 
   auto* image_data1 = stbi_load("grass.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::textures.at(Voxel::tex_grass), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data1);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_grass, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data1);
   stbi_image_free(image_data1);
 
   auto* image_data2 = stbi_load("grass_side.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::textures.at(Voxel::tex_grass_side), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data2);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_grass_side, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data2);
   stbi_image_free(image_data2);
 
   auto* image_data3 = stbi_load("water.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::textures.at(Voxel::tex_water), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data3);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_water, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data3);
   stbi_image_free(image_data3);
 
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -147,7 +147,6 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
           break;
         }
       }
-
       glBindBuffer(GL_ARRAY_BUFFER, vbo_to_use);
       glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * mesh.size(), mesh.data());
       glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -167,7 +166,7 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
 }
 
 void Renderer::consume_camera(const Camera& camera) {
-  glm::mat4 projection = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 400.l);
+  glm::mat4 projection = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 4000.l);
   glm::mat4 view = camera.get_view();
   glm::mat4 transform = projection * view;
 

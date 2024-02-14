@@ -94,7 +94,7 @@ private:
   int id_;
   tcp::socket socket_;
   static constexpr int header_length = 4;
-  static constexpr int buffer_size = 8192;
+  static constexpr int buffer_size = 1048576;
   uint8_t read_buffer_[buffer_size];
 };
 
@@ -156,7 +156,7 @@ public:
         auto* chunks = region->chunks();
 
         // construct new update
-        flatbuffers::FlatBufferBuilder builder(1024);
+        flatbuffers::FlatBufferBuilder builder(1048576);
         std::vector<flatbuffers::Offset<fbs::Chunk>> returned_chunks;
 
         for (int i = 0; i < chunks->size(); ++i) {

@@ -65,13 +65,6 @@ void Sim::step() {
     success = q.try_dequeue(message);
   }
 
-  // check position, determine if need to request new chunks
-
-  // check four furthest corner chunks (within set bound) for existence (up to height of map)
-  // if they exist, do nothing
-  // if they don't, scan all chunks toward player for existence and request
-
-  // 1. get the chunk location the player is in
   auto& pos = player_.get_position();
   auto loc = Chunk::pos_to_loc(pos);
   auto& last_location = player_.get_last_location();
@@ -94,7 +87,7 @@ void Sim::step() {
 }
 
 void Sim::get_chunks(std::vector<Location>& locs) {
-  flatbuffers::FlatBufferBuilder builder(1024);
+  flatbuffers::FlatBufferBuilder builder(1048576);
 
   std::vector<flatbuffers::Offset<fbs::Chunk>> chunks;
 
@@ -140,7 +133,8 @@ void Sim::draw() {
     camera_.move_forward();
   } else if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS) {
     camera_.move_backward();
-  } else if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS) {
+  }
+  if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS) {
     camera_.move_up();
   } else if (glfwGetKey(window_, GLFW_KEY_X) == GLFW_PRESS) {
     camera_.move_down();

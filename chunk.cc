@@ -15,6 +15,29 @@ Voxel::VoxelType Chunk::get_voxel(int x, int y, int z) const {
   return voxels_[x + sz_x * (y + sz_y * z)];
 }
 
+std::array<Voxel::VoxelType, 6> Chunk::get_adjacent(int x, int y, int z) const {
+  std::array<Voxel::VoxelType, 6> adjacent{Voxel::empty};
+  if (x > 0) {
+    adjacent[Direction::nx] = voxels_[x - 1 + sz_x * (y + sz_y * z)];
+  }
+  if (x < Chunk::sz_x - 1) {
+    adjacent[Direction::px] = voxels_[x + 1 + sz_x * (y + sz_y * z)];
+  }
+  if (y > 0) {
+    adjacent[Direction::ny] = voxels_[x + sz_x * (y - 1 + sz_y * z)];
+  }
+  if (y < Chunk::sz_y - 1) {
+    adjacent[Direction::py] = voxels_[x + sz_x * (y + 1 + sz_y * z)];
+  }
+  if (z > 0) {
+    adjacent[Direction::nz] = voxels_[x + sz_x * (y + sz_y * z - 1)];
+  }
+  if (z < Chunk::sz_y - 1) {
+    adjacent[Direction::pz] = voxels_[x + sz_x * (y + sz_y * z + 1)];
+  }
+  return adjacent;
+}
+
 void Chunk::set_voxel(int x, int y, int z, Voxel::VoxelType value) {
   voxels_[x + sz_x * (y + sz_y * z)] = value;
 }

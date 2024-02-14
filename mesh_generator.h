@@ -23,8 +23,9 @@ public:
 
 private:
   void mesh_chunk(const Chunk& chunk);
+  void mesh_greedy(const Chunk& chunk);
   std::array<Voxel::VoxelType, 6> get_adjacent_voxels(const Chunk& chunk, int x, int y, int z) const;
-  std::array<int, 6> tex_layers(Voxel::VoxelType voxel, std::array<Voxel::VoxelType, 6> adjacent) const;
+  std::array<int, 6> tex_layers(Voxel::VoxelType voxel, const std::array<Voxel::VoxelType, 6>& adjacent) const;
 
   std::unordered_map<Location, std::vector<Vertex>, LocationHash> meshes_;
   std::vector<Diff> diffs_;

@@ -39,7 +39,7 @@ int main() {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-  const GLuint width = 1920, height = 1080;
+  const GLuint width = 2560, height = 1440;
   auto window = glfwCreateWindow(width, height, "World", nullptr, nullptr);
   if (!window) {
     std::cerr << "Failed to create GLFW window" << std::endl;

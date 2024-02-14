@@ -2,7 +2,9 @@
 #define TYPES_H
 
 #include <cmath>
+#include <iostream>
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include <glm/glm.hpp>
 
@@ -58,13 +60,23 @@ namespace Voxel {
     num_voxel_textures
   };
 
-  const std::map<VoxelTexture, int> textures = [] {
-    std::map<VoxelTexture, int> tex;
+  const std::unordered_map<VoxelTexture, int> textures = [] {
+    std::unordered_map<VoxelTexture, int> tex;
     for (int i = 0; i < num_voxel_textures; ++i) {
       tex[static_cast<VoxelTexture>(i)] = i;
     }
     return tex;
   }();
+
 } // namespace Voxel
+
+enum Direction {
+  nx,
+  px,
+  ny,
+  py,
+  nz,
+  pz
+};
 
 #endif

@@ -20,7 +20,7 @@ void Region::add_chunk(Chunk&& chunk) {
       auto& chunk = pair.second;
       if (chunk.check_flag(Chunk::Flags::DELETED))
         continue;
-        
+
       auto& location = chunk.get_location();
       int difference = LocationMath::difference(loc, location);
       if (difference > max_difference) {

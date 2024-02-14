@@ -24,7 +24,7 @@ private:
 
   asio::io_context& io_context_;
   tcp::socket socket_;
-  static constexpr int buffer_size_ = 8192;
+  static constexpr int buffer_size_ = 1048576;
   uint8_t read_buffer_[buffer_size_];
   static constexpr int header_length_ = 4;
   moodycamel::ReaderWriterQueue<Message> q_;

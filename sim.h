@@ -30,7 +30,7 @@ private:
   Player player_;
   Camera camera_;
 
-  static constexpr int min_render_distance = 4;
+  static constexpr int min_render_distance = 16;
 };
 
 #endif

@@ -23,7 +23,7 @@ private:
   GLuint shader_;
 
   // 36 is strictly necessary...
-  static constexpr int chunk_max_vertices_ = Chunk::sz * 9;
+  static constexpr int chunk_max_vertices_ = Chunk::sz;
 };
 
 #endif
