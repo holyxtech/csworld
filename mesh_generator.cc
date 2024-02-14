@@ -80,8 +80,6 @@ void MeshGenerator::mesh_chunk(const Chunk& chunk) {
         auto i = position.x, j = position.y, k = position.z;
         auto zv = glm::vec3(0.f);
 
-        //        auto adjacent = get_adjacent_voxels(chunk, x, y, z);
-
         Voxel::VoxelType nx, px, ny, py, nz, pz;
         nx = px = ny = py = nz = pz = Voxel::empty;
         if (x > 0) {
@@ -121,8 +119,6 @@ void MeshGenerator::mesh_chunk(const Chunk& chunk) {
           py_layer = Voxel::tex_grass;
           break;
         }
-
-        // const auto layers = tex_layers(voxel, adjacent);
 
         if (nx == Voxel::empty) {
           mesh.emplace_back(Vertex{glm::vec3(i, j, k), zv, QuadCoord::br, nx_layer});
@@ -185,16 +181,11 @@ void MeshGenerator::consume_region(Region& region) {
 
     if (diff.kind == Region::Diff::creation) {
       auto& chunk = region.get_chunk(loc);
-      auto start = std::chrono::high_resolution_clock::now();
+      //      auto start = std::chrono::high_resolution_clock::now();
       mesh_chunk(chunk);
-      auto end = std::chrono::high_resolution_clock::now();
-
-      // Calculate the duration in milliseconds
-      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-      // Print the duration
-      std::cout << "Execution time: " << duration.count() << " milliseconds" << std::endl;
-
+      /*       auto end = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+            std::cout << "Execution time: " << duration.count() << " milliseconds" << std::endl; */
     } else if (diff.kind == Region::Diff::deletion) {
       diffs_.emplace_back(Diff{loc, Diff::deletion});
     }
