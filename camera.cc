@@ -72,3 +72,10 @@ void Camera::update_orientation() {
   glm::vec3 right = glm::normalize(glm::cross(front_, glm::vec3(0, 1, 0)));
   up_ = glm::normalize(glm::cross(right, front_));
 }
+
+void Camera::scale_translation_speed(float scale) {
+  translation_speed_ = base_translation_speed_ * scale;
+}
+void Camera::scale_rotation_speed(float scale) {
+  rotation_speed_ = base_rotation_speed_ * scale;
+}

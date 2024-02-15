@@ -19,6 +19,8 @@ public:
   glm::mat4 get_view() const;
   const glm::vec3& get_position() const;
   void set_position(glm::vec3 position);
+  void scale_translation_speed(float scale);
+  void scale_rotation_speed(float scale);
 
 private:
   void update_orientation();
@@ -31,7 +33,10 @@ private:
   float pitch_ = 0.f;
 
   float pan_sensitivity_ = 0.1;
-  float translation_speed_ = 1.5;
+
+  float base_translation_speed_ = 1;
+  float base_rotation_speed_ = 1;
+  float translation_speed_ = 1;
   float rotation_speed_ = 1;
 };
 

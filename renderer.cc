@@ -129,12 +129,12 @@ Renderer::Renderer() {
   // glFrontFace(GL_CCW);
   // glEnable(GL_CULL_FACE);
   glClearColor(0.612f, 0.914f, 1.f, 1.0f);
+
 }
 
 void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
   auto& diffs = mesh_generator.get_diffs();
   auto& meshes = mesh_generator.get_meshes();
-
   for (auto& diff : diffs) {
     if (diff.kind == MeshGenerator::Diff::creation) {
       auto& loc = diff.location;
@@ -184,7 +184,7 @@ void Renderer::render() const {
 
     if (!vbo_map_.contains(vbo))
       continue;
-
+    
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBindVertexArray(vao);
 

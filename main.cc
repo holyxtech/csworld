@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <thread>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <asio.hpp>
@@ -39,7 +40,7 @@ int main() {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-  const GLuint width = 2560, height = 1440;
+  const GLuint width = 1920, height = 1080;
   auto window = glfwCreateWindow(width, height, "World", nullptr, nullptr);
   if (!window) {
     std::cerr << "Failed to create GLFW window" << std::endl;
@@ -65,18 +66,27 @@ int main() {
 
   Sim sim(window, tcp_client);
 
+  std::thread build_thread([&sim, window]() {
+    while (!glfwWindowShouldClose(window)) {
+      sim.step();
+    }
+  });
+
+  auto start = std::chrono::high_resolution_clock::now();
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
       glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
-
-    sim.step();
-    sim.draw();
-
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    sim.draw(duration.count());
+    start = std::chrono::high_resolution_clock::now();
     glfwSwapBuffers(window);
+    
   }
-  
+  build_thread.join();
+
   glfwTerminate();
   io_context.stop();
   t.join();

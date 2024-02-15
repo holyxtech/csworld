@@ -1,6 +1,9 @@
 #ifndef SIM_H
 #define SIM_H
 
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "camera.h"
@@ -16,7 +19,8 @@ class Sim {
 public:
   Sim(GLFWwindow* window, TCPClient& tcp_client);
   void step();
-  void draw();
+  void draw(int64_t ms);
+
 
 private:
   void get_chunks(std::vector<Location>& locs);
@@ -30,7 +34,12 @@ private:
   Player player_;
   Camera camera_;
 
-  static constexpr int min_render_distance = 16;
+  std::mutex mutex_;
+  std::mutex mesh_mutex_;
+  std::condition_variable cv_;
+  bool ready_to_mesh_ = true;
+
+  static constexpr int min_render_distance = 4;
 };
 
 #endif

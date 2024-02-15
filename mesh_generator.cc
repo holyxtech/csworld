@@ -13,10 +13,8 @@ namespace QuadCoord {
 
 std::array<int, 6> MeshGenerator::tex_layers(Voxel::VoxelType voxel, const std::array<Voxel::VoxelType, 6>& adjacent) const {
   std::array<int, 6> layers;
-  // auto [nx, px, ny, py, nz, pz] = adjacent;
   switch (voxel) {
   case Voxel::dirt:
-
     if (adjacent[Direction::py] == Voxel::empty) {
       layers[Direction::nx] = Voxel::tex_grass_side;
       layers[Direction::px] = Voxel::tex_grass_side;
@@ -176,20 +174,26 @@ void MeshGenerator::mesh_chunk(const Chunk& chunk) {
 
 void MeshGenerator::consume_region(Region& region) {
   auto& diffs = region.get_diffs();
+  /*   int num_meshed = 0;
+    float total_duration = 0.0;
+   */
   for (auto& diff : diffs) {
     auto& loc = diff.location;
 
     if (diff.kind == Region::Diff::creation) {
       auto& chunk = region.get_chunk(loc);
-      //      auto start = std::chrono::high_resolution_clock::now();
+      //     auto start = std::chrono::high_resolution_clock::now();
       mesh_chunk(chunk);
       /*       auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-            std::cout << "Execution time: " << duration.count() << " milliseconds" << std::endl; */
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+            num_meshed++;
+            total_duration += duration.count();
+       */
     } else if (diff.kind == Region::Diff::deletion) {
       diffs_.emplace_back(Diff{loc, Diff::deletion});
     }
   }
+  //  std::cout << "Average execution time: " << total_duration / num_meshed << " microseconds" << std::endl;
   region.clear_diffs();
 }
 

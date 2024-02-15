@@ -10,8 +10,8 @@ WorldGenerator::WorldGenerator() {
 void WorldGenerator::fill_chunk(Chunk& chunk) const {
   auto& location = chunk.get_location();
   auto position = Location{location[0] * Chunk::sz_x, location[1] * Chunk::sz_y, location[2] * Chunk::sz_z};
-  for (int x = 0; x < Chunk::sz_x; ++x) {
-    for (int z = 0; z < Chunk::sz_z; ++z) {
+  for (int z = 0; z < Chunk::sz_z; ++z) {
+    for (int x = 0; x < Chunk::sz_x; ++x) {
       double voxel_x = position[0] + x;
       double voxel_z = position[2] + z;
       int height = noise(voxel_x, voxel_z);

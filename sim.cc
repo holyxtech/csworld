@@ -1,5 +1,6 @@
 #include "sim.h"
 #include <iostream>
+#include <thread>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -21,8 +22,6 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     for (int z = -min_render_distance; z < min_render_distance; ++z) {
       auto location = Location{loc[0] + x, 0, loc[2] + z};
       locs.emplace_back(location);
-      auto chunk = Chunk(location);
-      region_.add_chunk(std::move(chunk));
     }
   }
   if (locs.size() > 0)
@@ -44,28 +43,36 @@ void Sim::step() {
       auto* chunks = region->chunks();
       for (int i = 0; i < chunks->size(); ++i) {
         auto* loc = chunks->Get(i)->location();
-        std::cout
+        /* std::cout
           << "Received chunk at "
-          << loc->x() << "," << loc->y() << "," << loc->z() << std::endl;
+          << loc->x() << "," << loc->y() << "," << loc->z() << std::endl; */
         auto x = loc->x(), y = loc->y(), z = loc->z();
         if (region_.has_chunk(Location{x, y, z})) {
-          auto& chunk = region_.get_chunk(Location{x, y, z});
-          world_generator_.fill_chunk(chunk);
-
         } else {
           auto chunk = Chunk(x, y, z);
           world_generator_.fill_chunk(chunk);
           region_.add_chunk(std::move(chunk));
         }
       }
-      mesh_generator_.consume_region(region_);
-      renderer_.consume_mesh_generator(mesh_generator_);
+      {
+        std::unique_lock<std::mutex> lock(mutex_);
+        cv_.wait(lock, [this] { return ready_to_mesh_; });
+      }
+      {
+        std::unique_lock<std::mutex> lock(mesh_mutex_);
+        mesh_generator_.consume_region(region_);
+        ready_to_mesh_ = false;
+      }
+
       break;
     }
     success = q.try_dequeue(message);
   }
 
+  std::unique_lock<std::mutex> lock(mutex_);
   auto& pos = player_.get_position();
+  lock.unlock();
+
   auto loc = Chunk::pos_to_loc(pos);
   auto& last_location = player_.get_last_location();
   if (loc != last_location) {
@@ -75,8 +82,6 @@ void Sim::step() {
         auto location = Location{loc[0] + x, 0, loc[2] + z};
         if (!region_.has_chunk(location)) {
           locs.emplace_back(location);
-          auto chunk = Chunk(location);
-          region_.add_chunk(std::move(chunk));
         }
       }
     }
@@ -113,7 +118,7 @@ void Sim::get_chunks(std::vector<Location>& locs) {
   tcp_client_.write(std::move(message));
 }
 
-void Sim::draw() {
+void Sim::draw(int64_t ms) {
   double xpos, ypos;
   glfwGetCursorPos(window_, &xpos, &ypos);
 
@@ -126,9 +131,11 @@ void Sim::draw() {
   }
   Input::instance()->set_cursor_start_pos(xpos, ypos);
 
-  // TODO
-  // the camera move speed needs to be dependent on real time, not program speed
-  // basically, if you modify the camera movement speed by elapsed time since last draw it works
+  int frame_rate_target = 60;
+  std::cout<<"ms: "<<ms<<", scale factor: "<< ms*frame_rate_target/1000.0<<std::endl;
+  camera_.scale_translation_speed(ms*frame_rate_target/1000.0);
+  camera_.scale_rotation_speed(ms*frame_rate_target/1000.0);
+
   if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS) {
     camera_.move_forward();
   } else if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS) {
@@ -154,7 +161,18 @@ void Sim::draw() {
     }
   }
   auto& camera_pos = camera_.get_position();
-  player_.set_position(camera_pos[0], camera_pos[1], camera_pos[2]);
+
+  {
+    std::unique_lock<std::mutex> lock(mutex_);
+    bool suc = mesh_mutex_.try_lock();
+    if (suc) {
+      renderer_.consume_mesh_generator(mesh_generator_);
+      player_.set_position(camera_pos[0], camera_pos[1], camera_pos[2]);
+      ready_to_mesh_ = true;
+      mesh_mutex_.unlock();
+    }
+  }
+  cv_.notify_one();
 
   renderer_.consume_camera(camera_);
   renderer_.render();
