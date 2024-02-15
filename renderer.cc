@@ -68,6 +68,7 @@ Renderer::Renderer() {
   for (int i = 0; i < vbos_.size() && i < vaos_.size(); ++i) {
     auto vbo = vbos_[i];
     auto vao = vaos_[i];
+    //    std::cout << "vbo: " << vbo << ", vao: " << vao << std::endl;
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBindVertexArray(vao);
@@ -80,7 +81,7 @@ Renderer::Renderer() {
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * chunk_max_vertices_, nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * default_max_vertices, nullptr, GL_STATIC_DRAW);
   }
 
   glBindVertexArray(0);
@@ -129,7 +130,6 @@ Renderer::Renderer() {
   // glFrontFace(GL_CCW);
   // glEnable(GL_CULL_FACE);
   glClearColor(0.612f, 0.914f, 1.f, 1.0f);
-
 }
 
 void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
@@ -140,15 +140,38 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
       auto& loc = diff.location;
       auto& mesh = meshes.at(loc);
 
-      GLuint vbo_to_use = 0;
-      for (auto vbo : vbos_) {
+      GLuint vbo_to_use = -1;
+      GLuint vao = -1;
+      GLuint* vbo_ptr = nullptr;
+      for (int i = 0; i < vbos_.size(); ++i) {
+        auto& vbo = vbos_[i];
         if (!vbo_map_.contains(vbo)) {
           vbo_to_use = vbo;
+          vbo_ptr = &vbos_[i];
+          vao = vaos_[i];
           break;
         }
       }
+
       glBindBuffer(GL_ARRAY_BUFFER, vbo_to_use);
-      glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * mesh.size(), mesh.data());
+
+      GLint bufferSize;
+      glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &bufferSize);
+      if (bufferSize < sizeof(Vertex) * mesh.size()) {
+        std::cout << "Buffer too small! This mesh has size " << mesh.size() << std::endl;
+        glDeleteBuffers(1, vbo_ptr);
+        glGenBuffers(1, vbo_ptr);
+        vbo_to_use = *vbo_ptr;
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_to_use);
+        glBindVertexArray(vao);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvs));
+        glVertexAttribPointer(3, 1, GL_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, layer));
+        glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * mesh.size(), mesh.data(), GL_STATIC_DRAW);
+      } else {
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * mesh.size(), mesh.data());
+      }
+
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       vbo_map_[vbo_to_use] = loc;
       loc_map_[loc] = vbo_to_use;
@@ -184,7 +207,7 @@ void Renderer::render() const {
 
     if (!vbo_map_.contains(vbo))
       continue;
-    
+
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBindVertexArray(vao);
 

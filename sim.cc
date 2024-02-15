@@ -132,9 +132,8 @@ void Sim::draw(int64_t ms) {
   Input::instance()->set_cursor_start_pos(xpos, ypos);
 
   int frame_rate_target = 60;
-  std::cout<<"ms: "<<ms<<", scale factor: "<< ms*frame_rate_target/1000.0<<std::endl;
-  camera_.scale_translation_speed(ms*frame_rate_target/1000.0);
-  camera_.scale_rotation_speed(ms*frame_rate_target/1000.0);
+  camera_.scale_translation_speed(ms * frame_rate_target / 1000.0);
+  camera_.scale_rotation_speed(ms * frame_rate_target / 1000.0);
 
   if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS) {
     camera_.move_forward();

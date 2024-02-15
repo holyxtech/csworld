@@ -22,7 +22,7 @@ private:
   std::unordered_map<GLuint, int> mesh_size_map_;
   GLuint shader_;
 
-  static constexpr int chunk_max_vertices_ = Chunk::sz;
+  static constexpr int default_max_vertices = 32000;
 };
 
 #endif
