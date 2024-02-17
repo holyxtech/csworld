@@ -35,8 +35,11 @@ void Region::add_chunk(Chunk&& chunk) {
     }
   }
 
-  chunks_.insert({loc, std::move(chunk)});
+  if (chunk.get_water_voxels().size() > 0) {
+    diffs_.emplace_back(Diff{loc, Diff::water});
+  }
   diffs_.emplace_back(Diff{loc, Diff::creation});
+  chunks_.insert({loc, std::move(chunk)});
 }
 
 const std::vector<Region::Diff>& Region::get_diffs() const {

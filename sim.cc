@@ -12,7 +12,7 @@
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window), tcp_client_(tcp_client) {
 
-  std::array<double, 3> starting_pos = {0, 30, 0};
+  std::array<double, 3> starting_pos = {0, 40, 0};
   camera_.set_position(glm::vec3{starting_pos[0], starting_pos[1], starting_pos[2]});
   player_.set_position(starting_pos[0], starting_pos[1], starting_pos[2]);
 
@@ -35,7 +35,7 @@ void Sim::step() {
   auto& q = tcp_client_.get_queue();
   bool success = q.try_dequeue(message);
   while (success) {
-    std::cout << "suc " << message.size() << std::endl;
+    //std::cout << "suc " << message.size() << std::endl;
     auto* update = fbs::GetUpdate(message.data());
     switch (update->kind_type()) {
     case fbs::UpdateKind_Region:
@@ -89,6 +89,8 @@ void Sim::step() {
       get_chunks(locs);
     player_.set_last_location(loc);
   }
+
+  // update region logic
 }
 
 void Sim::get_chunks(std::vector<Location>& locs) {

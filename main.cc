@@ -11,6 +11,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "input.h"
 #include "readerwriterqueue.h"
+#include "renderer.h"
 #include "sim.h"
 #include "sim_server.h"
 #include "tcp_client.h"
@@ -40,8 +41,7 @@ int main() {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-  const GLuint width = 1920, height = 1080;
-  auto window = glfwCreateWindow(width, height, "World", nullptr, nullptr);
+  auto window = glfwCreateWindow(Renderer::window_width, Renderer::window_height, "World", nullptr, nullptr);
   if (!window) {
     std::cerr << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
@@ -83,7 +83,6 @@ int main() {
     sim.draw(duration.count());
     start = std::chrono::high_resolution_clock::now();
     glfwSwapBuffers(window);
-    
   }
   build_thread.join();
 

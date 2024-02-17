@@ -1,6 +1,6 @@
 # Compiler and linker settings
-CC = g++-13
-CFLAGS = -std=c++2b -Wall -g
+CC = g++-13 
+CFLAGS = -std=c++2b -g
 LDLIBS = -L/usr/local/lib -L/usr/local/lib64 -lglfw3 -lGLEW -lGL -ldl -lpthread -Wl,-rpath=/usr/local/lib64
 INC = -I./fsb
 
@@ -24,5 +24,7 @@ run: $(OBJS)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+EXCLUDE_OBJS := open-simplex-noise.o
+
 clean:
-	rm -f $(OBJS) run
+	rm -f $(filter-out $(EXCLUDE_OBJS), $(OBJS)) run

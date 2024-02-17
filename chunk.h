@@ -2,6 +2,7 @@
 #define CHUNK_H
 
 #include <array>
+#include <unordered_set>
 #include <vector>
 #include "types.h"
 
@@ -12,24 +13,26 @@ public:
   };
 
   Chunk(int x, int y, int z);
-  Chunk(Location location);
+  //  Chunk(Location location);
 
   const Location& get_location() const;
-
+  const std::unordered_set<std::size_t>& get_water_voxels() const;
   Voxel::VoxelType get_voxel(int x, int y, int z) const;
   Voxel::VoxelType get_voxel(int i) const;
+  
   std::array<Voxel::VoxelType, 6> get_adjacent(int x, int y, int z) const;
 
   void set_voxel(int x, int y, int z, Voxel::VoxelType value);
-  void set_voxel(int i, Voxel::VoxelType value);
+  // void set_voxel(int i, Voxel::VoxelType value);
 
   void set_flag(Flags flag);
   void unset_flag(Flags flag);
   bool check_flag(Flags flag);
 
   static Location pos_to_loc(const std::array<double, 3>& position);
+  static std::array<int, 3> flat_index_to_3d(int i);
 
-  static constexpr int sz_uniform = 32;
+  static constexpr int sz_uniform = 64;
   static constexpr int sz_x = sz_uniform;
   static constexpr int sz_y = sz_uniform;
   static constexpr int sz_z = sz_uniform;
@@ -37,6 +40,9 @@ public:
 
 private:
   std::vector<Voxel::VoxelType> voxels_;
+  static constexpr int water_voxels_reserve = sz / 10;
+  std::unordered_set<std::size_t> water_voxels_;
+
   Location location_;
 
   uint32_t flags_;

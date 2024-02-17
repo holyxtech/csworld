@@ -46,7 +46,13 @@ namespace Voxel {
   enum VoxelType {
     empty,
 
+    WATER_LOWER,
+    water_full,
+    WATER_UPPER,
+
+    OPAQUE_LOWER,
     dirt,
+    sand,
 
     num_voxel_types
   };
@@ -56,17 +62,10 @@ namespace Voxel {
     tex_grass,
     tex_grass_side,
     tex_water,
+    tex_sand,
 
     num_voxel_textures
   };
-
-  const std::unordered_map<VoxelTexture, int> textures = [] {
-    std::unordered_map<VoxelTexture, int> tex;
-    for (int i = 0; i < num_voxel_textures; ++i) {
-      tex[static_cast<VoxelTexture>(i)] = i;
-    }
-    return tex;
-  }();
 
 } // namespace Voxel
 

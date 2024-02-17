@@ -34,7 +34,7 @@ private:
 
   float pan_sensitivity_ = 0.1;
 
-  float base_translation_speed_ = 1;
+  float base_translation_speed_ = 4;
   float base_rotation_speed_ = 1;
   float translation_speed_ = 1;
   float rotation_speed_ = 1;

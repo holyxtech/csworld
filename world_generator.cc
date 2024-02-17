@@ -15,8 +15,15 @@ void WorldGenerator::fill_chunk(Chunk& chunk) const {
       double voxel_x = position[0] + x;
       double voxel_z = position[2] + z;
       int height = noise(voxel_x, voxel_z);
-      for (int y = 0; y < height; ++y) {
+      int y = 0;
+      for (; y < height; ++y) {
         chunk.set_voxel(x, y, z, Voxel::dirt);
+      }
+      for (; y < 25; ++y) {
+        chunk.set_voxel(x, y, z, Voxel::sand);
+      }
+      for (; y < 30; ++y) {
+        chunk.set_voxel(x, y, z, Voxel::water_full);
       }
     }
   }

@@ -5,13 +5,15 @@
 #include <unordered_map>
 #include <vector>
 #include "chunk.h"
+#include "simobject.h"
 
 class Region {
 public:
   struct Diff {
     enum Kind {
       creation,
-      deletion
+      deletion,
+      water
     };
     Location location;
     Kind kind;
@@ -24,11 +26,13 @@ public:
   const std::vector<Diff>& get_diffs() const;
   void clear_diffs();
 
-  static constexpr int max_sz = 2048;
+  static constexpr int max_sz = 256;
 
 private:
   std::unordered_map<Location, Chunk, LocationHash> chunks_;
   std::vector<Diff> diffs_;
+
+  std::vector<SimObject> live_objects_;
 };
 
 #endif // REGION_H
