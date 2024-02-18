@@ -232,11 +232,11 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
       }
 
       glBindBuffer(GL_ARRAY_BUFFER, vbo_to_use);
-
       GLint bufferSize;
       glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &bufferSize);
       if (bufferSize < sizeof(Vertex) * mesh->size()) {
         std::cout << "Buffer too small! This mesh has size " << mesh->size() << std::endl;
+
         glDeleteBuffers(1, vbo_ptr);
         glGenBuffers(1, vbo_ptr);
         vbo_to_use = *vbo_ptr;
@@ -265,6 +265,8 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
     } else if (diff.kind == MeshGenerator::Diff::deletion) {
       GLuint vbo = loc_map_[diff.location];
       vbo_map_.erase(vbo);
+      GLuint water_vbo = water_loc_map_[diff.location];
+      water_vbo_map_.erase(water_vbo);
     }
   }
 

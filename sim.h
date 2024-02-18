@@ -39,7 +39,7 @@ private:
   std::condition_variable cv_;
   bool ready_to_mesh_ = true;
 
-  static constexpr int min_render_distance = 4;
+  static constexpr int min_render_distance = 2;
 };
 
 #endif
