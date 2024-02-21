@@ -9,6 +9,7 @@
 #include <glm/glm.hpp>
 
 using Location = std::array<int, 3>;
+using Location2D = std::array<int, 2>;
 
 struct LocationMath {
   static double distance(Location l1, Location l2) {
@@ -30,6 +31,16 @@ struct LocationHash {
     ret ^= h(l[1]) | l[1];
     ret ^= h(l[2]) | l[2];
     return ret;
+  }
+};
+
+struct Location2DHash final {
+  template <class T, std::size_t N>
+  size_t operator()(const std::array<T, N>& arr) const noexcept {
+    uintmax_t hash = std::hash<T>{}(arr[0]);
+    hash <<= sizeof(uintmax_t) * 4;
+    hash ^= std::hash<T>{}(arr[1]);
+    return std::hash<uintmax_t>{}(hash);
   }
 };
 
@@ -76,6 +87,11 @@ enum Direction {
   py,
   nz,
   pz
+};
+
+struct Section {
+  Location2D location;
+  int elevation;
 };
 
 #endif

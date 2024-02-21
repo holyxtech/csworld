@@ -19,6 +19,10 @@ public:
     Kind kind;
   };
 
+
+  void add_section(Section section);
+  bool has_section(Location2D loc) const;
+
   Chunk& get_chunk(Location loc);
   bool has_chunk(Location loc) const;
   const std::vector<Chunk>& get_chunks() const;
@@ -29,6 +33,7 @@ public:
   static constexpr int max_sz = 256;
 
 private:
+  std::unordered_map<Location2D, Section, Location2DHash> sections_;
   std::unordered_map<Location, Chunk, LocationHash> chunks_;
   std::vector<Diff> diffs_;
 

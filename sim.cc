@@ -4,28 +4,31 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "./fbs/common_generated.h"
+#include "./fbs/request_generated.h"
+#include "./fbs/update_generated.h"
 #include "chunk.h"
-#include "fbs/cs_generated.h"
 #include "input.h"
 #include "readerwriterqueue.h"
 
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
-    : window_(window), tcp_client_(tcp_client) {
+    : window_(window), tcp_client_(tcp_client), renderer_(world_) {
 
-  std::array<double, 3> starting_pos = {0, 40, 0};
+  std::array<double, 3> starting_pos = {3950000, 40, -1800000};
+  std::cout<<starting_pos[0]<<","<<starting_pos[1]<<","<<starting_pos[2]<<std::endl;
   camera_.set_position(glm::vec3{starting_pos[0], starting_pos[1], starting_pos[2]});
   player_.set_position(starting_pos[0], starting_pos[1], starting_pos[2]);
 
   auto loc = Chunk::pos_to_loc(starting_pos);
-  std::vector<Location> locs;
+  std::vector<Location2D> locs;
   for (int x = -min_render_distance; x < min_render_distance; ++x) {
     for (int z = -min_render_distance; z < min_render_distance; ++z) {
-      auto location = Location{loc[0] + x, 0, loc[2] + z};
+      auto location = Location2D{loc[0] + x, loc[2] + z};
       locs.emplace_back(location);
     }
   }
   if (locs.size() > 0)
-    get_chunks(locs);
+    get_sections(locs);
   player_.set_last_location(loc);
 }
 
@@ -35,23 +38,27 @@ void Sim::step() {
   auto& q = tcp_client_.get_queue();
   bool success = q.try_dequeue(message);
   while (success) {
-    //std::cout << "suc " << message.size() << std::endl;
-    auto* update = fbs::GetUpdate(message.data());
+    // std::cout << "suc " << message.size() << std::endl;
+    auto* update = fbs_update::GetUpdate(message.data());
     switch (update->kind_type()) {
-    case fbs::UpdateKind_Region:
+    case fbs_update::UpdateKind_Region:
       auto* region = update->kind_as_Region();
-      auto* chunks = region->chunks();
-      for (int i = 0; i < chunks->size(); ++i) {
-        auto* loc = chunks->Get(i)->location();
-        /* std::cout
-          << "Received chunk at "
-          << loc->x() << "," << loc->y() << "," << loc->z() << std::endl; */
-        auto x = loc->x(), y = loc->y(), z = loc->z();
-        if (region_.has_chunk(Location{x, y, z})) {
-        } else {
-          auto chunk = Chunk(x, y, z);
+      auto* sections = region->sections();
+      for (int i = 0; i < sections->size(); ++i) {
+        auto* section = sections->Get(i);
+        auto* loc = section->location();
+        int elevation = section->elevation();
+        std::cout
+          << "Received section at "
+          << loc->x() << "," << loc->y() << " with elevation " << elevation << std::endl;
+
+        auto x = loc->x(), z = loc->y();
+        if (!region_.has_section(Location2D{x, z})) {
+          // TODO...
+          auto chunk = Chunk(x, 0, z);
           world_generator_.fill_chunk(chunk);
           region_.add_chunk(std::move(chunk));
+          region_.add_section(Section{x, z});
         }
       }
       {
@@ -76,39 +83,33 @@ void Sim::step() {
   auto loc = Chunk::pos_to_loc(pos);
   auto& last_location = player_.get_last_location();
   if (loc != last_location) {
-    std::vector<Location> locs;
+    std::vector<Location2D> locs;
     for (int x = -min_render_distance; x < min_render_distance; ++x) {
       for (int z = -min_render_distance; z < min_render_distance; ++z) {
-        auto location = Location{loc[0] + x, 0, loc[2] + z};
-        if (!region_.has_chunk(location)) {
+        auto location = Location2D{loc[0] + x, loc[2] + z};
+        if (!region_.has_section(location)) {
           locs.emplace_back(location);
         }
       }
     }
     if (locs.size() > 0)
-      get_chunks(locs);
+      get_sections(locs);
     player_.set_last_location(loc);
   }
-
-  // update region logic
 }
 
-void Sim::get_chunks(std::vector<Location>& locs) {
+void Sim::get_sections(std::vector<Location2D>& locs) {
   flatbuffers::FlatBufferBuilder builder(1048576);
 
-  std::vector<flatbuffers::Offset<fbs::Chunk>> chunks;
+  std::vector<fbs_common::Location2D> locations;
 
   for (auto& loc : locs) {
-    fbs::LocationI locI(loc[0], loc[1], loc[2]);
-    auto chunk = fbs::CreateChunk(builder, &locI);
-    chunks.push_back(std::move(chunk));
+    fbs_common::Location2D location(loc[0], loc[1]);
+    locations.push_back(location);
   }
-
-  auto region = CreateRegionUpdate(builder, builder.CreateVector(chunks));
-  auto update_kind = fbs::UpdateKind_Region;
-  auto update = CreateUpdate(builder, fbs::UpdateKind_Region, region.Union());
-
-  FinishSizePrefixedUpdateBuffer(builder, update);
+  auto sections = builder.CreateVectorOfStructs(locations);
+  auto request = fbs_request::CreateRequest(builder, sections);
+  fbs_request::FinishSizePrefixedRequestBuffer(builder, request);
 
   const auto* buffer_pointer = builder.GetBufferPointer();
   const auto buffer_size = builder.GetSize();

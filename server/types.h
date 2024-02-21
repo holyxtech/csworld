@@ -3,11 +3,14 @@
 
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <iostream>
 #include <map>
+#include <utility>
 #include <vector>
 
 using Location = std::array<int, 3>;
+using Location2D = std::array<int, 2>;
 
 struct LocationMath {
   static double distance(Location l1, Location l2) {
@@ -54,4 +57,20 @@ namespace Voxel {
   };
 
 } // namespace Voxel
+
+struct hash_pair final {
+  template <class TFirst, class TSecond>
+  size_t operator()(const std::pair<TFirst, TSecond>& p) const noexcept {
+    uintmax_t hash = std::hash<TFirst>{}(p.first);
+    hash <<= sizeof(uintmax_t) * 4;
+    hash ^= std::hash<TSecond>{}(p.second);
+    return std::hash<uintmax_t>{}(hash);
+  }
+};
+
+struct Section {
+  Location2D location;
+  int elevation;
+};
+
 #endif

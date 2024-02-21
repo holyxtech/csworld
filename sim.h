@@ -14,6 +14,7 @@
 #include "renderer.h"
 #include "tcp_client.h"
 #include "world_generator.h"
+#include "world.h"
 
 class Sim {
 public:
@@ -23,16 +24,18 @@ public:
 
 
 private:
-  void get_chunks(std::vector<Location>& locs);
+  void get_sections(std::vector<Location2D>& locs);
 
   GLFWwindow* window_;
   TCPClient& tcp_client_;
   Region region_;
+  World world_;
   WorldGenerator world_generator_;
   MeshGenerator mesh_generator_;
   Renderer renderer_;
   Player player_;
   Camera camera_;
+
 
   std::mutex mutex_;
   std::mutex mesh_mutex_;

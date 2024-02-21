@@ -1,4 +1,7 @@
 #include "sim_server.h"
+#include "../fbs/common_generated.h"
+#include "../fbs/request_generated.h"
+#include "../fbs/update_generated.h"
 
 SimServer::SimServer(TCPServer& tcp_server) : tcp_server_(tcp_server) {}
 
@@ -10,38 +13,34 @@ void SimServer::step() {
     auto id = msg_with_id.id;
     auto& message = msg_with_id.message;
 
-    auto* update = fbs::GetUpdate(message.data());
+    auto* request = fbs_request::GetRequest(message.data());
 
-    switch (update->kind_type()) {
-    case fbs::UpdateKind_Region:
-      auto* region = update->kind_as_Region();
-      auto* chunks = region->chunks();
+    auto* sections = request->sections();
 
-      // construct new update
-      flatbuffers::FlatBufferBuilder builder(1048576);
-      std::vector<flatbuffers::Offset<fbs::Chunk>> returned_chunks;
+    // construct new update
+    flatbuffers::FlatBufferBuilder builder(1048576);
+    std::vector<flatbuffers::Offset<fbs_update::Section>> returning_sections;
 
-      for (int i = 0; i < chunks->size(); ++i) {
-        auto* loc = chunks->Get(i)->location();
-        auto x = loc->x(), y = loc->y(), z = loc->z();
-
-        auto chunk = fbs::CreateChunk(builder, loc);
-        returned_chunks.push_back(std::move(chunk));
-      }
-
-      auto returned_region = CreateRegionUpdate(builder, builder.CreateVector(returned_chunks));
-      auto update_kind = fbs::UpdateKind_Region;
-      auto returned_update = CreateUpdate(builder, fbs::UpdateKind_Region, returned_region.Union());
-      FinishSizePrefixedUpdateBuffer(builder, returned_update);
-
-      const auto* buffer_pointer = builder.GetBufferPointer();
-      const auto buffer_size = builder.GetSize();
-
-      Message returned_message(buffer_size);
-      std::memcpy(returned_message.data(), buffer_pointer, buffer_size);
-      tcp_server_.write(MessageWithId{returned_message, id});
-      break;
+    for (int i = 0; i < sections->size(); ++i) {
+      auto* loc = sections->Get(i);
+      auto x = loc->x(), y = loc->y();
+      auto sec = world_generator_.get_section(Location2D{x, y});
+      std::cout<<sec.elevation<<std::endl; 
+      auto section = fbs_update::CreateSection(builder, loc, sec.elevation);
+      returning_sections.push_back(std::move(section));
     }
+
+    auto returned_region = fbs_update::CreateRegionUpdate(builder, builder.CreateVector(returning_sections));
+    auto update_kind = fbs_update::UpdateKind_Region;
+    auto returned_update = fbs_update::CreateUpdate(builder, fbs_update::UpdateKind_Region, returned_region.Union());
+    FinishSizePrefixedUpdateBuffer(builder, returned_update);
+
+    const auto* buffer_pointer = builder.GetBufferPointer();
+    const auto buffer_size = builder.GetSize();
+
+    Message returned_message(buffer_size);
+    std::memcpy(returned_message.data(), buffer_pointer, buffer_size);
+    tcp_server_.write(MessageWithId{returned_message, id});
     success = q.try_dequeue(msg_with_id);
   }
 }

@@ -1,6 +1,14 @@
 #include "region.h"
 #include <iostream>
 
+void Region::add_section(Section section) {
+  sections_.insert({section.location, section});
+}
+
+bool Region::has_section(Location2D loc) const {
+  return sections_.contains(loc);
+}
+
 Chunk& Region::get_chunk(Location loc) {
   return chunks_.at(loc);
 }

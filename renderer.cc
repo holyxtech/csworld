@@ -19,8 +19,8 @@ static std::string read_shader_file(std::string path) {
   return std::string(std::istreambuf_iterator<char>(fs), std::istreambuf_iterator<char>());
 }
 
-Renderer::Renderer() {
-  auto activateShader = [](GLuint* shader, std::string vertex_shader_filename, std::string fragment_shader_filename) {
+Renderer::Renderer(World& world) : world_(world) {
+  auto activate_shader = [](GLuint* shader, std::string vertex_shader_filename, std::string fragment_shader_filename) {
     auto vertex_shader_source = read_shader_file(vertex_shader_filename);
     auto fragment_shader_source = read_shader_file(fragment_shader_filename);
     const auto vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -59,10 +59,8 @@ Renderer::Renderer() {
     glDeleteShader(fragment_shader);
   };
 
-  activateShader(&shader_, "vertex.glsl", "fragment.glsl");
-  activateShader(&window_shader_, "window_vertex.glsl", "window_fragment.glsl");
-
-  // glUseProgram(window_shader_);
+  activate_shader(&shader_, "vertex.glsl", "fragment.glsl");
+  activate_shader(&window_shader_, "window_vertex.glsl", "window_fragment.glsl");
 
   glGenBuffers(vbos_.size(), vbos_.data());
   glGenVertexArrays(vaos_.size(), vaos_.data());
@@ -70,30 +68,17 @@ Renderer::Renderer() {
   glGenBuffers(water_vbos_.size(), water_vbos_.data());
   glGenVertexArrays(water_vaos_.size(), water_vaos_.data());
 
-  auto activate = [](GLuint vbo, GLuint vao) {
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBindVertexArray(vao);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvs));
-    glVertexAttribPointer(3, 1, GL_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, layer));
-
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
-  };
-
   for (int i = 0; i < vbos_.size() && i < vaos_.size(); ++i) {
     auto vbo = vbos_[i];
     auto vao = vaos_[i];
-    activate(vbo, vao);
+    activate_vao(vbo, vao);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MeshGenerator::default_max_vertices, nullptr, GL_STATIC_DRAW);
   }
 
   for (int i = 0; i < water_vbos_.size() && i < water_vaos_.size(); ++i) {
     auto vbo = water_vbos_[i];
     auto vao = water_vaos_[i];
-    activate(vbo, vao);
+    activate_vao(vbo, vao);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MeshGenerator::default_max_water_vertices, nullptr, GL_STATIC_DRAW);
   }
 
@@ -160,7 +145,7 @@ Renderer::Renderer() {
   glUseProgram(shader_);
   glUniform1i(texture_loc, GL_TEXTURE0);
 
-  auto activateFramebuffers = [](GLuint* fbo, GLuint* cbo, GLuint* dbo) {
+  auto activate_framebuffers = [](GLuint* fbo, GLuint* cbo, GLuint* dbo) {
     glGenFramebuffers(1, fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, *fbo);
 
@@ -185,15 +170,39 @@ Renderer::Renderer() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, *dbo, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
   };
-  activateFramebuffers(&main_framebuffer_, &main_cbo_, &main_dbo_);
-  activateFramebuffers(&water_framebuffer_, &water_cbo_, &water_dbo_);
+  activate_framebuffers(&main_framebuffer_, &main_cbo_, &main_dbo_);
+  activate_framebuffers(&water_framebuffer_, &water_cbo_, &water_dbo_);
+
+  // upload lights
+  auto& sun_dir = world_.get_sun_dir();
+  GLint sun_dir_loc = glGetUniformLocation(shader_, "sunDir");
+  glUniform3fv(sun_dir_loc, 1, glm::value_ptr(sun_dir));
+  auto& sun_col = world_.get_sun_col();
+  GLint sun_col_loc = glGetUniformLocation(shader_, "sunCol");
+  glUniform3fv(sun_col_loc, 1, glm::value_ptr(sun_col));
+  auto& ambient_col = world_.get_ambient_col();
+  GLint ambient_col_loc = glGetUniformLocation(shader_, "ambientCol");
+  glUniform3fv(ambient_col_loc, 1, glm::value_ptr(ambient_col));
 
   glEnable(GL_DEPTH_TEST);
   /*   glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); */
   glFrontFace(GL_CW);
   glEnable(GL_CULL_FACE);
-  glClearColor(0.612f, 0.914f, 1.f, 1.0f);
+  glClearColor(0.502f, 0.866f, 1.f, 1.0f);
+}
+
+void Renderer::activate_vao(GLuint vbo, GLuint vao) {
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBindVertexArray(vao);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvs));
+  glVertexAttribPointer(3, 1, GL_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, layer));
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+  glEnableVertexAttribArray(2);
+  glEnableVertexAttribArray(3);
 }
 
 void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
@@ -240,11 +249,8 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
         glDeleteBuffers(1, vbo_ptr);
         glGenBuffers(1, vbo_ptr);
         vbo_to_use = *vbo_ptr;
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_to_use);
-        glBindVertexArray(vao);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvs));
-        glVertexAttribPointer(3, 1, GL_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, layer));
+        activate_vao(vbo_to_use, vao);
+
         glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * mesh->size(), mesh->data(), GL_STATIC_DRAW);
       } else {
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * mesh->size(), mesh->data());

@@ -1,7 +1,7 @@
 # Compiler and linker settings
 CC = g++-13
-CFLAGS = -std=c++2b
-LDLIBS = -L/usr/local/lib -L/usr/local/lib64 -ldl -lpthread -Wl,-rpath=/usr/local/lib64
+CFLAGS = -std=c++2b -g
+LDLIBS = -L/usr/local/lib -L/usr/local/lib64 -ldl -lpthread -lcurl -Wl,-rpath=/usr/local/lib64
 INC = -I../fsb
 
 # Source files and object files

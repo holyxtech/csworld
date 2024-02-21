@@ -16,6 +16,7 @@ public:
 
 private:
   std::unordered_map<Location, Chunk, LocationHash> chunks_;
+  
 };
 
 #endif // REGION_H

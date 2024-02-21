@@ -25,6 +25,7 @@ private:
   std::vector<Voxel::VoxelType> voxels_;
 
   Location location_;
+
 };
 
 #endif

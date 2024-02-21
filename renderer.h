@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "mesh_generator.h"
 #include "region.h"
+#include "world.h"
 
 typedef struct {
   uint count;
@@ -16,7 +17,7 @@ typedef struct {
 
 class Renderer {
 public:
-  Renderer();
+  Renderer(World& world);
   void consume_mesh_generator(MeshGenerator& mesh_generator);
   void consume_camera(const Camera& camera);
   void render() const;
@@ -25,6 +26,8 @@ public:
   static constexpr GLuint window_height = 1080;
 
 private:
+  void activate_vao(GLuint vbo, GLuint vao);
+
   std::array<GLuint, Region::max_sz> vaos_;
   std::array<GLuint, Region::max_sz> vbos_;
   std::unordered_map<GLuint, Location> vbo_map_;
@@ -51,6 +54,8 @@ private:
 
   GLuint shader_;
   GLuint window_shader_;
+
+  World& world_;
 };
 
 #endif
