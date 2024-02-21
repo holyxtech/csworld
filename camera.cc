@@ -16,7 +16,7 @@ void Camera::set_position(glm::vec3 position) {
 }
 
 glm::mat4 Camera::get_view() const {
-  return glm::lookAt(position_, position_ + front_, up_);
+  return glm::lookAt(glm::vec3(0.f), front_, up_);
 }
 
 void Camera::pan(float xoff, float yoff) {

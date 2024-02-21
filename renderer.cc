@@ -286,10 +286,13 @@ void Renderer::consume_camera(const Camera& camera) {
   glm::mat4 projection = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 4000.l);
   glm::mat4 view = camera.get_view();
   glm::mat4 transform = projection * view;
+  auto& camera_pos = camera.get_position();
 
-  auto transform_loc = glGetUniformLocation(shader_, "transform");
+  auto transform_loc = glGetUniformLocation(shader_, "uTransform");
+  auto camera_pos_loc = glGetUniformLocation(shader_, "uCameraPos");
   glUseProgram(shader_);
   glUniformMatrix4fv(transform_loc, 1, GL_FALSE, &transform[0][0]);
+  glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera_pos));
 }
 
 void Renderer::render() const {
