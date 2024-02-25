@@ -25,7 +25,6 @@ void SimServer::step() {
       auto* loc = sections->Get(i);
       auto x = loc->x(), y = loc->y();
       auto sec = world_generator_.get_section(Location2D{x, y});
-      std::cout<<sec.elevation<<std::endl; 
       auto section = fbs_update::CreateSection(builder, loc, sec.elevation);
       returning_sections.push_back(std::move(section));
     }

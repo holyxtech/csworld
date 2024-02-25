@@ -146,6 +146,7 @@ void MeshGenerator::mesh_chunk(const Chunk& chunk) {
       }
     }
   }
+
   diffs_.emplace_back(Diff{location, Diff::creation});
 }
 
@@ -176,13 +177,15 @@ void MeshGenerator::consume_region(Region& region) {
 
     if (diff.kind == Region::Diff::creation) {
       auto& chunk = region.get_chunk(loc);
-      // auto start = std::chrono::high_resolution_clock::now();
+//      auto start = std::chrono::high_resolution_clock::now();
       mesh_chunk(chunk);
-      /*       auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-            num_meshed++;
-            total_duration += duration.count();
-       */
+/*       auto end = std::chrono::high_resolution_clock::now();
+
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+      std::cout << "mesh time: " << duration.count() << std::endl;
+ */      /* num_meshed++;
+      total_duration += duration.count(); */
+
     } else if (diff.kind == Region::Diff::deletion) {
       diffs_.emplace_back(Diff{loc, Diff::deletion});
     } else if (diff.kind == Region::Diff::water) {
@@ -199,6 +202,7 @@ const std::vector<MeshGenerator::Diff>& MeshGenerator::get_diffs() const {
 }
 
 void MeshGenerator::clear_diffs() {
+  std::cout<<"mesh num: "<<meshes_.size()<<std::endl;
   for (auto& diff : diffs_) {
     auto& loc = diff.location;
     if (diff.kind == MeshGenerator::Diff::deletion) {

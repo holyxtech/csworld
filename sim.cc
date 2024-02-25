@@ -1,4 +1,5 @@
 #include "sim.h"
+#include <chrono>
 #include <iostream>
 #include <thread>
 #include <glm/glm.hpp>
@@ -10,29 +11,32 @@
 #include "chunk.h"
 #include "input.h"
 #include "readerwriterqueue.h"
+#include "section.h"
 
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window), tcp_client_(tcp_client), renderer_(world_) {
 
-  std::array<double, 3> starting_pos = {3950000, 40, -1800000};
-  std::cout<<starting_pos[0]<<","<<starting_pos[1]<<","<<starting_pos[2]<<std::endl;
+  // std::array<double, 3> starting_pos = {-13306370, 2600, 8389655};
+  std::array<double, 3> starting_pos = {-12306370, 1300, 8389655};
+
   camera_.set_position(glm::vec3{starting_pos[0], starting_pos[1], starting_pos[2]});
   player_.set_position(starting_pos[0], starting_pos[1], starting_pos[2]);
 
   auto loc = Chunk::pos_to_loc(starting_pos);
   std::vector<Location2D> locs;
-  for (int x = -min_render_distance; x < min_render_distance; ++x) {
-    for (int z = -min_render_distance; z < min_render_distance; ++z) {
+  for (int x = -min_section_distance; x <= min_section_distance; ++x) {
+    for (int z = -min_section_distance; z <= min_section_distance; ++z) {
       auto location = Location2D{loc[0] + x, loc[2] + z};
       locs.emplace_back(location);
     }
   }
   if (locs.size() > 0)
-    get_sections(locs);
+    request_sections(locs);
   player_.set_last_location(loc);
 }
 
 void Sim::step() {
+  bool new_sections = false;
 
   Message message;
   auto& q = tcp_client_.get_queue();
@@ -42,33 +46,25 @@ void Sim::step() {
     auto* update = fbs_update::GetUpdate(message.data());
     switch (update->kind_type()) {
     case fbs_update::UpdateKind_Region:
+      new_sections = true;
       auto* region = update->kind_as_Region();
       auto* sections = region->sections();
       for (int i = 0; i < sections->size(); ++i) {
         auto* section = sections->Get(i);
         auto* loc = section->location();
         int elevation = section->elevation();
-        std::cout
-          << "Received section at "
-          << loc->x() << "," << loc->y() << " with elevation " << elevation << std::endl;
+        /*         std::cout
+                  << "Received section at "
+                  << loc->x() << "," << loc->y() << " with elevation " << elevation << std::endl; */
 
         auto x = loc->x(), z = loc->y();
-        if (!region_.has_section(Location2D{x, z})) {
-          // TODO...
-          auto chunk = Chunk(x, 0, z);
-          world_generator_.fill_chunk(chunk);
-          region_.add_chunk(std::move(chunk));
-          region_.add_section(Section{x, z});
+        auto location = Location2D{x, z};
+        if (!region_.has_section(location)) {
+          auto section = Section(location);
+          section.set_elevation(elevation);
+          region_.add_section(section);
+          requested_sections_.erase(location);
         }
-      }
-      {
-        std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait(lock, [this] { return ready_to_mesh_; });
-      }
-      {
-        std::unique_lock<std::mutex> lock(mesh_mutex_);
-        mesh_generator_.consume_region(region_);
-        ready_to_mesh_ = false;
       }
 
       break;
@@ -81,24 +77,55 @@ void Sim::step() {
   lock.unlock();
 
   auto loc = Chunk::pos_to_loc(pos);
+  // std::cout<<pos[0]<<","<<pos[1]<<","<<pos[2]<<std::endl;
   auto& last_location = player_.get_last_location();
+
+  if (loc != last_location || new_sections) {
+    auto& sections = region_.get_sections();
+    for (int x = -min_render_distance; x <= min_render_distance; ++x) {
+      for (int y = -1; y < 1; ++y) {
+        for (int z = -min_render_distance; z <= min_render_distance; ++z) {
+          auto location = Location{loc[0] + x, loc[1] + y, loc[2] + z};
+          if (!region_.has_chunk(location) && world_generator_.ready_to_fill(location, sections)) {
+            Chunk chunk(location[0], location[1], location[2]);
+            //            auto start = std::chrono::high_resolution_clock::now();
+            world_generator_.fill_chunk(chunk, sections);
+            /*             auto end = std::chrono::high_resolution_clock::now();
+                        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+                         std::cout<<"fill time: "<<duration.count()<<std::endl; */
+            region_.add_chunk(std::move(chunk));
+          }
+        }
+      }
+    }
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      cv_.wait(lock, [this] { return ready_to_mesh_; });
+    }
+    {
+      std::unique_lock<std::mutex> lock(mesh_mutex_);
+      mesh_generator_.consume_region(region_);
+      ready_to_mesh_ = false;
+    }
+  }
   if (loc != last_location) {
     std::vector<Location2D> locs;
-    for (int x = -min_render_distance; x < min_render_distance; ++x) {
-      for (int z = -min_render_distance; z < min_render_distance; ++z) {
+    for (int x = -min_section_distance; x <= min_section_distance; ++x) {
+      for (int z = -min_section_distance; z <= min_section_distance; ++z) {
         auto location = Location2D{loc[0] + x, loc[2] + z};
-        if (!region_.has_section(location)) {
+        if (!(region_.has_section(location) || requested_sections_.contains(location))) {
           locs.emplace_back(location);
+          requested_sections_.insert(location);
         }
       }
     }
     if (locs.size() > 0)
-      get_sections(locs);
-    player_.set_last_location(loc);
+      request_sections(locs);
   }
+  player_.set_last_location(loc);
 }
 
-void Sim::get_sections(std::vector<Location2D>& locs) {
+void Sim::request_sections(std::vector<Location2D>& locs) {
   flatbuffers::FlatBufferBuilder builder(1048576);
 
   std::vector<fbs_common::Location2D> locations;

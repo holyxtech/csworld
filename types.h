@@ -4,12 +4,47 @@
 #include <cmath>
 #include <iostream>
 #include <map>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include <glm/glm.hpp>
 
-using Location = std::array<int, 3>;
+// using Location = std::array<int, 3>;
 using Location2D = std::array<int, 2>;
+
+class Location {
+public:
+  std::array<int, 3> coordinates;
+
+  Location() {}
+
+  Location(std::initializer_list<int> values) {
+    auto it = values.begin();
+    coordinates[0] = *it++;
+    coordinates[1] = *it++;
+    coordinates[2] = *it;
+  }
+
+  int& operator[](std::size_t index) {
+    return coordinates[index];
+  }
+
+  const int& operator[](std::size_t index) const {
+    return coordinates[index];
+  }
+
+  bool operator==(const Location& other) const {
+    return coordinates == other.coordinates;
+  }
+
+  std::string repr() const {
+    return "(" + std::to_string(coordinates[0]) + "," + std::to_string(coordinates[1]) + "," + std::to_string(coordinates[2]) + ")";
+  }
+
+  void print() const {
+    std::cout << "(" << coordinates[0] << "," << coordinates[1] << "," << coordinates[2] << ")" << std::endl;
+  }
+};
 
 struct LocationMath {
   static double distance(Location l1, Location l2) {
@@ -89,9 +124,9 @@ enum Direction {
   pz
 };
 
-struct Section {
+/* struct Section {
   Location2D location;
   int elevation;
-};
+}; */
 
 #endif

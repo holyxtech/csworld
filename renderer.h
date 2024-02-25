@@ -22,8 +22,8 @@ public:
   void consume_camera(const Camera& camera);
   void render() const;
 
-  static constexpr GLuint window_width = 1920;
-  static constexpr GLuint window_height = 1080;
+  static constexpr GLuint window_width = 2560;
+  static constexpr GLuint window_height = 1440;
 
 private:
   void activate_vao(GLuint vbo, GLuint vao);

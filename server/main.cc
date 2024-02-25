@@ -23,17 +23,5 @@ int main() {
     sim_server.step();
   }
 
-  /*   WorldGenerator wg;
-    int x = 3950000 / Chunk::sz_x;
-    int z = -1800000 / Chunk::sz_z;
-    // int x = 0, z = 0;
-    Chunk chunk(x, 0, z);
-    wg.get_chunk_terrain_data(chunk);
-    x = 3950064 / Chunk::sz_x;
-    z = -1800000 / Chunk::sz_z;
-    // int x = 0, z = 0;
-    Chunk chunk_2(x, 0, z);
-    wg.get_chunk_terrain_data(chunk_2);
-   */
   return 0;
 }

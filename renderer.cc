@@ -283,9 +283,10 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
 
 void Renderer::consume_camera(const Camera& camera) {
 
-  glm::mat4 projection = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 4000.l);
+  glm::mat4 projection = glm::perspective(glm::radians(55.l), 16 / 9.l, 0.1l, 4000.l);
   glm::mat4 view = camera.get_view();
   glm::mat4 transform = projection * view;
+
   auto& camera_pos = camera.get_position();
 
   auto transform_loc = glGetUniformLocation(shader_, "uTransform");

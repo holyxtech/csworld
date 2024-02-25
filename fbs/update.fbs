@@ -1,0 +1,26 @@
+include "common.fbs";
+
+namespace fbs_update;
+
+table Chunk {
+  location: fbs_common.Location;
+}
+
+table Section {
+  location: fbs_common.Location2D;
+  elevation: int;
+}
+
+table RegionUpdate {
+  sections: [Section];
+}
+
+union UpdateKind {
+  Region: RegionUpdate
+}
+
+table Update {
+  kind: UpdateKind;
+}
+
+root_type Update;

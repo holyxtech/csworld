@@ -1,0 +1,10 @@
+include "common.fbs";
+
+namespace fbs_request;
+
+table Request {
+  //chunks: [fbs_common.Location];
+  sections: [fbs_common.Location2D];
+}
+
+root_type Request;

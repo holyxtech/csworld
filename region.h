@@ -6,6 +6,7 @@
 #include <vector>
 #include "chunk.h"
 #include "simobject.h"
+#include "section.h"
 
 class Region {
 public:
@@ -19,9 +20,9 @@ public:
     Kind kind;
   };
 
-
   void add_section(Section section);
   bool has_section(Location2D loc) const;
+  std::unordered_map<Location2D, Section, Location2DHash>& get_sections();
 
   Chunk& get_chunk(Location loc);
   bool has_chunk(Location loc) const;
@@ -30,7 +31,7 @@ public:
   const std::vector<Diff>& get_diffs() const;
   void clear_diffs();
 
-  static constexpr int max_sz = 256;
+  static constexpr int max_sz = 1024;
 
 private:
   std::unordered_map<Location2D, Section, Location2DHash> sections_;

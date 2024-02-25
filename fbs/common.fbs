@@ -1,0 +1,12 @@
+namespace fbs_common;
+
+struct Location {
+  x: int;
+  y: int;
+  z: int;
+}
+
+struct Location2D {
+  x: int;
+  y: int;
+}

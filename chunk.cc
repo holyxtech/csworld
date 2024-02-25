@@ -2,7 +2,8 @@
 #include <iostream>
 
 Chunk::Chunk(int x, int y, int z)
-    : location_{x, y, z}, voxels_(sz, Voxel::empty) {
+    : location_{x, y, z} {
+  voxels_.reserve(sz);
   water_voxels_.reserve(water_voxels_reserve);
 }
 

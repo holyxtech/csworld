@@ -2,11 +2,15 @@
 #include <iostream>
 
 void Region::add_section(Section section) {
-  sections_.insert({section.location, section});
+  sections_.insert({section.get_location(), section});
 }
 
 bool Region::has_section(Location2D loc) const {
   return sections_.contains(loc);
+}
+
+std::unordered_map<Location2D, Section, Location2DHash>& Region::get_sections() {
+  return sections_;
 }
 
 Chunk& Region::get_chunk(Location loc) {
@@ -57,6 +61,7 @@ void Region::clear_diffs() {
     auto& loc = diff.location;
     if (diff.kind == Region::Diff::deletion) {
       chunks_.erase(loc);
+      sections_.erase(Location2D{loc[0], loc[2]});
     }
   }
 
