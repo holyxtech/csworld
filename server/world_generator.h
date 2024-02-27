@@ -21,17 +21,21 @@ private:
     int channels;
   };
 
+  Image get_image(
+    std::pair<int, int> tile,
+    std::string dir,
+    std::unordered_map<std::pair<int, int>, Image, hash_pair>& image_store,
+    std::string url);
+
   static std::pair<int, int> lat_lng_to_web_mercator(double latitude, double longitude, int zoom);
-  static void calculateBoundingBox(int xtile, int ytile, int zoom, double& lng_deg, double& lat_deg);
+  static void calculate_bounding_box(int xtile, int ytile, int zoom, double& lng_deg, double& lat_deg);
   static std::pair<int, int> pixel_of_coord(int x, int y, int z, double lng, double lat);
 
   HTTPClient http_client_;
   static constexpr int zoom_level = 15;
-  std::string elevation_data_url_prefix_ = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + std::to_string(zoom_level) + "/";
   std::unordered_map<std::pair<int, int>, Image, hash_pair> elevation_images_;
+  std::unordered_map<std::pair<int, int>, Image, hash_pair> landcover_images_;
 
-  static constexpr int equator_circumference = 40075000;
-  static constexpr int polar_circumference = 40008000;
 };
 
 #endif

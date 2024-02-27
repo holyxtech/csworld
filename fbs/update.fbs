@@ -9,6 +9,7 @@ table Chunk {
 table Section {
   location: fbs_common.Location2D;
   elevation: int;
+  landcover: uint8;
 }
 
 table RegionUpdate {

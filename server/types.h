@@ -8,6 +8,7 @@
 #include <map>
 #include <utility>
 #include <vector>
+#include "../common.h"
 
 using Location = std::array<int, 3>;
 using Location2D = std::array<int, 2>;
@@ -41,23 +42,6 @@ struct MessageWithId {
   int id;
 };
 
-namespace Voxel {
-  enum VoxelType {
-    empty,
-
-    WATER_LOWER,
-    water_full,
-    WATER_UPPER,
-
-    OPAQUE_LOWER,
-    dirt,
-    sand,
-
-    num_voxel_types
-  };
-
-} // namespace Voxel
-
 struct hash_pair final {
   template <class TFirst, class TSecond>
   size_t operator()(const std::pair<TFirst, TSecond>& p) const noexcept {
@@ -71,6 +55,7 @@ struct hash_pair final {
 struct Section {
   Location2D location;
   int elevation;
+  Common::LandCover landcover;
 };
 
 #endif

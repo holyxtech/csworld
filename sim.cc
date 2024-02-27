@@ -9,6 +9,7 @@
 #include "./fbs/request_generated.h"
 #include "./fbs/update_generated.h"
 #include "chunk.h"
+#include "common.h"
 #include "input.h"
 #include "readerwriterqueue.h"
 #include "section.h"
@@ -16,8 +17,8 @@
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window), tcp_client_(tcp_client), renderer_(world_) {
 
-  // std::array<double, 3> starting_pos = {-13306370, 2600, 8389655};
-  std::array<double, 3> starting_pos = {-12306370, 1300, 8389655};
+  std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("31-28-11", "35-23-49");
+  starting_pos[1] = 50;
 
   camera_.set_position(glm::vec3{starting_pos[0], starting_pos[1], starting_pos[2]});
   player_.set_position(starting_pos[0], starting_pos[1], starting_pos[2]);
@@ -50,9 +51,10 @@ void Sim::step() {
       auto* region = update->kind_as_Region();
       auto* sections = region->sections();
       for (int i = 0; i < sections->size(); ++i) {
-        auto* section = sections->Get(i);
-        auto* loc = section->location();
-        int elevation = section->elevation();
+        auto* section_update = sections->Get(i);
+        auto* loc = section_update->location();
+        /*int elevation = section->elevation();
+        int landcover = section->landcover(); */
         /*         std::cout
                   << "Received section at "
                   << loc->x() << "," << loc->y() << " with elevation " << elevation << std::endl; */
@@ -60,8 +62,7 @@ void Sim::step() {
         auto x = loc->x(), z = loc->y();
         auto location = Location2D{x, z};
         if (!region_.has_section(location)) {
-          auto section = Section(location);
-          section.set_elevation(elevation);
+          auto section = Section(section_update);
           region_.add_section(section);
           requested_sections_.erase(location);
         }
@@ -79,7 +80,6 @@ void Sim::step() {
   auto loc = Chunk::pos_to_loc(pos);
   // std::cout<<pos[0]<<","<<pos[1]<<","<<pos[2]<<std::endl;
   auto& last_location = player_.get_last_location();
-
   if (loc != last_location || new_sections) {
     auto& sections = region_.get_sections();
     for (int x = -min_render_distance; x <= min_render_distance; ++x) {

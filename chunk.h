@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <vector>
 #include "types.h"
+#include "common.h"
 
 class Chunk {
 public:
@@ -32,11 +33,10 @@ public:
   static Location pos_to_loc(const std::array<double, 3>& position);
   static std::array<int, 3> flat_index_to_3d(int i);
 
-  static constexpr int sz_uniform = 64;
-  static constexpr int sz_x = sz_uniform;
-  static constexpr int sz_y = sz_uniform;
-  static constexpr int sz_z = sz_uniform;
-  static constexpr int sz = sz_x * sz_y * sz_z;
+  static constexpr int sz_x = Common::chunk_sz_x;
+  static constexpr int sz_y = Common::chunk_sz_y;
+  static constexpr int sz_z =  Common::chunk_sz_z;
+  static constexpr int sz = Common::chunk_sz;
 
 private:
   std::vector<Voxel::VoxelType> voxels_;

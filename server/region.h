@@ -12,7 +12,7 @@ public:
   bool has_chunk(Location loc) const;
   void add_chunk(Chunk&& chunk);
   
-  static constexpr int max_sz = 256;
+  static constexpr int max_sz = 512;
 
 private:
   std::unordered_map<Location, Chunk, LocationHash> chunks_;

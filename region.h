@@ -31,7 +31,7 @@ public:
   const std::vector<Diff>& get_diffs() const;
   void clear_diffs();
 
-  static constexpr int max_sz = 1024;
+  static constexpr int max_sz = 256;
 
 private:
   std::unordered_map<Location2D, Section, Location2DHash> sections_;

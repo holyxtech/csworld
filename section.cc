@@ -1,7 +1,10 @@
 #include "section.h"
 
-Section::Section(Location2D location) {
-  location_ = location;
+Section::Section(const fbs_update::Section* section) {
+  auto loc = section->location();
+  location_ = Location2D{loc->x(), loc->y()};
+  elevation_ = section->elevation();
+  landcover_ = static_cast<Common::LandCover>(section->landcover());
   subsection_elevations_.reserve(sz);
 }
 
@@ -11,6 +14,10 @@ const Location2D& Section::get_location() const {
 
 int Section::get_elevation() const {
   return elevation_;
+}
+
+Common::LandCover Section::get_landcover() const {
+  return landcover_;
 }
 
 void Section::set_elevation(int elevation) {
@@ -37,10 +44,6 @@ void Section::compute_subsection_elevations(std::unordered_map<Location2D, Secti
   int e7 = sections.at(loc).elevation_;
   loc[1]++;
   int e8 = sections.at(loc).elevation_;
-
-  // e1 | e2 | e3
-  // e8 | e  | e4
-  // e7 | e6 | e5
 
   float a1 = (e8 + e1 + e2 + elevation_) / 4.0;
   float a2 = (e2 + e3 + e4 + elevation_) / 4.0;

@@ -202,7 +202,6 @@ const std::vector<MeshGenerator::Diff>& MeshGenerator::get_diffs() const {
 }
 
 void MeshGenerator::clear_diffs() {
-  std::cout<<"mesh num: "<<meshes_.size()<<std::endl;
   for (auto& diff : diffs_) {
     auto& loc = diff.location;
     if (diff.kind == MeshGenerator::Diff::deletion) {
