@@ -1,6 +1,7 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
+#define GLM_FORCE_LEFT_HANDED
 #include <array>
 #include <GL/glew.h>
 #include "camera.h"

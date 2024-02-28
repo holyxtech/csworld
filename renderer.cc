@@ -187,8 +187,12 @@ Renderer::Renderer(World& world) : world_(world) {
   glEnable(GL_DEPTH_TEST);
   /*   glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); */
-  glFrontFace(GL_CW);
+  
   glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK); 
+   
+  glFrontFace(GL_CW);
+
   glClearColor(0.502f, 0.866f, 1.f, 1.0f);
 }
 
@@ -286,6 +290,8 @@ void Renderer::consume_camera(const Camera& camera) {
   glm::mat4 projection = glm::perspective(glm::radians(55.l), 16 / 9.l, 0.1l, 4000.l);
   glm::mat4 view = camera.get_view();
   glm::mat4 transform = projection * view;
+
+  //  glm::mat4 transform = projection * view;
 
   auto& camera_pos = camera.get_position();
 

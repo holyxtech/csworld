@@ -46,12 +46,12 @@ void Camera::move_down() {
 }
 
 void Camera::move_left() {
-  glm::vec3 right = glm::normalize(glm::cross(front_, glm::vec3(0, 1, 0)));
+  glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0),front_));
   position_ -= right * translation_speed_;
 }
 
 void Camera::move_right() {
-  glm::vec3 right = glm::normalize(glm::cross(front_, glm::vec3(0, 1, 0)));
+    glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0),front_));
   position_ += right * translation_speed_;
 }
 void Camera::turn_left() {
@@ -66,11 +66,11 @@ void Camera::turn_right() {
 void Camera::update_orientation() {
   front_.x = cos(glm::radians(yaw_)) * cos(glm::radians(pitch_));
   front_.y = sin(glm::radians(pitch_));
-  front_.z = sin(glm::radians(yaw_)) * cos(glm::radians(pitch_));
+  front_.z = -sin(glm::radians(yaw_)) * cos(glm::radians(pitch_));
   front_ = glm::normalize(front_);
 
-  glm::vec3 right = glm::normalize(glm::cross(front_, glm::vec3(0, 1, 0)));
-  up_ = glm::normalize(glm::cross(right, front_));
+  glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0),front_));
+  up_ = glm::normalize(glm::cross(front_, right));
 }
 
 void Camera::scale_translation_speed(float scale) {

@@ -27,15 +27,23 @@ namespace Common {
     char degreeSymbol, minuteSymbol;
     std::istringstream iss(lat_dms);
     iss >> degrees >> degreeSymbol >> minutes >> minuteSymbol >> seconds;
-    double lat = degrees + minutes / 60.0 + seconds / 3600.0;
+    double lat;
+    if (degrees < 0)
+      lat = degrees - minutes / 60.0 - seconds / 3600.0;
+    else
+      lat = degrees + minutes / 60.0 + seconds / 3600.0;
     iss.clear();
     iss.str(lng_dms);
     iss >> degrees >> degreeSymbol >> minutes >> minuteSymbol >> seconds;
-    double lng = degrees + minutes / 60.0 + seconds / 3600.0;
-    std::cout<<lat<<","<<lng<<std::endl;
+    double lng;
+    if (degrees < 0)
+      lng = degrees - minutes / 60.0 - seconds / 3600.0;
+    else
+      lng = degrees + minutes / 60.0 + seconds / 3600.0;
+    std::cout << lat << "," << lng << std::endl;
     pos[0] = (lng * equator_circumference) / (360);
     pos[2] = (lat * polar_circumference) / (180);
-    std::cout<<pos[0]<<","<<pos[2]<<std::endl;
+    std::cout << pos[0] << "," << pos[2] << std::endl;
     return pos;
   }
 

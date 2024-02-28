@@ -47,56 +47,56 @@ void MeshGenerator::fill_sides(std::vector<Vertex>& mesh, glm::vec3& position, s
   if (nx < TYPE_UPPER_BOUND) {
     auto normal = glm::vec3(-1.f, 0.f, 0.f);
     mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::br, nx_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, nx_layer});
     mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tr, nx_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, nx_layer});
     mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::br, nx_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, nx_layer});
     mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::bl, nx_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, nx_layer});
   }
   if (px < TYPE_UPPER_BOUND) {
     auto normal = glm::vec3(1.f, 0.f, 0.f);
     mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::bl, px_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, px_layer});
     mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tl, px_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::bl, px_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, px_layer});
     mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, px_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::bl, px_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, px_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, px_layer});
   }
   if (ny < TYPE_UPPER_BOUND) {
     auto normal = glm::vec3(0.f, -1.f, 0.f);
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::tr, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::br, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::bl, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::tr, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::bl, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::tl, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tr, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::bl, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::br, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tr, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tl, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::bl, ny_layer});
   }
   if (py < TYPE_UPPER_BOUND) {
     auto normal = glm::vec3(0.f, 1.f, 0.f);
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::bl, py_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, py_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, py_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::bl, py_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::br, py_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, py_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::br, py_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tl, py_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, py_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::br, py_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::bl, py_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tl, py_layer});
   }
   if (nz < TYPE_UPPER_BOUND) {
     auto normal = glm::vec3(0.f, 0.f, -1.f);
     mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, nz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, nz_layer});
     mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, nz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, nz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, nz_layer});
     mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, nz_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, nz_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, nz_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, nz_layer});
   }
   if (pz < TYPE_UPPER_BOUND) {
     auto normal = glm::vec3(0.f, 0.f, 1.f);
     mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::br, pz_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tl, pz_layer});
     mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tr, pz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tl, pz_layer});
     mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::br, pz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tl, pz_layer});
     mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::bl, pz_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tl, pz_layer});
   }
 }
 
@@ -177,14 +177,15 @@ void MeshGenerator::consume_region(Region& region) {
 
     if (diff.kind == Region::Diff::creation) {
       auto& chunk = region.get_chunk(loc);
-//      auto start = std::chrono::high_resolution_clock::now();
+      //      auto start = std::chrono::high_resolution_clock::now();
       mesh_chunk(chunk);
-/*       auto end = std::chrono::high_resolution_clock::now();
+      /*       auto end = std::chrono::high_resolution_clock::now();
 
-      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-      std::cout << "mesh time: " << duration.count() << std::endl;
- */      /* num_meshed++;
-      total_duration += duration.count(); */
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+            std::cout << "mesh time: " << duration.count() << std::endl;
+       */
+      /* num_meshed++;
+   total_duration += duration.count(); */
 
     } else if (diff.kind == Region::Diff::deletion) {
       diffs_.emplace_back(Diff{loc, Diff::deletion});

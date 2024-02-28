@@ -17,8 +17,8 @@
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window), tcp_client_(tcp_client), renderer_(world_) {
 
-  std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("31-28-11", "35-23-49");
-  starting_pos[1] = 50;
+  std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-17");
+  starting_pos[1] = 530;
 
   camera_.set_position(glm::vec3{starting_pos[0], starting_pos[1], starting_pos[2]});
   player_.set_position(starting_pos[0], starting_pos[1], starting_pos[2]);
@@ -78,7 +78,7 @@ void Sim::step() {
   lock.unlock();
 
   auto loc = Chunk::pos_to_loc(pos);
-  // std::cout<<pos[0]<<","<<pos[1]<<","<<pos[2]<<std::endl;
+  std::cout << pos[0] << "," << pos[1] << "," << pos[2] << std::endl;
   auto& last_location = player_.get_last_location();
   if (loc != last_location || new_sections) {
     auto& sections = region_.get_sections();
