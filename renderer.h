@@ -28,7 +28,7 @@ public:
 
 private:
   void activate_vao(GLuint vbo, GLuint vao);
-
+  
   std::array<GLuint, Region::max_sz> vaos_;
   std::array<GLuint, Region::max_sz> vbos_;
   std::unordered_map<GLuint, Location> vbo_map_;

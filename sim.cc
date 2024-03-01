@@ -78,21 +78,18 @@ void Sim::step() {
   lock.unlock();
 
   auto loc = Chunk::pos_to_loc(pos);
-  std::cout << pos[0] << "," << pos[1] << "," << pos[2] << std::endl;
+
   auto& last_location = player_.get_last_location();
   if (loc != last_location || new_sections) {
+
     auto& sections = region_.get_sections();
     for (int x = -min_render_distance; x <= min_render_distance; ++x) {
-      for (int y = -1; y < 1; ++y) {
+      for (int y = -1; y < 2; ++y) {
         for (int z = -min_render_distance; z <= min_render_distance; ++z) {
           auto location = Location{loc[0] + x, loc[1] + y, loc[2] + z};
           if (!region_.has_chunk(location) && world_generator_.ready_to_fill(location, sections)) {
             Chunk chunk(location[0], location[1], location[2]);
-            //            auto start = std::chrono::high_resolution_clock::now();
             world_generator_.fill_chunk(chunk, sections);
-            /*             auto end = std::chrono::high_resolution_clock::now();
-                        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-                         std::cout<<"fill time: "<<duration.count()<<std::endl; */
             region_.add_chunk(std::move(chunk));
           }
         }
@@ -109,6 +106,7 @@ void Sim::step() {
     }
   }
   if (loc != last_location) {
+
     std::vector<Location2D> locs;
     for (int x = -min_section_distance; x <= min_section_distance; ++x) {
       for (int z = -min_section_distance; z <= min_section_distance; ++z) {

@@ -40,10 +40,8 @@ namespace Common {
       lng = degrees - minutes / 60.0 - seconds / 3600.0;
     else
       lng = degrees + minutes / 60.0 + seconds / 3600.0;
-    std::cout << lat << "," << lng << std::endl;
     pos[0] = (lng * equator_circumference) / (360);
     pos[2] = (lat * polar_circumference) / (180);
-    std::cout << pos[0] << "," << pos[2] << std::endl;
     return pos;
   }
 

@@ -18,8 +18,15 @@ namespace Common {
   constexpr int chunk_sz = chunk_sz_x * chunk_sz_y * chunk_sz_z;
 
   enum LandCover {
-    barren,
-    water
+    bare,
+    water,
+    trees,
+    grass,
+    shrubs,
+    snow,
+    wetland,
+    mangroves,
+    moss
   };
 } // namespace Common
 

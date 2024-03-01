@@ -24,4 +24,4 @@ private:
   static constexpr float high_ = 5;
 };
 
-#endif
+#endif  

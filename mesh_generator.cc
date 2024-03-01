@@ -11,25 +11,52 @@ namespace QuadCoord {
   constexpr glm::vec2 tr = glm::vec2(1.f, 1.f);
 } // namespace QuadCoord
 
-std::array<Voxel::VoxelType, 6> MeshGenerator::get_adjacent_voxels(const Chunk& chunk, int x, int y, int z) const {
+std::array<Voxel::VoxelType, 6> MeshGenerator::get_adjacent_voxels(
+  Region& region, Chunk& chunk, int x, int y, int z) const {
+  auto& location = chunk.get_location();
   std::array<Voxel::VoxelType, 6> adjacent{Voxel::empty};
   if (x > 0) {
     adjacent[Direction::nx] = chunk.get_voxel(x - 1, y, z);
+  } else {
+  
+    adjacent[Direction::nx] = region.get_voxel(
+      location[0] * Chunk::sz_x - 1, location[1] * Chunk::sz_y + y, location[2] * Chunk::sz_z + z);
+
   }
   if (x < Chunk::sz_x - 1) {
     adjacent[Direction::px] = chunk.get_voxel(x + 1, y, z);
+  } else {
+    
+    adjacent[Direction::px] = region.get_voxel(
+      (location[0] + 1) * Chunk::sz_x, location[1] * Chunk::sz_y + y, location[2] * Chunk::sz_z + z);
   }
   if (y > 0) {
     adjacent[Direction::ny] = chunk.get_voxel(x, y - 1, z);
+  } else {
+    
+    adjacent[Direction::ny] = region.get_voxel(
+      location[0] * Chunk::sz_x + x, location[1] * Chunk::sz_y - 1, location[2] * Chunk::sz_z + z);
+
   }
   if (y < Chunk::sz_y - 1) {
     adjacent[Direction::py] = chunk.get_voxel(x, y + 1, z);
+  } else {
+    adjacent[Direction::py] = region.get_voxel(
+      location[0] * Chunk::sz_x + x, (location[1] + 1) * Chunk::sz_y, location[2] * Chunk::sz_z + z);
   }
   if (z > 0) {
     adjacent[Direction::nz] = chunk.get_voxel(x, y, z - 1);
+  } else {
+
+    adjacent[Direction::nz] = region.get_voxel(
+      location[0] * Chunk::sz_x + x, location[1] * Chunk::sz_y + y, location[2] * Chunk::sz_z - 1);
   }
   if (z < Chunk::sz_z - 1) {
     adjacent[Direction::pz] = chunk.get_voxel(x, y, z + 1);
+  } else {
+
+    adjacent[Direction::pz] = region.get_voxel(
+      location[0] * Chunk::sz_x + x, location[1] * Chunk::sz_y + y, (location[2] + 1) * Chunk::sz_z);
   }
   return adjacent;
 }
@@ -100,8 +127,8 @@ void MeshGenerator::fill_sides(std::vector<Vertex>& mesh, glm::vec3& position, s
   }
 }
 
-void MeshGenerator::mesh_chunk(const Chunk& chunk) {
-  auto& location = chunk.get_location();
+void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
+  auto& chunk = region.get_chunk(location);
   auto& mesh = meshes_[location];
   mesh.reserve(default_max_vertices);
   glm::vec3 chunk_position(location[0] * Chunk::sz_x, location[1] * Chunk::sz_y, location[2] * Chunk::sz_z);
@@ -116,7 +143,7 @@ void MeshGenerator::mesh_chunk(const Chunk& chunk) {
         }
 
         auto position = chunk_position + glm::vec3(x, y, z);
-        auto adjacent = get_adjacent_voxels(chunk, x, y, z);
+        auto adjacent = get_adjacent_voxels(region, chunk, x, y, z);
         std::array<int, 6> layers;
         switch (voxel) {
         case Voxel::dirt:
@@ -146,19 +173,18 @@ void MeshGenerator::mesh_chunk(const Chunk& chunk) {
       }
     }
   }
-
   diffs_.emplace_back(Diff{location, Diff::creation});
 }
 
-void MeshGenerator::mesh_water(const Chunk& chunk) {
+void MeshGenerator::mesh_water(Region& region, const Location& location) {
+  auto& chunk = region.get_chunk(location);
   auto& water_voxels = chunk.get_water_voxels();
-  auto& location = chunk.get_location();
   auto& water_mesh = water_meshes_[location];
   glm::vec3 chunk_position(location[0] * Chunk::sz_x, location[1] * Chunk::sz_y, location[2] * Chunk::sz_z);
   for (auto& idx : water_voxels) {
     auto [x, y, z] = chunk.flat_index_to_3d(idx);
     auto position = chunk_position + glm::vec3(x, y, z);
-    auto adjacent = get_adjacent_voxels(chunk, x, y, z);
+    auto adjacent = get_adjacent_voxels(region, chunk, x, y, z);
 
     std::array<int, 6> layers;
     layers.fill(Voxel::tex_water);
@@ -169,29 +195,28 @@ void MeshGenerator::mesh_water(const Chunk& chunk) {
 
 void MeshGenerator::consume_region(Region& region) {
   auto& diffs = region.get_diffs();
-  /*   int num_meshed = 0;
-    float total_duration = 0.0;
-   */
+  int num_meshed = 0;
+  float total_duration = 0.0;
+
   for (auto& diff : diffs) {
     auto& loc = diff.location;
 
     if (diff.kind == Region::Diff::creation) {
       auto& chunk = region.get_chunk(loc);
-      //      auto start = std::chrono::high_resolution_clock::now();
-      mesh_chunk(chunk);
-      /*       auto end = std::chrono::high_resolution_clock::now();
+      auto start = std::chrono::high_resolution_clock::now();
+      mesh_chunk(region, loc);
+      auto end = std::chrono::high_resolution_clock::now();
 
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-            std::cout << "mesh time: " << duration.count() << std::endl;
-       */
-      /* num_meshed++;
-   total_duration += duration.count(); */
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+      //std::cout << "mesh time: " << duration.count() << std::endl;
 
+      num_meshed++;
+      total_duration += duration.count();
     } else if (diff.kind == Region::Diff::deletion) {
       diffs_.emplace_back(Diff{loc, Diff::deletion});
     } else if (diff.kind == Region::Diff::water) {
       auto& chunk = region.get_chunk(loc);
-      mesh_water(chunk);
+      mesh_water(region, loc);
     }
   }
   // std::cout << "Average execution time: " << total_duration / num_meshed << " microseconds" << std::endl;
@@ -203,13 +228,8 @@ const std::vector<MeshGenerator::Diff>& MeshGenerator::get_diffs() const {
 }
 
 void MeshGenerator::clear_diffs() {
-  for (auto& diff : diffs_) {
-    auto& loc = diff.location;
-    if (diff.kind == MeshGenerator::Diff::deletion) {
-      meshes_.erase(loc);
-      water_meshes_.erase(loc);
-    }
-  }
+  meshes_.clear();
+  water_meshes_.clear();
   diffs_.clear();
 }
 

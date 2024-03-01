@@ -4,10 +4,9 @@
 Chunk::Chunk(int x, int y, int z)
     : location_{x, y, z} {
   voxels_.reserve(sz);
+  voxels_.insert(voxels_.end(), sz, Voxel::empty);
   water_voxels_.reserve(water_voxels_reserve);
 }
-
-// Chunk::Chunk(Location location) : location_{location[0], location[1], location[2]}, voxels_(sz, Voxel::empty) {}
 
 const Location& Chunk::get_location() const {
   return location_;
@@ -80,7 +79,7 @@ void Chunk::unset_flag(Flags flag) {
   flags_ &= ~flag;
 }
 
-bool Chunk::check_flag(Flags flag) {
+bool Chunk::check_flag(Flags flag) const {
   return flags_ & flag;
 }
 

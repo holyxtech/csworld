@@ -11,6 +11,7 @@ class Chunk {
 public:
   enum Flags : uint32_t {
     DELETED = 1 << 0,
+    CREATED = 1 << 1,
   };
 
   Chunk(int x, int y, int z);
@@ -22,13 +23,12 @@ public:
   Voxel::VoxelType get_voxel(int i) const;
   
   std::array<Voxel::VoxelType, 6> get_adjacent(int x, int y, int z) const;
-
   void set_voxel(int x, int y, int z, Voxel::VoxelType value);
   // void set_voxel(int i, Voxel::VoxelType value);
 
   void set_flag(Flags flag);
   void unset_flag(Flags flag);
-  bool check_flag(Flags flag);
+  bool check_flag(Flags flag) const;
 
   static Location pos_to_loc(const std::array<double, 3>& position);
   static std::array<int, 3> flat_index_to_3d(int i);

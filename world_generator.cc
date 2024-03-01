@@ -22,6 +22,7 @@ bool WorldGenerator::ready_to_fill(Location& location, const std::unordered_map<
 void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Section, Location2DHash>& sections) const {
   auto& location = chunk.get_location();
 
+  
   auto& section = sections.at(Location2D{location[0], location[2]});
   if (!section.has_subsection_elevations()) {
     section.compute_subsection_elevations(sections);
@@ -29,15 +30,18 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
 
   Voxel::VoxelType voxel;
   auto landcover = section.get_landcover();
-  if (landcover == Common::LandCover::barren) {
+  if (landcover == Common::LandCover::bare) {
     voxel = Voxel::dirt;
   } else if (landcover == Common::LandCover::water) {
     voxel = Voxel::water_full;
+  } else {
+    voxel = Voxel::dirt;
   }
 
   int y_global = location[1] * Chunk::sz_y;
   for (int z = 0; z < Chunk::sz_z; ++z) {
     for (int x = 0; x < Chunk::sz_x; ++x) {
+      
       int height = section.get_subsection_elevation(x, z);
       for (int y = y_global; y < (y_global + Chunk::sz_y); ++y) {
         if (y < height)
@@ -47,6 +51,7 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
       }
     }
   }
+  
 }
 
 double WorldGenerator::noise(double x, double y) const {

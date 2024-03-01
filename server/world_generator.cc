@@ -81,10 +81,34 @@ Section WorldGenerator::get_section(Location2D loc) {
     int blue = static_cast<int>(data[pixel_index + 2]);
     int val = ((red << 16) | (green << 8) | blue);
 
-    if (val == 25800) {
+    switch (val) {
+    case 25800:
       section.landcover = Common::LandCover::water;
-    } else {
-      section.landcover = Common::LandCover::barren;
+      break;
+    case 25600:
+      section.landcover = Common::LandCover::trees;
+      break;
+    case 16777036:
+      section.landcover = Common::LandCover::grass;
+      break;
+    case 16759586:
+      section.landcover = Common::LandCover::shrubs;
+      break;
+    case 11842740:
+      section.landcover = Common::LandCover::bare;
+      break;
+    case 15790320:
+      section.landcover = Common::LandCover::snow;
+      break;
+    case 38560:
+      section.landcover = Common::LandCover::wetland;
+      break;
+    case 53109:
+      section.landcover = Common::LandCover::mangroves;
+      break;
+    case 16443040:
+      section.landcover = Common::LandCover::moss;
+      break;
     }
   }
 

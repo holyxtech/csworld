@@ -3,10 +3,12 @@
 
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
+#include <tsl/robin_map.h>
 #include "chunk.h"
-#include "simobject.h"
 #include "section.h"
+#include "simobject.h"
 
 class Region {
 public:
@@ -30,12 +32,18 @@ public:
   void add_chunk(Chunk&& chunk);
   const std::vector<Diff>& get_diffs() const;
   void clear_diffs();
+  Voxel::VoxelType get_voxel(int x, int y, int z) const;
 
   static constexpr int max_sz = 256;
 
 private:
+  void delete_furthest_chunk(Location& loc);
+
   std::unordered_map<Location2D, Section, Location2DHash> sections_;
   std::unordered_map<Location, Chunk, LocationHash> chunks_;
+  // tsl::robin_map<Location, Chunk, LocationHash> chunks_;
+  std::unordered_set<Location, LocationHash> chunks_sent_;
+  std::unordered_map<Location, int, LocationHash> adjacents_missing_;
   std::vector<Diff> diffs_;
 
   std::vector<SimObject> live_objects_;
