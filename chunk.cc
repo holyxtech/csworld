@@ -6,6 +6,7 @@ Chunk::Chunk(int x, int y, int z)
   voxels_.reserve(sz);
   voxels_.insert(voxels_.end(), sz, Voxel::empty);
   water_voxels_.reserve(water_voxels_reserve);
+  flags_ = 0;
 }
 
 const Location& Chunk::get_location() const {
@@ -29,29 +30,6 @@ std::array<int, 3> Chunk::flat_index_to_3d(int i) {
   return arr;
 }
 
-std::array<Voxel::VoxelType, 6> Chunk::get_adjacent(int x, int y, int z) const {
-  std::array<Voxel::VoxelType, 6> adjacent{Voxel::empty};
-  if (x > 0) {
-    adjacent[Direction::nx] = voxels_[x - 1 + sz_x * (y + sz_y * z)];
-  }
-  if (x < Chunk::sz_x - 1) {
-    adjacent[Direction::px] = voxels_[x + 1 + sz_x * (y + sz_y * z)];
-  }
-  if (y > 0) {
-    adjacent[Direction::ny] = voxels_[x + sz_x * (y - 1 + sz_y * z)];
-  }
-  if (y < Chunk::sz_y - 1) {
-    adjacent[Direction::py] = voxels_[x + sz_x * (y + 1 + sz_y * z)];
-  }
-  if (z > 0) {
-    adjacent[Direction::nz] = voxels_[x + sz_x * (y + sz_y * z - 1)];
-  }
-  if (z < Chunk::sz_y - 1) {
-    adjacent[Direction::pz] = voxels_[x + sz_x * (y + sz_y * z + 1)];
-  }
-  return adjacent;
-}
-
 void Chunk::set_voxel(int x, int y, int z, Voxel::VoxelType value) {
   std::size_t i = x + sz_x * (y + sz_y * z);
   Voxel::VoxelType cur = voxels_[i];
@@ -67,10 +45,6 @@ Voxel::VoxelType Chunk::get_voxel(int i) const {
   return voxels_[i];
 }
 
-/* void Chunk::set_voxel(int i, Voxel::VoxelType value) {
-  voxels_[i] = value;
-} */
-
 void Chunk::set_flag(Flags flag) {
   flags_ |= flag;
 }
@@ -84,5 +58,9 @@ bool Chunk::check_flag(Flags flag) const {
 }
 
 Location Chunk::pos_to_loc(const std::array<double, 3>& position) {
-  return Location{static_cast<int>(position[0]) / sz_x, static_cast<int>(position[1]) / sz_y, static_cast<int>(position[2]) / sz_z};
+  return Location{
+    static_cast<int>(std::floor(position[0] / Chunk::sz_x)),
+    static_cast<int>(std::floor(position[1] / Chunk::sz_y)),
+    static_cast<int>(std::floor(position[2] / Chunk::sz_z)),
+  };
 }

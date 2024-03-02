@@ -4,27 +4,24 @@
 #include <array>
 #include <unordered_set>
 #include <vector>
-#include "types.h"
 #include "common.h"
+#include "types.h"
 
 class Chunk {
 public:
   enum Flags : uint32_t {
     DELETED = 1 << 0,
-    CREATED = 1 << 1,
+    NONEMPTY = 1 << 1,
   };
 
   Chunk(int x, int y, int z);
-  //  Chunk(Location location);
 
   const Location& get_location() const;
   const std::unordered_set<std::size_t>& get_water_voxels() const;
   Voxel::VoxelType get_voxel(int x, int y, int z) const;
   Voxel::VoxelType get_voxel(int i) const;
-  
-  std::array<Voxel::VoxelType, 6> get_adjacent(int x, int y, int z) const;
+
   void set_voxel(int x, int y, int z, Voxel::VoxelType value);
-  // void set_voxel(int i, Voxel::VoxelType value);
 
   void set_flag(Flags flag);
   void unset_flag(Flags flag);
@@ -35,7 +32,7 @@ public:
 
   static constexpr int sz_x = Common::chunk_sz_x;
   static constexpr int sz_y = Common::chunk_sz_y;
-  static constexpr int sz_z =  Common::chunk_sz_z;
+  static constexpr int sz_z = Common::chunk_sz_z;
   static constexpr int sz = Common::chunk_sz;
 
 private:

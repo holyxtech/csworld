@@ -22,7 +22,6 @@ bool Region::has_chunk(Location loc) const {
   return chunks_.contains(loc);
 }
 
-// make sure to never request more chunks than there is space for them (so you don't end up with nothing to delete here)
 void Region::delete_furthest_chunk(Location& loc) {
   if (chunks_sent_.size() >= max_sz) {
     int max_difference = 0;
@@ -48,9 +47,7 @@ void Region::delete_furthest_chunk(Location& loc) {
   }
 }
 
-void Region::add_chunk(Chunk&& chunk) {
-  auto loc = chunk.get_location();
-  chunks_.insert({loc, std::move(chunk)});
+std::array<Location, 6> Region::get_adjacent_locations(const Location& loc) const {
   std::array<Location, 6> arr = {
     Location{loc[0] + 1, loc[1], loc[2]},
     Location{loc[0] - 1, loc[1], loc[2]},
@@ -59,6 +56,14 @@ void Region::add_chunk(Chunk&& chunk) {
     Location{loc[0], loc[1], loc[2] + 1},
     Location{loc[0], loc[1], loc[2] - 1},
   };
+  return arr;
+}
+
+void Region::add_chunk(Chunk&& chunk) {
+  auto loc = chunk.get_location();
+  chunks_.insert({loc, std::move(chunk)});
+
+  auto arr = get_adjacent_locations(loc);
 
   for (auto& location : arr) {
     if (!adjacents_missing_.contains(location)) {
@@ -70,7 +75,8 @@ void Region::add_chunk(Chunk&& chunk) {
     if (adjacents_missing_[location] == 0 &&
         chunks_.contains(location) &&
         !chunks_sent_.contains(location) &&
-        !chunks_.at(location).check_flag(Chunk::Flags::DELETED)) {
+        !chunks_.at(location).check_flag(Chunk::Flags::DELETED) &&
+        chunks_.at(location).check_flag(Chunk::Flags::NONEMPTY)) {
       delete_furthest_chunk(location);
       diffs_.emplace_back(Diff{location, Diff::water});
       diffs_.emplace_back(Diff{location, Diff::creation});
@@ -80,7 +86,9 @@ void Region::add_chunk(Chunk&& chunk) {
 
   if (!adjacents_missing_.contains(loc)) {
     adjacents_missing_.insert({loc, 6});
-  } else if (adjacents_missing_[loc] == 0) {
+  } else if (
+    adjacents_missing_[loc] == 0 &&
+    chunks_.at(loc).check_flag(Chunk::Flags::NONEMPTY)) {
     delete_furthest_chunk(loc);
     diffs_.emplace_back(Diff{loc, Diff::water});
     diffs_.emplace_back(Diff{loc, Diff::creation});
@@ -96,24 +104,41 @@ void Region::clear_diffs() {
   for (auto& diff : diffs_) {
     auto& loc = diff.location;
     if (diff.kind == Region::Diff::deletion) {
-      // keep in mind, that if a chunk is never loaded in (because its neighbours never materialised)
-      // then this will never be called
-      // so it will be necessary to occasionally look for distant chunks and erase them.
       chunks_.erase(loc);
       sections_.erase(Location2D{loc[0], loc[2]});
-      std::array<Location, 6> arr = {
-        Location{loc[0] + 1, loc[1], loc[2]},
-        Location{loc[0] - 1, loc[1], loc[2]},
-        Location{loc[0], loc[1] + 1, loc[2]},
-        Location{loc[0], loc[1] - 1, loc[2]},
-        Location{loc[0], loc[1], loc[2] + 1},
-        Location{loc[0], loc[1], loc[2] - 1},
-      };
+      auto arr = get_adjacent_locations(loc);
       for (auto& location : arr) {
         ++adjacents_missing_[location];
       }
     }
   }
+
+  if (chunks_.size() > max_sz_internal) {
+    std::vector<Location> loaded_locations;
+    for (auto& pair : chunks_) {
+      if (!chunks_sent_.contains(pair.first))
+        loaded_locations.emplace_back(pair.first);
+    }
+
+    auto& player_location_ = player_.get_last_location();
+    std::sort(
+      loaded_locations.begin(), loaded_locations.end(),
+      [&player_location_](const Location l1, const Location l2) {
+        auto d1 = LocationMath::distance(l1, player_location_);
+        auto d2 = LocationMath::distance(l2, player_location_);
+        return d1 > d2;
+      });
+    int to_remove = chunks_.size() - max_sz_internal;
+
+    for (int i = 0; i < to_remove; ++i) {
+      chunks_.erase(loaded_locations[i]);
+      auto arr = get_adjacent_locations(loaded_locations[i]);
+      for (auto& location : arr) {
+        ++adjacents_missing_[location];
+      }
+    }
+  }
+
   diffs_.clear();
 }
 
@@ -125,9 +150,12 @@ Voxel::VoxelType Region::get_voxel(int x, int y, int z) const {
     static_cast<int>(std::floor(static_cast<float>(z) / Chunk::sz_z)),
   };
   auto& chunk = chunks_.at(location);
-  // std::cout << "mods: " << x % Chunk::sz_x << "," << y % Chunk::sz_y << "," << z % Chunk::sz_z << std::endl;
   return chunk.get_voxel(
     ((x % Chunk::sz_x) + Chunk::sz_x) % Chunk::sz_x,
     ((y % Chunk::sz_y) + Chunk::sz_y) % Chunk::sz_y,
     ((z % Chunk::sz_z) + Chunk::sz_z) % Chunk::sz_z);
+}
+
+Player& Region::get_player() {
+  return player_;
 }

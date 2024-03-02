@@ -7,6 +7,7 @@
 #include <vector>
 #include <tsl/robin_map.h>
 #include "chunk.h"
+#include "player.h"
 #include "section.h"
 #include "simobject.h"
 
@@ -25,6 +26,7 @@ public:
   void add_section(Section section);
   bool has_section(Location2D loc) const;
   std::unordered_map<Location2D, Section, Location2DHash>& get_sections();
+  Player& get_player();
 
   Chunk& get_chunk(Location loc);
   bool has_chunk(Location loc) const;
@@ -37,7 +39,11 @@ public:
   static constexpr int max_sz = 256;
 
 private:
+  // has to be at least as big as max_sz
+  static constexpr int max_sz_internal = max_sz * 2;
+
   void delete_furthest_chunk(Location& loc);
+  std::array<Location, 6> get_adjacent_locations(const Location& loc) const;
 
   std::unordered_map<Location2D, Section, Location2DHash> sections_;
   std::unordered_map<Location, Chunk, LocationHash> chunks_;
@@ -47,6 +53,8 @@ private:
   std::vector<Diff> diffs_;
 
   std::vector<SimObject> live_objects_;
+
+  Player player_;
 };
 
 #endif // REGION_H

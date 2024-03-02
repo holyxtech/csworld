@@ -1,10 +1,10 @@
 #ifndef SIM_H
 #define SIM_H
 
-#include <unordered_set>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
+#include <unordered_set>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "camera.h"
@@ -33,16 +33,17 @@ private:
   WorldGenerator world_generator_;
   MeshGenerator mesh_generator_;
   Renderer renderer_;
-  Player player_;
+
   Camera camera_;
 
   std::mutex mutex_;
   std::mutex mesh_mutex_;
+  std::mutex camera_mutex_;
   std::condition_variable cv_;
   bool ready_to_mesh_ = true;
-  
+
   std::unordered_set<Location2D, Location2DHash> requested_sections_;
-  
+
   static constexpr int min_render_distance = 2;
   static constexpr int min_section_distance = min_render_distance + 1;
 };
