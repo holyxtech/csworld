@@ -47,7 +47,7 @@ Section WorldGenerator::get_section(Location2D loc) {
   Section section;
 
   double lng = 360.0 * (loc[0] * Chunk::sz_x) / Common::equator_circumference;
-  double lat = 180.0 * (loc[1] * Chunk::sz_z) / Common::polar_circumference;
+  double lat = 180.0 * (loc[1] * Chunk::sz_z) / (Common::polar_circumference / 2);
 
   auto tile = lat_lng_to_web_mercator(lat, lng, zoom_level);
   auto [x, y] = pixel_of_coord(tile.first, tile.second, zoom_level, lng, lat);

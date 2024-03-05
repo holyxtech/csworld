@@ -21,6 +21,10 @@ Voxel::VoxelType Chunk::get_voxel(int x, int y, int z) const {
   return voxels_[x + sz_x * (y + sz_y * z)];
 }
 
+int Chunk::get_index(int x, int y, int z) {
+  return x + sz_x * (y + sz_y * z);
+}
+
 std::array<int, 3> Chunk::flat_index_to_3d(int i) {
   std::array<int, 3> arr;
   arr[0] = i % Chunk::sz_x;
@@ -30,15 +34,19 @@ std::array<int, 3> Chunk::flat_index_to_3d(int i) {
   return arr;
 }
 
-void Chunk::set_voxel(int x, int y, int z, Voxel::VoxelType value) {
-  std::size_t i = x + sz_x * (y + sz_y * z);
+void Chunk::set_voxel(int i, Voxel::VoxelType voxel) {
   Voxel::VoxelType cur = voxels_[i];
-  if (value < Voxel::WATER_UPPER && value > Voxel::WATER_LOWER) {
+  if (voxel < Voxel::WATER_UPPER && voxel > Voxel::WATER_LOWER) {
     water_voxels_.insert(i);
   } else if (cur < Voxel::WATER_UPPER && cur > Voxel::WATER_LOWER) {
     water_voxels_.erase(i);
   }
-  voxels_[i] = value;
+  voxels_[i] = voxel;
+}
+
+void Chunk::set_voxel(int x, int y, int z, Voxel::VoxelType voxel) {
+  std::size_t i = x + sz_x * (y + sz_y * z);
+  set_voxel(i, voxel);
 }
 
 Voxel::VoxelType Chunk::get_voxel(int i) const {

@@ -7,16 +7,17 @@ Camera::Camera() {
   update_orientation();
 }
 
-const glm::vec3& Camera::get_position() const {
+const glm::dvec3& Camera::get_position() const {
   return position_;
 }
 
-void Camera::set_position(glm::vec3 position) {
+void Camera::set_position(glm::dvec3 position) {
   position_ = position;
 }
 
-glm::mat4 Camera::get_view() const {
-  return glm::lookAt(glm::vec3(0.f), front_, up_);
+glm::mat4 Camera::get_view(glm::dvec3 camera_offset) const {
+  glm::vec3 adjusted_pos = position_ - camera_offset;
+  return glm::lookAt(glm::vec3(adjusted_pos), adjusted_pos + front_, up_);
 }
 
 void Camera::pan(float xoff, float yoff) {
@@ -46,12 +47,12 @@ void Camera::move_down() {
 }
 
 void Camera::move_left() {
-  glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0),front_));
+  glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), front_));
   position_ -= right * translation_speed_;
 }
 
 void Camera::move_right() {
-    glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0),front_));
+  glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), front_));
   position_ += right * translation_speed_;
 }
 void Camera::turn_left() {
@@ -69,7 +70,7 @@ void Camera::update_orientation() {
   front_.z = -sin(glm::radians(yaw_)) * cos(glm::radians(pitch_));
   front_ = glm::normalize(front_);
 
-  glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0),front_));
+  glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), front_));
   up_ = glm::normalize(glm::cross(front_, right));
 }
 

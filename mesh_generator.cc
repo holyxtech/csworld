@@ -18,25 +18,23 @@ std::array<Voxel::VoxelType, 6> MeshGenerator::get_adjacent_voxels(
   if (x > 0) {
     adjacent[Direction::nx] = chunk.get_voxel(x - 1, y, z);
   } else {
-  
+
     adjacent[Direction::nx] = region.get_voxel(
       location[0] * Chunk::sz_x - 1, location[1] * Chunk::sz_y + y, location[2] * Chunk::sz_z + z);
-
   }
   if (x < Chunk::sz_x - 1) {
     adjacent[Direction::px] = chunk.get_voxel(x + 1, y, z);
   } else {
-    
+
     adjacent[Direction::px] = region.get_voxel(
       (location[0] + 1) * Chunk::sz_x, location[1] * Chunk::sz_y + y, location[2] * Chunk::sz_z + z);
   }
   if (y > 0) {
     adjacent[Direction::ny] = chunk.get_voxel(x, y - 1, z);
   } else {
-    
+
     adjacent[Direction::ny] = region.get_voxel(
       location[0] * Chunk::sz_x + x, location[1] * Chunk::sz_y - 1, location[2] * Chunk::sz_z + z);
-
   }
   if (y < Chunk::sz_y - 1) {
     adjacent[Direction::py] = chunk.get_voxel(x, y + 1, z);
@@ -91,12 +89,12 @@ void MeshGenerator::fill_sides(std::vector<Vertex>& mesh, glm::vec3& position, s
   }
   if (ny < TYPE_UPPER_BOUND) {
     auto normal = glm::vec3(0.f, -1.f, 0.f);
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tr, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::bl, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::br, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tr, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tl, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::bl, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::br, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::tr, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::tl, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::br, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::tl, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::bl, ny_layer});
   }
   if (py < TYPE_UPPER_BOUND) {
     auto normal = glm::vec3(0.f, 1.f, 0.f);
@@ -131,14 +129,16 @@ void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
   auto& chunk = region.get_chunk(location);
   auto& mesh = meshes_[location];
   mesh.reserve(default_max_vertices);
-  glm::vec3 chunk_position(location[0] * Chunk::sz_x, location[1] * Chunk::sz_y, location[2] * Chunk::sz_z);
+  glm::vec3 chunk_position(
+    (location[0] - origin_[0]) * Chunk::sz_x, (location[1] - origin_[1]) * Chunk::sz_y, (location[2] - origin_[2]) * Chunk::sz_z);
   for (int z = 0; z < Chunk::sz_z; ++z) {
     for (int y = 0; y < Chunk::sz_y; ++y) {
       for (int x = 0; x < Chunk::sz_x; ++x) {
         auto voxel = chunk.get_voxel(x, y, z);
 
-        // only meshing opaque cubes in this function
-        if (voxel < Voxel::OPAQUE_LOWER) {
+        if (voxel == Voxel::empty ||
+            (voxel > Voxel::WATER_LOWER &&
+             voxel < Voxel::WATER_LOWER)) {
           continue;
         }
 
@@ -168,8 +168,17 @@ void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
         case Voxel::sand:
           layers.fill(Voxel::tex_sand);
           break;
+        case Voxel::tree_trunk:
+          layers.fill(Voxel::tex_tree_trunk);
+          break;
+        case Voxel::leaves:
+          layers.fill(Voxel::tex_leaves);
+          break;
         }
-        fill_sides(mesh, position, adjacent, layers, Voxel::OPAQUE_LOWER);
+        if (voxel > Voxel::OPAQUE_LOWER)
+          fill_sides(mesh, position, adjacent, layers, Voxel::OPAQUE_LOWER);
+        else
+          fill_sides(mesh, position, adjacent, layers, Voxel::num_voxel_types);
       }
     }
   }
@@ -180,7 +189,8 @@ void MeshGenerator::mesh_water(Region& region, const Location& location) {
   auto& chunk = region.get_chunk(location);
   auto& water_voxels = chunk.get_water_voxels();
   auto& water_mesh = water_meshes_[location];
-  glm::vec3 chunk_position(location[0] * Chunk::sz_x, location[1] * Chunk::sz_y, location[2] * Chunk::sz_z);
+  glm::vec3 chunk_position(
+    (location[0] - origin_[0]) * Chunk::sz_x, (location[1] - origin_[1]) * Chunk::sz_y, (location[2] - origin_[2]) * Chunk::sz_z);
   for (auto& idx : water_voxels) {
     auto [x, y, z] = chunk.flat_index_to_3d(idx);
     auto position = chunk_position + glm::vec3(x, y, z);
@@ -201,14 +211,21 @@ void MeshGenerator::consume_region(Region& region) {
   for (auto& diff : diffs) {
     auto& loc = diff.location;
 
+    if (!origin_set_) {
+      origin_ = loc;
+      origin_set_ = true;
+      diffs_.emplace_back(Diff{origin_, Diff::origin});
+    }
+
     if (diff.kind == Region::Diff::creation) {
       auto& chunk = region.get_chunk(loc);
+
       auto start = std::chrono::high_resolution_clock::now();
       mesh_chunk(region, loc);
       auto end = std::chrono::high_resolution_clock::now();
 
       auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-      //std::cout << "mesh time: " << duration.count() << std::endl;
+      // std::cout << "mesh time: " << duration.count() << std::endl;
 
       num_meshed++;
       total_duration += duration.count();

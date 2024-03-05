@@ -20,8 +20,10 @@ public:
   const std::unordered_set<std::size_t>& get_water_voxels() const;
   Voxel::VoxelType get_voxel(int x, int y, int z) const;
   Voxel::VoxelType get_voxel(int i) const;
+  static int get_index(int x, int y, int z);
 
-  void set_voxel(int x, int y, int z, Voxel::VoxelType value);
+  void set_voxel(int i, Voxel::VoxelType voxel);
+  void set_voxel(int x, int y, int z, Voxel::VoxelType voxel);
 
   void set_flag(Flags flag);
   void unset_flag(Flags flag);

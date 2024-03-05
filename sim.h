@@ -33,7 +33,6 @@ private:
   WorldGenerator world_generator_;
   MeshGenerator mesh_generator_;
   Renderer renderer_;
-
   Camera camera_;
 
   std::mutex mutex_;
@@ -45,7 +44,7 @@ private:
   std::unordered_set<Location2D, Location2DHash> requested_sections_;
 
   static constexpr int min_render_distance = 2;
-  static constexpr int min_section_distance = min_render_distance + 1;
+  static constexpr int min_section_distance = min_render_distance + 2;
 };
 
 #endif

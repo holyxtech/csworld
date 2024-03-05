@@ -17,13 +17,13 @@
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window), tcp_client_(tcp_client), renderer_(world_) {
 
-  std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-17");
-  starting_pos[1] = 530;
+  //  std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-17");
+  // starting_pos[1] = 530;
+  std::array<double, 3> starting_pos{227922 * Chunk::sz_x, 13 * Chunk::sz_y, -44009 * Chunk::sz_z};
 
   {
-
     std::unique_lock<std::mutex> lock(camera_mutex_);
-    camera_.set_position(glm::vec3{starting_pos[0], starting_pos[1], starting_pos[2]});
+    camera_.set_position(glm::dvec3{starting_pos[0], starting_pos[1], starting_pos[2]});
   }
 
   auto& player = region_.get_player();
@@ -43,14 +43,11 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
 }
 
 void Sim::step() {
-
   bool new_sections = false;
-
   Message message;
   auto& q = tcp_client_.get_queue();
   bool success = q.try_dequeue(message);
   while (success) {
-    // std::cout << "suc " << message.size() << std::endl;
     auto* update = fbs_update::GetUpdate(message.data());
     switch (update->kind_type()) {
     case fbs_update::UpdateKind_Region:
@@ -60,12 +57,6 @@ void Sim::step() {
       for (int i = 0; i < sections->size(); ++i) {
         auto* section_update = sections->Get(i);
         auto* loc = section_update->location();
-        /*int elevation = section->elevation();
-        int landcover = section->landcover(); */
-        /*         std::cout
-                  << "Received section at "
-                  << loc->x() << "," << loc->y() << " with elevation " << elevation << std::endl; */
-
         auto x = loc->x(), z = loc->y();
         auto location = Location2D{x, z};
         if (!region_.has_section(location)) {
@@ -74,27 +65,22 @@ void Sim::step() {
           requested_sections_.erase(location);
         }
       }
-
       break;
     }
     success = q.try_dequeue(message);
   }
 
   auto& player = region_.get_player();
-  // std::unique_lock<std::mutex> lock(mutex_);
   {
     std::unique_lock<std::mutex> lock(camera_mutex_);
     auto& camera_pos = camera_.get_position();
     player.set_position(camera_pos[0], camera_pos[1], camera_pos[2]);
   }
   auto& pos = player.get_position();
-  // lock.unlock();
-
   auto loc = Chunk::pos_to_loc(pos);
 
   auto& last_location = player.get_last_location();
   if (loc != last_location || new_sections) {
-
     auto& sections = region_.get_sections();
     for (int x = -min_render_distance; x <= min_render_distance; ++x) {
       for (int y = -1; y < 2; ++y) {
@@ -119,7 +105,6 @@ void Sim::step() {
     }
   }
   if (loc != last_location) {
-
     std::vector<Location2D> locs;
     for (int x = -min_section_distance; x <= min_section_distance; ++x) {
       for (int z = -min_section_distance; z <= min_section_distance; ++z) {
@@ -179,12 +164,7 @@ void Sim::draw(int64_t ms) {
     camera_.scale_rotation_speed(ms * frame_rate_target / 1000.0);
 
     if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS) {
-
-      auto& pos = camera_.get_position();
-      // std::cout << "camera pos before: " << pos[0] << "," << pos[1] << "," << pos[2] << std::endl;
       camera_.move_forward();
-      auto& pos2 = camera_.get_position();
-      // std::cout << "camera pos after: " << pos2[0] << "," << pos2[1] << "," << pos2[2] << std::endl;
     } else if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS) {
       camera_.move_backward();
     }
@@ -216,9 +196,6 @@ void Sim::draw(int64_t ms) {
     bool suc = mesh_mutex_.try_lock();
     if (suc) {
       renderer_.consume_mesh_generator(mesh_generator_);
-      // auto& player = region_.get_player();
-      //       auto& camera_pos = camera_.get_position();
-      //       player.set_position(camera_pos[0], camera_pos[1], camera_pos[2]);
       ready_to_mesh_ = true;
       mesh_mutex_.unlock();
     }

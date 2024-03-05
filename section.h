@@ -19,6 +19,10 @@ public:
   const std::vector<int>& get_subsection_elevations() const;
   int get_subsection_elevation(int x, int z) const;
 
+  static constexpr int sz_x = Common::chunk_sz_x;
+  static constexpr int sz_z = Common::chunk_sz_z;
+  static constexpr int sz = Common::chunk_sz_x * Common::chunk_sz_z;
+
 private:
   Location2D location_;
   int elevation_;
@@ -26,10 +30,6 @@ private:
 
   std::vector<int> subsection_elevations_;
   bool computed_subsection_elevations_ = false;
-
-  static constexpr int sz_x = Common::chunk_sz_x;
-  static constexpr int sz_z = Common::chunk_sz_z;
-  static constexpr int sz = Common::chunk_sz_x * Common::chunk_sz_z;
 };
 
 #endif

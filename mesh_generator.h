@@ -12,7 +12,8 @@ public:
     enum Kind {
       creation,
       deletion,
-      water
+      water,
+      origin
     };
     Location location;
     Kind kind;
@@ -22,7 +23,7 @@ public:
   const std::unordered_map<Location, std::vector<Vertex>, LocationHash>& get_water_meshes() const;
   const std::vector<Diff>& get_diffs() const;
   void clear_diffs();
-  static constexpr int default_max_vertices = 50000;
+  static constexpr int default_max_vertices = 100000;
   static constexpr int default_max_water_vertices = 30000;
 
 private:
@@ -35,6 +36,9 @@ private:
   std::unordered_map<Location, std::vector<Vertex>, LocationHash> meshes_;
   std::unordered_map<Location, std::vector<Vertex>, LocationHash> water_meshes_;
   std::vector<Diff> diffs_;
+
+  Location origin_;
+  bool origin_set_ = false;
 };
 
 #endif

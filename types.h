@@ -96,9 +96,12 @@ namespace Voxel {
     water_full,
     WATER_UPPER,
 
+    leaves,
+
     OPAQUE_LOWER,
     dirt,
     sand,
+    tree_trunk,
 
     num_voxel_types
   };
@@ -109,6 +112,8 @@ namespace Voxel {
     tex_grass_side,
     tex_water,
     tex_sand,
+    tex_tree_trunk,
+    tex_leaves,
 
     num_voxel_textures
   };

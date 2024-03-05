@@ -114,25 +114,33 @@ Renderer::Renderer(World& world) : world_(world) {
   stbi_set_flip_vertically_on_load(1);
   int _width, _height, channels;
 
-  auto* image_data0 = stbi_load("dirt.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_dirt, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data0);
-  stbi_image_free(image_data0);
+  auto* image_data = stbi_load("dirt.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_dirt, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  stbi_image_free(image_data);
 
-  auto* image_data1 = stbi_load("grass.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_grass, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data1);
-  stbi_image_free(image_data1);
+  image_data = stbi_load("grass.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_grass, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  stbi_image_free(image_data);
 
-  auto* image_data2 = stbi_load("grass_side.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_grass_side, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data2);
-  stbi_image_free(image_data2);
+  image_data = stbi_load("grass_side.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_grass_side, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  stbi_image_free(image_data);
 
-  auto* image_data3 = stbi_load("water.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_water, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data3);
-  stbi_image_free(image_data3);
+  image_data = stbi_load("water.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_water, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  stbi_image_free(image_data);
 
-  auto* image_data4 = stbi_load("sand.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_sand, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data4);
-  stbi_image_free(image_data4);
+  image_data = stbi_load("sand.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_sand, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  stbi_image_free(image_data);
+
+  image_data = stbi_load("tree_trunk.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_tree_trunk, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  stbi_image_free(image_data);
+
+  image_data = stbi_load("leaves.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_leaves, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  stbi_image_free(image_data);
 
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -185,8 +193,6 @@ Renderer::Renderer(World& world) : world_(world) {
   glUniform3fv(ambient_col_loc, 1, glm::value_ptr(ambient_col));
 
   glEnable(GL_DEPTH_TEST);
-  /*   glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); */
 
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
@@ -279,6 +285,9 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
       vbo_map_.erase(vbo);
       GLuint water_vbo = water_loc_map_[diff.location];
       water_vbo_map_.erase(water_vbo);
+    } else if (diff.kind == MeshGenerator::Diff::origin) {
+      auto& loc = diff.location;
+      camera_offset_ = glm::dvec3(loc[0] * Chunk::sz_x, loc[1] * Chunk::sz_y, loc[2] * Chunk::sz_z);
     }
   }
 
@@ -290,16 +299,20 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
 void Renderer::consume_camera(const Camera& camera) {
 
   glm::mat4 projection = glm::perspective(glm::radians(55.l), 16 / 9.l, 0.1l, 4000.l);
-  glm::mat4 view = camera.get_view();
+  glm::mat4 view = camera.get_view(camera_offset_);
   glm::mat4 transform = projection * view;
 
-  auto& camera_pos = camera.get_position();
+  // this needs to be shifted by the mesh generators origin_
+  auto& camera_real = camera.get_position();
 
   auto transform_loc = glGetUniformLocation(shader_, "uTransform");
-  auto camera_pos_loc = glGetUniformLocation(shader_, "uCameraPos");
+  //auto camera_pos_loc = glGetUniformLocation(shader_, "uCameraPos");
   glUseProgram(shader_);
   glUniformMatrix4fv(transform_loc, 1, GL_FALSE, &transform[0][0]);
-  glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera_pos));
+
+  //auto camera_pos = glm::vec3(camera_real - camera_offset_);
+  /// uhh does this value_ptr work with stack variable
+  //glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera_pos));
 }
 
 void Renderer::render() const {

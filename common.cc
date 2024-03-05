@@ -41,7 +41,7 @@ namespace Common {
     else
       lng = degrees + minutes / 60.0 + seconds / 3600.0;
     pos[0] = (lng * equator_circumference) / (360);
-    pos[2] = (lat * polar_circumference) / (180);
+    pos[2] = (lat * (polar_circumference/2)) / (180);
     return pos;
   }
 

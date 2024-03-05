@@ -57,6 +57,8 @@ private:
   GLuint window_shader_;
 
   World& world_;
+
+  glm::dvec3 camera_offset_;
 };
 
 #endif
