@@ -1,6 +1,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <map>

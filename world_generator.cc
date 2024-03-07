@@ -37,6 +37,7 @@ void WorldGenerator::insert_into_features(int x, int y, int z, Voxel::VoxelType 
     ((y % Chunk::sz_y) + Chunk::sz_y) % Chunk::sz_y,
     ((z % Chunk::sz_z) + Chunk::sz_z) % Chunk::sz_z);
 
+  // these are never removed
   location_features.emplace_back(std::make_pair(idx, voxel));
 }
 
@@ -76,7 +77,7 @@ void WorldGenerator::populate(Section& section) {
   // we've got elevations
 
   // let's plant trees in features_
-  constexpr auto kRadius = 18.F;
+  constexpr auto kRadius =12.0F;
   constexpr auto kXMin = std::array<float, 2>{{0.F, 0.F}};
   constexpr auto kXMax = std::array<float, 2>{{Section::sz_x, Section::sz_z}};
 

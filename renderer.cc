@@ -6,61 +6,13 @@
 #include <glm/ext.hpp>
 #include <glm/gtc/random.hpp>
 #define STB_IMAGE_IMPLEMENTATION
+#include "render_utils.h"
 #include "stb_image.h"
 #include "types.h"
 
-static std::string read_shader_file(std::string path) {
-  std::ifstream fs(path, std::ios::in);
-
-  if (!fs.is_open()) {
-    std::cerr << "Could not read file " << path << ". File does not exist." << std::endl;
-    return "";
-  }
-  return std::string(std::istreambuf_iterator<char>(fs), std::istreambuf_iterator<char>());
-}
-
 Renderer::Renderer(World& world) : world_(world) {
-  auto activate_shader = [](GLuint* shader, std::string vertex_shader_filename, std::string fragment_shader_filename) {
-    auto vertex_shader_source = read_shader_file(vertex_shader_filename);
-    auto fragment_shader_source = read_shader_file(fragment_shader_filename);
-    const auto vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    auto* vertex_shader_source_cstr = vertex_shader_source.c_str();
-    glShaderSource(vertex_shader, 1, &vertex_shader_source_cstr, nullptr);
-    glCompileShader(vertex_shader);
-    GLint success;
-    GLchar info[512];
-    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-      glGetShaderInfoLog(vertex_shader, 512, nullptr, info);
-      std::cerr << "Failed to compile vertex shader: " << info << std::endl;
-      throw std::runtime_error("Failed to initialize Renderer");
-    }
-    const auto fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    auto* fragment_shader_source_cstr = fragment_shader_source.c_str();
-    glShaderSource(fragment_shader, 1, &fragment_shader_source_cstr, nullptr);
-    glCompileShader(fragment_shader);
-    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-      glGetShaderInfoLog(fragment_shader, 512, nullptr, info);
-      std::cerr << "Failed to compile fragment shader: " << info << std::endl;
-      throw std::runtime_error("Failed to initialize Renderer");
-    }
-    *shader = glCreateProgram();
-    glAttachShader(*shader, vertex_shader);
-    glAttachShader(*shader, fragment_shader);
-    glLinkProgram(*shader);
-    glGetProgramiv(*shader, GL_LINK_STATUS, &success);
-    if (!success) {
-      glGetProgramInfoLog(*shader, 512, nullptr, info);
-      std::cerr << "Failed to link shader program: " << info << std::endl;
-      throw std::runtime_error("Failed to initialize Renderer");
-    }
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
-  };
-
-  activate_shader(&shader_, "vertex.glsl", "fragment.glsl");
-  activate_shader(&window_shader_, "window_vertex.glsl", "window_fragment.glsl");
+  RenderUtils::create_shader(&shader_, "shaders/vertex.glsl", "shaders/fragment.glsl");
+  RenderUtils::create_shader(&window_shader_, "shaders/window_vertex.glsl", "shaders/window_fragment.glsl");
 
   glGenBuffers(vbos_.size(), vbos_.data());
   glGenVertexArrays(vaos_.size(), vaos_.data());
@@ -71,14 +23,14 @@ Renderer::Renderer(World& world) : world_(world) {
   for (int i = 0; i < vbos_.size() && i < vaos_.size(); ++i) {
     auto vbo = vbos_[i];
     auto vao = vaos_[i];
-    activate_vao(vbo, vao);
+    RenderUtils::set_up_standard_vao(vbo, vao);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MeshGenerator::default_max_vertices, nullptr, GL_STATIC_DRAW);
   }
 
   for (int i = 0; i < water_vbos_.size() && i < water_vaos_.size(); ++i) {
     auto vbo = water_vbos_[i];
     auto vao = water_vaos_[i];
-    activate_vao(vbo, vao);
+    RenderUtils::set_up_standard_vao(vbo, vao);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MeshGenerator::default_max_water_vertices, nullptr, GL_STATIC_DRAW);
   }
 
@@ -114,31 +66,31 @@ Renderer::Renderer(World& world) : world_(world) {
   stbi_set_flip_vertically_on_load(1);
   int _width, _height, channels;
 
-  auto* image_data = stbi_load("dirt.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  auto* image_data = stbi_load("images/dirt.png", &_width, &_height, &channels, STBI_rgb_alpha);
   glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_dirt, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
 
-  image_data = stbi_load("grass.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  image_data = stbi_load("images/grass.png", &_width, &_height, &channels, STBI_rgb_alpha);
   glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_grass, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
 
-  image_data = stbi_load("grass_side.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  image_data = stbi_load("images/grass_side.png", &_width, &_height, &channels, STBI_rgb_alpha);
   glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_grass_side, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
 
-  image_data = stbi_load("water.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  image_data = stbi_load("images/water.png", &_width, &_height, &channels, STBI_rgb_alpha);
   glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_water, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
 
-  image_data = stbi_load("sand.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  image_data = stbi_load("images/sand.png", &_width, &_height, &channels, STBI_rgb_alpha);
   glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_sand, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
 
-  image_data = stbi_load("tree_trunk.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  image_data = stbi_load("images/tree_trunk.png", &_width, &_height, &channels, STBI_rgb_alpha);
   glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_tree_trunk, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
 
-  image_data = stbi_load("leaves.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  image_data = stbi_load("images/leaves.png", &_width, &_height, &channels, STBI_rgb_alpha);
   glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_leaves, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
 
@@ -153,7 +105,7 @@ Renderer::Renderer(World& world) : world_(world) {
   glUseProgram(shader_);
   glUniform1i(texture_loc, GL_TEXTURE0);
 
-  auto activate_framebuffers = [](GLuint* fbo, GLuint* cbo, GLuint* dbo) {
+  auto set_up_framebuffers = [](GLuint* fbo, GLuint* cbo, GLuint* dbo) {
     glGenFramebuffers(1, fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, *fbo);
 
@@ -178,8 +130,8 @@ Renderer::Renderer(World& world) : world_(world) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, *dbo, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
   };
-  activate_framebuffers(&main_framebuffer_, &main_cbo_, &main_dbo_);
-  activate_framebuffers(&water_framebuffer_, &water_cbo_, &water_dbo_);
+  set_up_framebuffers(&main_framebuffer_, &main_cbo_, &main_dbo_);
+  set_up_framebuffers(&water_framebuffer_, &water_cbo_, &water_dbo_);
 
   // upload lights
   auto& sun_dir = world_.get_sun_dir();
@@ -199,20 +151,9 @@ Renderer::Renderer(World& world) : world_(world) {
 
   glFrontFace(GL_CW);
 
-  glClearColor(0.502f, 0.866f, 1.f, 1.0f);
-}
+  glClearColor(0.702f, 0.266f, 1.f, 1.0f);
 
-void Renderer::activate_vao(GLuint vbo, GLuint vao) {
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBindVertexArray(vao);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvs));
-  glVertexAttribPointer(3, 1, GL_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, layer));
-  glEnableVertexAttribArray(0);
-  glEnableVertexAttribArray(1);
-  glEnableVertexAttribArray(2);
-  glEnableVertexAttribArray(3);
+  projection_ = glm::perspective(glm::radians(55.l), 16 / 9.l, 0.1l, 4000.l);
 }
 
 void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
@@ -261,7 +202,7 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
         glDeleteBuffers(1, vbo_ptr);
         glGenBuffers(1, vbo_ptr);
         vbo_to_use = *vbo_ptr;
-        activate_vao(vbo_to_use, vao);
+        RenderUtils::set_up_standard_vao(vbo_to_use, vao);
 
         glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * mesh->size(), mesh->data(), GL_STATIC_DRAW);
       } else {
@@ -297,28 +238,20 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
 }
 
 void Renderer::consume_camera(const Camera& camera) {
-
-  glm::mat4 projection = glm::perspective(glm::radians(55.l), 16 / 9.l, 0.1l, 4000.l);
-  glm::mat4 view = camera.get_view(camera_offset_);
-  glm::mat4 transform = projection * view;
-
-  // this needs to be shifted by the mesh generators origin_
-  auto& camera_real = camera.get_position();
-
-  auto transform_loc = glGetUniformLocation(shader_, "uTransform");
-  //auto camera_pos_loc = glGetUniformLocation(shader_, "uCameraPos");
-  glUseProgram(shader_);
-  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, &transform[0][0]);
-
-  //auto camera_pos = glm::vec3(camera_real - camera_offset_);
-  /// uhh does this value_ptr work with stack variable
-  //glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera_pos));
+  view_ = camera.get_view(camera_offset_);
 }
 
 void Renderer::render() const {
+
   glUseProgram(shader_);
+  auto transform_loc = glGetUniformLocation(shader_, "uTransform");
+  auto transform = projection_ * view_;
+  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, &transform[0][0]);
+
   glBindFramebuffer(GL_FRAMEBUFFER, main_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  glUseProgram(shader_);
   for (int i = 0; i < vbos_.size() && i < vaos_.size(); ++i) {
     auto vbo = vbos_[i];
     auto vao = vaos_[i];
@@ -326,12 +259,13 @@ void Renderer::render() const {
     if (!vbo_map_.contains(vbo))
       continue;
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBindVertexArray(vao);
 
     int mesh_size = mesh_size_map_.at(vbo);
     glDrawArrays(GL_TRIANGLES, 0, mesh_size);
   }
+
+  sky_.render(*this);
 
   glBindFramebuffer(GL_FRAMEBUFFER, water_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -342,7 +276,6 @@ void Renderer::render() const {
     if (!(water_vbo_map_.contains(vbo) && water_mesh_size_map_.at(vbo) > 0))
       continue;
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBindVertexArray(vao);
 
     int mesh_size = water_mesh_size_map_.at(vbo);
@@ -364,9 +297,17 @@ void Renderer::render() const {
   glActiveTexture(GL_TEXTURE3);
   glBindTexture(GL_TEXTURE_2D, water_dbo_);
   glUniform1i(glGetUniformLocation(window_shader_, "WaterDepth"), 3);
-  glBindBuffer(GL_ARRAY_BUFFER, window_vbo_);
+  // glBindBuffer(GL_ARRAY_BUFFER, window_vbo_);
   glBindVertexArray(window_vao_);
   glDrawArrays(GL_TRIANGLES, 0, 6);
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+const glm::mat4& Renderer::get_projection_matrix() const {
+  return projection_;
+}
+
+const glm::mat4& Renderer::get_view_matrix() const {
+  return view_;
 }
