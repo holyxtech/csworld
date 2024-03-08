@@ -45,10 +45,26 @@ void Section::compute_subsection_elevations(std::unordered_map<Location2D, Secti
   loc[1]++;
   int e8 = sections.at(loc).elevation_;
 
+  // e1 | e2 | e3
+  // e8 | e  | e4
+  // e7 | e6 | e5
+
   float a1 = (e8 + e1 + e2 + elevation_) / 4.0;
   float a2 = (e2 + e3 + e4 + elevation_) / 4.0;
   float a3 = (e4 + e5 + e6 + elevation_) / 4.0;
   float a4 = (e6 + e7 + e8 + elevation_) / 4.0;
+
+  float vAAx = ((e2 + elevation_) - (e1 + e8));
+  float vAAz = ((e1 + e2) - (e8 + elevation_));
+
+  float vABx = ((e3 + e4) - (e2 + elevation_));
+  float vABz = ((e2 + e3) - (elevation_ + e4));
+
+  float vBAx = ((elevation_ + e6) - (e8 + e7));
+  float vBAz = ((e8 + elevation_) - (e7 + e6));
+
+  float vBBx = ((e4 + e5) - (elevation_ + e6));
+  float vBBz = ((elevation_ + e4) - (e6 + e5));
 
   for (float z = 0; z < sz_z; ++z) {
     for (float x = 0; x < sz_x; ++x) {
@@ -57,8 +73,13 @@ void Section::compute_subsection_elevations(std::unordered_map<Location2D, Secti
       float u_fade = u * u * (3 - 2 * u);
       float v_fade = v * v * (3 - 2 * v);
 
-      float n_x0 = (1 - u_fade) * (a4) + u_fade * (a3);
-      float n_x1 = (1 - u_fade) * (a1) + u_fade * (a2);
+      u /= 2;
+      v /= 2;
+      float iu = u - 0.5;
+      float iv = v - 0.5;
+
+      float n_x0 = (1 - u_fade) * (a4 + vBAx * u + vBAz * v) + u_fade * (a3 + vBBx * iu + vBBz * v);
+      float n_x1 = (1 - u_fade) * (a1 + vAAx * u + vAAz * iv) + u_fade * (a2 + vABx * iu + vABz * iv);
 
       int n_xy = (1 - v_fade) * n_x0 + v_fade * n_x1;
       subsection_elevations_.emplace_back(n_xy);
