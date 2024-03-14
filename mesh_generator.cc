@@ -11,10 +11,10 @@ namespace QuadCoord {
   constexpr glm::vec2 tr = glm::vec2(1.f, 1.f);
 } // namespace QuadCoord
 
-std::array<Voxel::VoxelType, 6> MeshGenerator::get_adjacent_voxels(
+std::array<Voxel, 6> MeshGenerator::get_adjacent_voxels(
   Region& region, Chunk& chunk, int x, int y, int z) const {
   auto& location = chunk.get_location();
-  std::array<Voxel::VoxelType, 6> adjacent{Voxel::empty};
+  std::array<Voxel, 6> adjacent{Voxel::empty};
   if (x > 0) {
     adjacent[Direction::nx] = chunk.get_voxel(x - 1, y, z);
   } else {
@@ -64,9 +64,9 @@ void MeshGenerator::mesh_greedy(const Chunk& chunk) {
   // and then for y, and then for z
 }
 
-void MeshGenerator::fill_sides(std::vector<Vertex>& mesh, glm::vec3& position, std::array<Voxel::VoxelType, 6>& adjacent, std::array<int, 6>& layers, Voxel::VoxelType TYPE_UPPER_BOUND) {
+void MeshGenerator::fill_sides(std::vector<Vertex>& mesh, glm::vec3& position, std::array<Voxel, 6>& adjacent, std::array<VoxelTexture, 6>& layers, Voxel TYPE_UPPER_BOUND) {
   auto [nx, px, ny, py, nz, pz] = adjacent;
-  auto [nx_layer, px_layer, ny_layer, py_layer, nz_layer, pz_layer] = layers;
+  auto [nx_layer, px_layer, ny_layer, py_layer, nz_layer, pz_layer] = reinterpret_cast<std::array<int, 6>&>(layers);
   int i = position[0], j = position[1], k = position[2];
 
   if (nx < TYPE_UPPER_BOUND) {
@@ -125,6 +125,49 @@ void MeshGenerator::fill_sides(std::vector<Vertex>& mesh, glm::vec3& position, s
   }
 }
 
+void MeshGenerator::mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position, Voxel voxel) {
+  float i = position[0], j = position[1], k = position[2];
+  switch (voxel) {
+  case Voxel::grass:
+    // emplace back the triangles
+    float r = Common::random_float(-0.2f, 0.2f);
+    i += r;
+    k += r;
+
+    auto normal = glm::vec3(0.f);
+    int layer = static_cast<int>(VoxelTexture::standing_grass);
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::bl, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::bl, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
+
+    // cross
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
+
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
+
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
+    break;
+  }
+}
+
 void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
   auto& chunk = region.get_chunk(location);
   auto& mesh = meshes_[location];
@@ -136,49 +179,57 @@ void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
       for (int x = 0; x < Chunk::sz_x; ++x) {
         auto voxel = chunk.get_voxel(x, y, z);
 
-        if (voxel == Voxel::empty ||
-            (voxel > Voxel::WATER_LOWER &&
-             voxel < Voxel::WATER_LOWER)) {
+        if (voxel < Voxel::WATER_UPPER) {
+          continue;
+        }
+        auto position = chunk_position + glm::vec3(x, y, z);
+        if (voxel < Voxel::CUBE_LOWER) {
+          mesh_noncube(mesh, position, voxel);
           continue;
         }
 
-        auto position = chunk_position + glm::vec3(x, y, z);
         auto adjacent = get_adjacent_voxels(region, chunk, x, y, z);
-        std::array<int, 6> layers;
+        std::array<VoxelTexture, 6> layers;
         switch (voxel) {
         case Voxel::dirt:
           if (adjacent[Direction::py] < Voxel::OPAQUE_LOWER) {
-            layers[Direction::nx] = Voxel::tex_grass_side;
-            layers[Direction::px] = Voxel::tex_grass_side;
-            layers[Direction::nz] = Voxel::tex_grass_side;
-            layers[Direction::pz] = Voxel::tex_grass_side;
+            layers[Direction::nx] = VoxelTexture::grass_side;
+            layers[Direction::px] = VoxelTexture::grass_side;
+            layers[Direction::nz] = VoxelTexture::grass_side;
+            layers[Direction::pz] = VoxelTexture::grass_side;
           } else {
-            layers[Direction::nx] = Voxel::tex_dirt;
-            layers[Direction::px] = Voxel::tex_dirt;
-            layers[Direction::nz] = Voxel::tex_dirt;
-            layers[Direction::pz] = Voxel::tex_dirt;
+            layers[Direction::nx] = VoxelTexture::dirt;
+            layers[Direction::px] = VoxelTexture::dirt;
+            layers[Direction::nz] = VoxelTexture::dirt;
+            layers[Direction::pz] = VoxelTexture::dirt;
           }
           if (adjacent[Direction::py] == Voxel::water_full) {
-            layers[Direction::py] = Voxel::tex_grass;
+            layers[Direction::py] = VoxelTexture::grass;
           } else {
-            layers[Direction::py] = Voxel::tex_grass;
+            layers[Direction::py] = VoxelTexture::grass;
           }
-          layers[Direction::ny] = Voxel::tex_dirt;
+          layers[Direction::ny] = VoxelTexture::dirt;
           break;
         case Voxel::sand:
-          layers.fill(Voxel::tex_sand);
+          layers.fill(VoxelTexture::sand);
           break;
         case Voxel::tree_trunk:
-          layers.fill(Voxel::tex_tree_trunk);
+          layers.fill(VoxelTexture::tree_trunk);
           break;
         case Voxel::leaves:
-          layers.fill(Voxel::tex_leaves);
+          layers.fill(VoxelTexture::leaves);
+          break;
+        case Voxel::sandstone:
+          layers.fill(VoxelTexture::sandstone);
+          break;
+        case Voxel::stone:
+          layers.fill(VoxelTexture::stone);
           break;
         }
-        if (voxel > Voxel::OPAQUE_LOWER)
-          fill_sides(mesh, position, adjacent, layers, Voxel::OPAQUE_LOWER);
-        else
+        if (voxel < Voxel::OPAQUE_LOWER)
           fill_sides(mesh, position, adjacent, layers, Voxel::num_voxel_types);
+        else
+          fill_sides(mesh, position, adjacent, layers, Voxel::OPAQUE_LOWER);
       }
     }
   }
@@ -196,8 +247,8 @@ void MeshGenerator::mesh_water(Region& region, const Location& location) {
     auto position = chunk_position + glm::vec3(x, y, z);
     auto adjacent = get_adjacent_voxels(region, chunk, x, y, z);
 
-    std::array<int, 6> layers;
-    layers.fill(Voxel::tex_water);
+    std::array<VoxelTexture, 6> layers;
+    layers.fill(VoxelTexture::water);
     fill_sides(water_mesh, position, adjacent, layers, Voxel::WATER_LOWER);
   }
   diffs_.emplace_back(Diff{location, Diff::water});
@@ -205,8 +256,8 @@ void MeshGenerator::mesh_water(Region& region, const Location& location) {
 
 void MeshGenerator::consume_region(Region& region) {
   auto& diffs = region.get_diffs();
-  int num_meshed = 0;
-  float total_duration = 0.0;
+  /* int num_meshed = 0;
+  float total_duration = 0.0; */
 
   for (auto& diff : diffs) {
     auto& loc = diff.location;
@@ -220,15 +271,15 @@ void MeshGenerator::consume_region(Region& region) {
     if (diff.kind == Region::Diff::creation) {
       auto& chunk = region.get_chunk(loc);
 
-      auto start = std::chrono::high_resolution_clock::now();
+      // auto start = std::chrono::high_resolution_clock::now();
       mesh_chunk(region, loc);
-      auto end = std::chrono::high_resolution_clock::now();
+      /*       auto end = std::chrono::high_resolution_clock::now();
 
-      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start); */
       // std::cout << "mesh time: " << duration.count() << std::endl;
 
-      num_meshed++;
-      total_duration += duration.count();
+      /* num_meshed++;
+      total_duration += duration.count(); */
     } else if (diff.kind == Region::Diff::deletion) {
       diffs_.emplace_back(Diff{loc, Diff::deletion});
     } else if (diff.kind == Region::Diff::water) {

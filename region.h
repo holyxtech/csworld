@@ -34,7 +34,7 @@ public:
   void add_chunk(Chunk&& chunk);
   const std::vector<Diff>& get_diffs() const;
   void clear_diffs();
-  Voxel::VoxelType get_voxel(int x, int y, int z) const;
+  Voxel get_voxel(int x, int y, int z) const;
 
   static constexpr int max_sz = 256;
 

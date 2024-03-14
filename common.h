@@ -2,6 +2,7 @@
 #define COMMON_H
 
 #include <array>
+#include <cstdint>
 #include <string>
 
 namespace Common {
@@ -16,8 +17,11 @@ namespace Common {
   constexpr int chunk_sz_y = chunk_sz_uniform;
   constexpr int chunk_sz_z = chunk_sz_uniform;
   constexpr int chunk_sz = chunk_sz_x * chunk_sz_y * chunk_sz_z;
+  constexpr int landcover_rows_per_sector = 4;
+  constexpr int landcover_cols_per_sector = 4;
+  constexpr int landcover_tiles_per_sector = landcover_rows_per_sector * landcover_cols_per_sector;
 
-  enum LandCover {
+  enum class LandCover : uint8_t {
     bare,
     water,
     trees,
@@ -28,6 +32,10 @@ namespace Common {
     mangroves,
     moss
   };
+
+  float random_probability();
+  float random_float(float low, float high);
+
 } // namespace Common
 
 #endif

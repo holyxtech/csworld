@@ -1,6 +1,13 @@
 #include "common.h"
 #include <iomanip>
 #include <iostream>
+#include <random>
+
+namespace {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
+} // namespace
 
 namespace Common {
 
@@ -41,8 +48,17 @@ namespace Common {
     else
       lng = degrees + minutes / 60.0 + seconds / 3600.0;
     pos[0] = (lng * equator_circumference) / (360);
-    pos[2] = (lat * (polar_circumference/2)) / (180);
+    pos[2] = (lat * (polar_circumference / 2)) / (180);
     return pos;
   }
+
+  float random_probability() {
+    return distribution(gen);
+  }
+
+  float random_float(float low, float high) {
+    std::uniform_real_distribution<float> dist(low, high);
+    return dist(gen);
+  };
 
 } // namespace Common

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <utility>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
 #include <glm/gtc/random.hpp>
@@ -16,17 +17,14 @@ Renderer::Renderer(World& world) : world_(world) {
 
   glGenBuffers(vbos_.size(), vbos_.data());
   glGenVertexArrays(vaos_.size(), vaos_.data());
-
   glGenBuffers(water_vbos_.size(), water_vbos_.data());
   glGenVertexArrays(water_vaos_.size(), water_vaos_.data());
-
   for (int i = 0; i < vbos_.size() && i < vaos_.size(); ++i) {
     auto vbo = vbos_[i];
     auto vao = vaos_[i];
     RenderUtils::set_up_standard_vao(vbo, vao);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MeshGenerator::default_max_vertices, nullptr, GL_STATIC_DRAW);
   }
-
   for (int i = 0; i < water_vbos_.size() && i < water_vaos_.size(); ++i) {
     auto vbo = water_vbos_[i];
     auto vao = water_vaos_[i];
@@ -41,7 +39,6 @@ Renderer::Renderer(World& world) : world_(world) {
     -1.0f, 1.0f, 0.0f,
     1.0f, 1.0f, 0.0f,
     1.0f, -1.0f, 0.0f};
-
   glGenBuffers(1, &window_vbo_);
   glGenVertexArrays(1, &window_vao_);
   glBindBuffer(GL_ARRAY_BUFFER, window_vbo_);
@@ -49,7 +46,6 @@ Renderer::Renderer(World& world) : world_(world) {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
   glEnableVertexAttribArray(0);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -57,49 +53,49 @@ Renderer::Renderer(World& world) : world_(world) {
   glGenTextures(1, &texture_array);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
-  GLint num_layers = Voxel::num_voxel_textures;
+  GLint num_layers = static_cast<GLint>(VoxelTexture::num_voxel_textures);
   GLsizei width = 16;
   GLsizei height = 16;
   GLsizei num_mipmaps = 1;
   glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_RGBA8, width, height, num_layers);
-
   stbi_set_flip_vertically_on_load(1);
   int _width, _height, channels;
-
   auto* image_data = stbi_load("images/dirt.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_dirt, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::dirt), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
-
   image_data = stbi_load("images/grass.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_grass, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::grass), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
-
   image_data = stbi_load("images/grass_side.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_grass_side, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::grass_side), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
-
   image_data = stbi_load("images/water.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_water, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::water), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
-
   image_data = stbi_load("images/sand.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_sand, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::sand), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
-
   image_data = stbi_load("images/tree_trunk.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_tree_trunk, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::tree_trunk), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
-
   image_data = stbi_load("images/leaves.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, Voxel::tex_leaves, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::leaves), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
-
+  image_data = stbi_load("images/sandstone.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::sandstone), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  stbi_image_free(image_data);
+  image_data = stbi_load("images/stone.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::stone), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  stbi_image_free(image_data);
+  image_data = stbi_load("images/standing_grass.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::standing_grass), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  stbi_image_free(image_data);
+  // glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-  glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+  // glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, 4.0);
 
   GLint texture_loc = glGetUniformLocation(shader_, "textureArray");
   glUseProgram(shader_);
@@ -108,24 +104,20 @@ Renderer::Renderer(World& world) : world_(world) {
   auto set_up_framebuffers = [](GLuint* fbo, GLuint* cbo, GLuint* dbo) {
     glGenFramebuffers(1, fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, *fbo);
-
     glGenTextures(1, cbo);
     glGenTextures(1, dbo);
-
     glBindTexture(GL_TEXTURE_2D, *cbo);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_width, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-
     glBindTexture(GL_TEXTURE_2D, *dbo);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, window_width, window_height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
-
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *cbo, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, *dbo, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -145,12 +137,9 @@ Renderer::Renderer(World& world) : world_(world) {
   glUniform3fv(ambient_col_loc, 1, glm::value_ptr(ambient_col));
 
   glEnable(GL_DEPTH_TEST);
-
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
-
   glFrontFace(GL_CW);
-
   glClearColor(0.702f, 0.266f, 1.f, 1.0f);
 
   projection_ = glm::perspective(glm::radians(55.l), 16 / 9.l, 0.1l, 4000.l);

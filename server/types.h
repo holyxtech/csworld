@@ -1,6 +1,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <functional>
@@ -55,7 +56,7 @@ struct hash_pair final {
 struct Section {
   Location2D location;
   int elevation;
-  Common::LandCover landcover;
+  std::array<Common::LandCover, Common::landcover_tiles_per_sector> landcover;
 };
 
 #endif

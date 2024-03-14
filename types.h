@@ -89,37 +89,41 @@ struct Vertex {
 
 using Message = std::vector<uint8_t>;
 
-namespace Voxel {
-  enum VoxelType {
-    empty,
+enum class Voxel {
+  empty,
+  WATER_LOWER,
+  water_full,
+  WATER_UPPER,
 
-    WATER_LOWER,
-    water_full,
-    WATER_UPPER,
+  grass,
 
-    leaves,
+  CUBE_LOWER,
+  leaves,
 
-    OPAQUE_LOWER,
-    dirt,
-    sand,
-    tree_trunk,
+  OPAQUE_LOWER,
+  dirt,
+  sand,
+  tree_trunk,
+  sandstone,
+  stone,
 
-    num_voxel_types
-  };
+  num_voxel_types
+};
 
-  enum VoxelTexture {
-    tex_dirt,
-    tex_grass,
-    tex_grass_side,
-    tex_water,
-    tex_sand,
-    tex_tree_trunk,
-    tex_leaves,
+enum class VoxelTexture {
+  dirt,
+  grass,
+  grass_side,
+  water,
+  sand,
+  tree_trunk,
+  leaves,
+  sandstone,
+  stone,
+  standing_grass,
 
-    num_voxel_textures
-  };
-
-} // namespace Voxel
+  num_voxel_textures
+};
 
 enum Direction {
   nx,

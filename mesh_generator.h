@@ -30,8 +30,9 @@ private:
   void mesh_chunk(Region& region, const Location& location);
   void mesh_greedy(const Chunk& chunk);
   void mesh_water(Region& region, const Location& location);
-  std::array<Voxel::VoxelType, 6> get_adjacent_voxels(Region& region, Chunk& chunk, int x, int y, int z) const;
-  void fill_sides(std::vector<Vertex>& mesh, glm::vec3& position, std::array<Voxel::VoxelType, 6>& adjacent, std::array<int, 6>& layers, Voxel::VoxelType TYPE_UPPER_BOUND);
+  std::array<Voxel, 6> get_adjacent_voxels(Region& region, Chunk& chunk, int x, int y, int z) const;
+  void fill_sides(std::vector<Vertex>& mesh, glm::vec3& position, std::array<Voxel, 6>& adjacent, std::array<VoxelTexture, 6>& layers, Voxel TYPE_UPPER_BOUND);
+  void mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position, Voxel voxel);
 
   std::unordered_map<Location, std::vector<Vertex>, LocationHash> meshes_;
   std::unordered_map<Location, std::vector<Vertex>, LocationHash> water_meshes_;

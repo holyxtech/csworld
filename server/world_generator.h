@@ -21,6 +21,9 @@ private:
     int channels;
   };
 
+  static constexpr int tile_max_x = 255;
+  static constexpr int tile_max_y = 255;
+
   Image get_image(
     std::pair<int, int> tile,
     std::string dir,
@@ -35,7 +38,6 @@ private:
   static constexpr int zoom_level = 15;
   std::unordered_map<std::pair<int, int>, Image, hash_pair> elevation_images_;
   std::unordered_map<std::pair<int, int>, Image, hash_pair> landcover_images_;
-
 };
 
 #endif

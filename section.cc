@@ -4,8 +4,11 @@ Section::Section(const fbs_update::Section* section) {
   auto loc = section->location();
   location_ = Location2D{loc->x(), loc->y()};
   elevation_ = section->elevation();
-  landcover_ = static_cast<Common::LandCover>(section->landcover());
-  subsection_elevations_.reserve(sz);
+  // std::cout<<"Landcover at "<<location_[0]<<","<<location_[1]<<std::endl;
+  for (int i = 0; i < Common::landcover_tiles_per_sector; ++i) {
+    landcover_[i] = static_cast<Common::LandCover>(section->landcover()->Get(i));
+    // std::cout<<static_cast<int>(landcover_[i])<<std::endl;
+  }
 }
 
 const Location2D& Section::get_location() const {
@@ -16,7 +19,7 @@ int Section::get_elevation() const {
   return elevation_;
 }
 
-Common::LandCover Section::get_landcover() const {
+const std::array<Common::LandCover, Common::landcover_tiles_per_sector>& Section::get_landcover() const {
   return landcover_;
 }
 
@@ -54,17 +57,14 @@ void Section::compute_subsection_elevations(std::unordered_map<Location2D, Secti
   float a3 = (e4 + e5 + e6 + elevation_) / 4.0;
   float a4 = (e6 + e7 + e8 + elevation_) / 4.0;
 
-  float vAAx = ((e2 + elevation_) - (e1 + e8));
-  float vAAz = ((e1 + e2) - (e8 + elevation_));
-
-  float vABx = ((e3 + e4) - (e2 + elevation_));
-  float vABz = ((e2 + e3) - (elevation_ + e4));
-
-  float vBAx = ((elevation_ + e6) - (e8 + e7));
-  float vBAz = ((e8 + elevation_) - (e7 + e6));
-
-  float vBBx = ((e4 + e5) - (elevation_ + e6));
-  float vBBz = ((elevation_ + e4) - (e6 + e5));
+  float vAAu = ((e2 + elevation_) - (e1 + e8));
+  float vAAv = ((e1 + e2) - (e8 + elevation_));
+  float vABu = ((e3 + e4) - (e2 + elevation_));
+  float vABv = ((e2 + e3) - (elevation_ + e4));
+  float vBAu = ((elevation_ + e6) - (e8 + e7));
+  float vBAv = ((e8 + elevation_) - (e7 + e6));
+  float vBBu = ((e4 + e5) - (elevation_ + e6));
+  float vBBv = ((elevation_ + e4) - (e6 + e5));
 
   for (float z = 0; z < sz_z; ++z) {
     for (float x = 0; x < sz_x; ++x) {
@@ -78,11 +78,11 @@ void Section::compute_subsection_elevations(std::unordered_map<Location2D, Secti
       float iu = u - 0.5;
       float iv = v - 0.5;
 
-      float n_x0 = (1 - u_fade) * (a4 + vBAx * u + vBAz * v) + u_fade * (a3 + vBBx * iu + vBBz * v);
-      float n_x1 = (1 - u_fade) * (a1 + vAAx * u + vAAz * iv) + u_fade * (a2 + vABx * iu + vABz * iv);
+      float n_x0 = (1 - u_fade) * (a4 + vBAu * u + vBAv * v) + u_fade * (a3 + vBBu * iu + vBBv * v);
+      float n_x1 = (1 - u_fade) * (a1 + vAAu * u + vAAv * iv) + u_fade * (a2 + vABu * iu + vABv * iv);
 
       int n_xy = (1 - v_fade) * n_x0 + v_fade * n_x1;
-      subsection_elevations_.emplace_back(n_xy);
+      subsection_elevations_[x + sz_x * z] = n_xy;
     }
   }
 
@@ -93,10 +93,16 @@ bool Section::has_subsection_elevations() const {
   return computed_subsection_elevations_;
 }
 
-const std::vector<int>& Section::get_subsection_elevations() const {
+const std::array<int, Section::sz>& Section::get_subsection_elevations() const {
   return subsection_elevations_;
 }
 
 int Section::get_subsection_elevation(int x, int z) const {
   return subsection_elevations_[x + sz_x * z];
+}
+
+Common::LandCover Section::get_landcover(int x, int z) const {
+  int col = x * Common::landcover_cols_per_sector / Section::sz_x;
+  int row = z * Common::landcover_rows_per_sector / Section::sz_z;
+  return landcover_[col + row * Common::landcover_cols_per_sector];
 }

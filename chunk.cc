@@ -3,8 +3,9 @@
 
 Chunk::Chunk(int x, int y, int z)
     : location_{x, y, z} {
-  voxels_.reserve(sz);
-  voxels_.insert(voxels_.end(), sz, Voxel::empty);
+  voxels_.fill(Voxel::empty);
+  /*   voxels_.reserve(sz);
+    voxels_.insert(voxels_.end(), sz, Voxel::empty); */
   water_voxels_.reserve(water_voxels_reserve);
   flags_ = 0;
 }
@@ -17,7 +18,7 @@ const std::unordered_set<std::size_t>& Chunk::get_water_voxels() const {
   return water_voxels_;
 }
 
-Voxel::VoxelType Chunk::get_voxel(int x, int y, int z) const {
+Voxel Chunk::get_voxel(int x, int y, int z) const {
   return voxels_[x + sz_x * (y + sz_y * z)];
 }
 
@@ -34,8 +35,8 @@ std::array<int, 3> Chunk::flat_index_to_3d(int i) {
   return arr;
 }
 
-void Chunk::set_voxel(int i, Voxel::VoxelType voxel) {
-  Voxel::VoxelType cur = voxels_[i];
+void Chunk::set_voxel(int i, Voxel voxel) {
+  Voxel cur = voxels_[i];
   if (voxel < Voxel::WATER_UPPER && voxel > Voxel::WATER_LOWER) {
     water_voxels_.insert(i);
   } else if (cur < Voxel::WATER_UPPER && cur > Voxel::WATER_LOWER) {
@@ -44,12 +45,12 @@ void Chunk::set_voxel(int i, Voxel::VoxelType voxel) {
   voxels_[i] = voxel;
 }
 
-void Chunk::set_voxel(int x, int y, int z, Voxel::VoxelType voxel) {
+void Chunk::set_voxel(int x, int y, int z, Voxel voxel) {
   std::size_t i = x + sz_x * (y + sz_y * z);
   set_voxel(i, voxel);
 }
 
-Voxel::VoxelType Chunk::get_voxel(int i) const {
+Voxel Chunk::get_voxel(int i) const {
   return voxels_[i];
 }
 

@@ -17,16 +17,16 @@ private:
   double noise(double x, double y) const;
   void populate(Section& section);
   void build_tree(int x, int y, int z);
-  void insert_into_features(int x, int y, int z, Voxel::VoxelType voxel);
+  void insert_into_features(int x, int y, int z, Voxel voxel);
 
-  std::unordered_map<Location, std::vector<std::pair<int, Voxel::VoxelType>>, LocationHash> features_;
+  std::unordered_map<Location, std::vector<std::pair<int, Voxel>>, LocationHash> features_;
 
   osn_context* ctx_;
-  static constexpr int octaves_ = 2;
+  static constexpr int octaves_ = 4;
   static constexpr double persistence_ = 0.75;
-  static constexpr double scale_ = 0.01;
-  static constexpr float low_ = -5;
-  static constexpr float high_ = 5;
+  static constexpr double scale_ = 0.4;
+  static constexpr float low_ = 0;
+  static constexpr float high_ = 1;
 };
 
 #endif

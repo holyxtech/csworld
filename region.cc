@@ -143,7 +143,7 @@ void Region::clear_diffs() {
 }
 
 // Presumes that the chunk exists
-Voxel::VoxelType Region::get_voxel(int x, int y, int z) const {
+Voxel Region::get_voxel(int x, int y, int z) const {
   auto location = Location{
     static_cast<int>(std::floor(static_cast<float>(x) / Chunk::sz_x)),
     static_cast<int>(std::floor(static_cast<float>(y) / Chunk::sz_y)),

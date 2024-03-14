@@ -18,12 +18,12 @@ public:
 
   const Location& get_location() const;
   const std::unordered_set<std::size_t>& get_water_voxels() const;
-  Voxel::VoxelType get_voxel(int x, int y, int z) const;
-  Voxel::VoxelType get_voxel(int i) const;
+  Voxel get_voxel(int x, int y, int z) const;
+  Voxel get_voxel(int i) const;
   static int get_index(int x, int y, int z);
 
-  void set_voxel(int i, Voxel::VoxelType voxel);
-  void set_voxel(int x, int y, int z, Voxel::VoxelType voxel);
+  void set_voxel(int i, Voxel voxel);
+  void set_voxel(int x, int y, int z, Voxel voxel);
 
   void set_flag(Flags flag);
   void unset_flag(Flags flag);
@@ -38,7 +38,7 @@ public:
   static constexpr int sz = Common::chunk_sz;
 
 private:
-  std::vector<Voxel::VoxelType> voxels_;
+  std::array<Voxel, sz> voxels_;
   static constexpr int water_voxels_reserve = sz / 10;
   std::unordered_set<std::size_t> water_voxels_;
 
