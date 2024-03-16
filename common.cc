@@ -6,7 +6,7 @@
 namespace {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
+  std::uniform_real_distribution<float> uniform_probability(0.0f, 1.0f);
 } // namespace
 
 namespace Common {
@@ -53,12 +53,17 @@ namespace Common {
   }
 
   float random_probability() {
-    return distribution(gen);
+    return uniform_probability(gen);
   }
 
   float random_float(float low, float high) {
     std::uniform_real_distribution<float> dist(low, high);
     return dist(gen);
   };
+
+  int random_int(int low, int high) {
+    std::uniform_int_distribution<int> dist(low, high);
+    return dist(gen);
+  }
 
 } // namespace Common

@@ -148,7 +148,6 @@ void MeshGenerator::mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position,
     mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
     mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::bl, layer});
     mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
-
     // cross
     mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
     mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, layer});
@@ -157,11 +156,9 @@ void MeshGenerator::mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position,
     mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
     mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, layer});
     mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
-
     mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
     mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, layer});
     mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
-
     mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, layer});
     mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
     break;

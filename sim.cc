@@ -160,6 +160,12 @@ void Sim::draw(int64_t ms) {
     }
     Input::instance()->set_cursor_start_pos(xpos, ypos);
 
+    if (glfwGetKey(window_, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+      camera_.set_base_translation_speed(4);
+    } else {
+      camera_.set_base_translation_speed(0.2);
+    }
+
     int frame_rate_target = 60;
     camera_.scale_translation_speed(ms * frame_rate_target / 1000.0);
     camera_.scale_rotation_speed(ms * frame_rate_target / 1000.0);

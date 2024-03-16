@@ -80,3 +80,7 @@ void Camera::scale_translation_speed(float scale) {
 void Camera::scale_rotation_speed(float scale) {
   rotation_speed_ = base_rotation_speed_ * scale;
 }
+
+void Camera::set_base_translation_speed(float base_translation_speed) {
+  base_translation_speed_ = base_translation_speed;
+}

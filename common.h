@@ -35,6 +35,7 @@ namespace Common {
 
   float random_probability();
   float random_float(float low, float high);
+  int random_int(int low, int high);
 
 } // namespace Common
 

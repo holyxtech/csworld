@@ -41,29 +41,88 @@ void WorldGenerator::insert_into_features(int x, int y, int z, Voxel voxel) {
 }
 
 void WorldGenerator::build_tree(int x, int y, int z) {
-  insert_into_features(x, y++, z, Voxel::tree_trunk);
-  insert_into_features(x, y++, z, Voxel::tree_trunk);
-  insert_into_features(x, y++, z, Voxel::tree_trunk);
-  insert_into_features(x, y, z, Voxel::tree_trunk);
-  insert_into_features(x - 1, y, z, Voxel::leaves);
-  insert_into_features(x, y, z - 1, Voxel::leaves);
-  insert_into_features(x + 1, y, z, Voxel::leaves);
-  insert_into_features(x, y, z + 1, Voxel::leaves);
-  insert_into_features(x - 1, y, z - 1, Voxel::leaves);
-  insert_into_features(x + 1, y, z + 1, Voxel::leaves);
-  insert_into_features(x - 1, y, z + 1, Voxel::leaves);
-  insert_into_features(x + 1, y, z - 1, Voxel::leaves);
-  insert_into_features(x, y++, z, Voxel::tree_trunk);
-  insert_into_features(x, y, z, Voxel::tree_trunk);
-  insert_into_features(x - 1, y, z, Voxel::leaves);
-  insert_into_features(x, y, z - 1, Voxel::leaves);
-  insert_into_features(x + 1, y, z, Voxel::leaves);
-  insert_into_features(x, y, z + 1, Voxel::leaves);
-  insert_into_features(x - 1, y, z - 1, Voxel::leaves);
-  insert_into_features(x + 1, y, z + 1, Voxel::leaves);
-  insert_into_features(x - 1, y, z + 1, Voxel::leaves);
-  insert_into_features(x + 1, y, z - 1, Voxel::leaves);
-  insert_into_features(x, ++y, z, Voxel::leaves);
+  // 1. branches move away from tree in steps
+  // 2. always a + shape of leaves on top
+  // 3. sometimes leaves starts off 2, sometimes 3, sometimes 4 above the root
+  // 4. 2 leaves from trunk at the widest point
+  int i, j, k;
+
+  int tree_height = Common::random_int(5, 10);
+  int height_without_leaves;
+  if (tree_height >= 7) {
+    height_without_leaves = Common::random_int(tree_height / 2, 5);
+  } else {
+    height_without_leaves = Common::random_int(1, 3);
+  }
+
+  i = x, j = y, k = z;
+  constexpr std::array<int, 5> arr_1 = {-1, 0, 1};
+  constexpr std::array<int, 2> arr_2 = {-2, 2};
+  for (int count = height_without_leaves; count < tree_height; ++count) {
+    for (auto x : arr_1) {
+      for (auto z : arr_1) {
+        insert_into_features(i + x, j + count, k + z, Voxel::leaves);
+      }
+    }
+    for (auto z : arr_1) {
+      for (auto x : arr_2) {
+        insert_into_features(i + x, j + count, k + z, Voxel::leaves);
+      }
+    }
+    for (auto x : arr_1) {
+      for (auto z : arr_2) {
+        insert_into_features(i + x, j + count, k + z, Voxel::leaves);
+      }
+    }
+  }
+
+  // x on top
+  constexpr std::array<int, 3> arr_3 = {-1, 1};
+  for (auto x : arr_3) {
+    insert_into_features(i + x, j + tree_height, k, Voxel::leaves);
+  }
+  for (auto z : arr_3) {
+    insert_into_features(i, j + tree_height, k + z, Voxel::leaves);
+  }
+  insert_into_features(i, j + tree_height, k, Voxel::leaves);
+  insert_into_features(i, j + tree_height + 1, k, Voxel::leaves);
+
+  // trunk
+  i = x, j = y, k = z;
+  for (int count = 0; count < tree_height; ++count) {
+    insert_into_features(i, j + count, k, Voxel::tree_trunk);
+  }
+
+  /* if (tree_height >= 7) {
+    int y_offset = Common::random_int(7, tree_height);
+
+    // pick 1 of 8 locations adjacent to trunk
+    constexpr std::array<int, 3> arr = {-1, 0, 1};
+    constexpr std::array<int, 2> restricted_arr = {-1, 1};
+    int x_offset, z_offset;
+    if (Common::random_probability() > 0.5) {
+      x_offset = restricted_arr[Common::random_int(0, restricted_arr.size() - 1)];
+      z_offset = arr[Common::random_int(0, arr.size() - 1)];
+    } else {
+      x_offset = arr[Common::random_int(0, arr.size() - 1)];
+      z_offset = restricted_arr[Common::random_int(0, restricted_arr.size() - 1)];
+    }
+
+    // branch root
+    insert_into_features(i + x_offset, j + y_offset, k + z_offset, Voxel::tree_trunk);
+
+    // random walk from branch root, never move toward trunk
+    while (Common::random_probability() > 0.7) {
+      if (Common::random_probability() > 0.5)
+        x_offset += std::signbit(x_offset) ? -1 : 1;
+      else
+        z_offset += std::signbit(z_offset) ? -1 : 1;
+      if (Common::random_probability() > 0.5)
+        ++y_offset;
+
+      insert_into_features(i + x_offset, j + y_offset, k + z_offset, Voxel::tree_trunk);
+    }
+  } */
 }
 
 void WorldGenerator::populate(Section& section) {
@@ -127,9 +186,9 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
       for (; y < (y_global + Chunk::sz_y) && y <= height; ++y) {
         chunk.set_voxel(x, y - y_global, z, voxel);
       }
-      auto n = noise(x + location[0]*Chunk::sz_x, z + location[2]*Chunk::sz_z);
-//      std::cout<<n<<std::endl;
-      
+      auto n = noise(x + location[0] * Chunk::sz_x, z + location[2] * Chunk::sz_z);
+      //      std::cout<<n<<std::endl;
+
       if (n > 0.65 && y < (y_global + Chunk::sz_y)) {
         chunk.set_voxel(x, y - y_global, z, Voxel::grass);
       }

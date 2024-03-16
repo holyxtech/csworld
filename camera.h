@@ -22,6 +22,7 @@ public:
   void set_position(glm::dvec3 position);
   void scale_translation_speed(float scale);
   void scale_rotation_speed(float scale);
+  void set_base_translation_speed(float base_translation_speed);
 
 private:
   void update_orientation();
@@ -35,7 +36,7 @@ private:
 
   float pan_sensitivity_ = 0.1;
 
-  float base_translation_speed_ = 4;
+  float base_translation_speed_ = 0.2;
   float base_rotation_speed_ = 1;
   float translation_speed_ = 0.1;
   float rotation_speed_ = 1;

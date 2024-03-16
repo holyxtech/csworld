@@ -23,7 +23,7 @@ public:
   const std::unordered_map<Location, std::vector<Vertex>, LocationHash>& get_water_meshes() const;
   const std::vector<Diff>& get_diffs() const;
   void clear_diffs();
-  static constexpr int default_max_vertices = 100000;
+  static constexpr int default_max_vertices = 150000;
   static constexpr int default_max_water_vertices = 30000;
 
 private:
