@@ -106,3 +106,16 @@ Common::LandCover Section::get_landcover(int x, int z) const {
   int row = z * Common::landcover_rows_per_sector / Section::sz_z;
   return landcover_[col + row * Common::landcover_cols_per_sector];
 }
+
+void Section::set_subsection_obstructing_heights_from_elevations() {
+  for (size_t i = 0; i < sz; ++i) {
+    subsection_obstructing_heights_[i] = subsection_elevations_[i];
+  }
+}
+
+int Section::get_subsection_obstructing_height(int x, int z) {
+  return subsection_obstructing_heights_[x + sz_x * z];
+}
+void Section::set_subsection_obstructing_height(int x, int z, int height) {
+  subsection_obstructing_heights_[x + sz_x * z] = height;
+}

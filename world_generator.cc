@@ -139,13 +139,8 @@ void WorldGenerator::populate(Section& section) {
     if (landcover != Common::LandCover::trees)
       continue;
     int subsection_elevation = section.get_subsection_elevation(s[0], s[1]);
-    int a = loc[0] * Section::sz_x;
-    int b = s[0];
-    int c = a + s[0];
-    int d = a + b;
     build_tree(loc[0] * Section::sz_x + static_cast<int>(s[0]), subsection_elevation + 1, loc[1] * Section::sz_z + static_cast<int>(s[1]));
   }
-  //}
 }
 
 void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Section, Location2DHash>& sections) {
@@ -156,6 +151,7 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
       auto& section = sections.at(Location2D{location[0] + x, location[2] + z});
       if (!section.has_subsection_elevations()) {
         section.compute_subsection_elevations(sections);
+        section.set_subsection_obstructing_heights_from_elevations();
         populate(section);
       }
     }
@@ -187,7 +183,6 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
         chunk.set_voxel(x, y - y_global, z, voxel);
       }
       auto n = noise(x + location[0] * Chunk::sz_x, z + location[2] * Chunk::sz_z);
-      //      std::cout<<n<<std::endl;
 
       if (n > 0.65 && y < (y_global + Chunk::sz_y)) {
         chunk.set_voxel(x, y - y_global, z, Voxel::grass);
@@ -198,8 +193,19 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
     chunk.set_flag(Chunk::Flags::NONEMPTY);
 
   auto& features = features_[location];
-  for (auto& pair : features) {
-    chunk.set_voxel(pair.first, pair.second);
+  for (auto [idx, voxel] : features) {
+    chunk.set_voxel(idx, voxel);
+
+    if (voxel > Voxel::PARTIAL_OPAQUE_LOWER) {
+
+      
+      auto [x, y, z] = Chunk::flat_index_to_3d(idx);
+      auto cur_obstructing_height = section.get_subsection_obstructing_height(x, z);
+      int this_obstructing_height = y + location[1] * Chunk::sz_y;
+
+      if (cur_obstructing_height < this_obstructing_height)
+        section.set_subsection_obstructing_height(x, z, this_obstructing_height);
+    }
   }
   if (features.size() > 0)
     chunk.set_flag(Chunk::Flags::NONEMPTY);

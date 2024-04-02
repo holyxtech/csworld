@@ -17,9 +17,9 @@
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window), tcp_client_(tcp_client), renderer_(world_) {
 
-  std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-11-0-0", "37-59-03");
-  starting_pos[1] = 350;
-  // std::array<double, 3> starting_pos{227922 * Chunk::sz_x, 13 * Chunk::sz_y - 1, -44009 * Chunk::sz_z};
+  //std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-11-0-0", "37-59-03");
+  //starting_pos[1] = 350;
+  std::array<double, 3> starting_pos{4229159,326,-1222663};
   // std::array<double, 3> starting_pos{0,0,0};
 
   {
@@ -79,12 +79,21 @@ void Sim::step() {
   }
   auto& pos = player.get_position();
   auto loc = Chunk::pos_to_loc(pos);
+/* 
+   if (region_.has_chunk(loc)) {
+    int x = std::floor(pos[0]);
+    int y = std::floor(pos[1]);
+    int z = std::floor(pos[2]);
+    std::cout<<loc.repr()<<std::endl;
+
+    auto v = region_.get_voxel(x, y, z);
+  }  */
 
   auto& last_location = player.get_last_location();
   if (loc != last_location || new_sections) {
     auto& sections = region_.get_sections();
     for (int x = -min_render_distance; x <= min_render_distance; ++x) {
-      for (int y = -1; y < 2; ++y) {
+      for (int y = 1; y >-2; --y) {
         for (int z = -min_render_distance; z <= min_render_distance; ++z) {
           auto location = Location{loc[0] + x, loc[1] + y, loc[2] + z};
           if (!region_.has_chunk(location) && world_generator_.ready_to_fill(location, sections)) {
@@ -161,7 +170,7 @@ void Sim::draw(int64_t ms) {
     Input::instance()->set_cursor_start_pos(xpos, ypos);
 
     if (glfwGetKey(window_, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-      camera_.set_base_translation_speed(4);
+      camera_.set_base_translation_speed(3);
     } else {
       camera_.set_base_translation_speed(0.2);
     }

@@ -237,24 +237,7 @@ void Renderer::render() const {
   auto transform = projection_ * view_;
   glUniformMatrix4fv(transform_loc, 1, GL_FALSE, &transform[0][0]);
 
-  glBindFramebuffer(GL_FRAMEBUFFER, main_framebuffer_);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   glUseProgram(shader_);
-  for (int i = 0; i < vbos_.size() && i < vaos_.size(); ++i) {
-    auto vbo = vbos_[i];
-    auto vao = vaos_[i];
-
-    if (!vbo_map_.contains(vbo))
-      continue;
-
-    glBindVertexArray(vao);
-
-    int mesh_size = mesh_size_map_.at(vbo);
-    glDrawArrays(GL_TRIANGLES, 0, mesh_size);
-  }
-
-  sky_.render(*this);
 
   glBindFramebuffer(GL_FRAMEBUFFER, water_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -270,6 +253,23 @@ void Renderer::render() const {
     int mesh_size = water_mesh_size_map_.at(vbo);
     glDrawArrays(GL_TRIANGLES, 0, mesh_size);
   }
+  glBindFramebuffer(GL_FRAMEBUFFER, main_framebuffer_);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  for (int i = 0; i < vbos_.size() && i < vaos_.size(); ++i) {
+    auto vbo = vbos_[i];
+    auto vao = vaos_[i];
+
+    if (!vbo_map_.contains(vbo))
+      continue;
+
+    glBindVertexArray(vao);
+
+    int mesh_size = mesh_size_map_.at(vbo);
+    glDrawArrays(GL_TRIANGLES, 0, mesh_size);
+  }
+
+  sky_.render(*this);
 
   glUseProgram(window_shader_);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);

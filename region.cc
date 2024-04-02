@@ -1,6 +1,12 @@
 #include "region.h"
 #include <array>
+#include <chrono>
 #include <iostream>
+#include <queue>
+
+std::unordered_map<Location, Chunk, LocationHash>& Region::get_chunks() {
+  return chunks_;
+}
 
 void Region::add_section(Section section) {
   sections_.insert({section.get_location(), section});
@@ -22,7 +28,7 @@ bool Region::has_chunk(Location loc) const {
   return chunks_.contains(loc);
 }
 
-void Region::delete_furthest_chunk(Location& loc) {
+void Region::delete_furthest_chunk(const Location& loc) {
   if (chunks_sent_.size() >= max_sz) {
     int max_difference = 0;
     Chunk* chunk_to_delete = nullptr;
@@ -47,40 +53,186 @@ void Region::delete_furthest_chunk(Location& loc) {
   }
 }
 
+std::array<Chunk*, 6> Region::get_adjacent_chunks(const Location& loc) {
+  return std::array<Chunk*, 6>{
+    &chunks_.at(Location{loc[0] - 1, loc[1], loc[2]}),
+    &chunks_.at(Location{loc[0] + 1, loc[1], loc[2]}),
+    &chunks_.at(Location{loc[0], loc[1] - 1, loc[2]}),
+    &chunks_.at(Location{loc[0], loc[1] + 1, loc[2]}),
+    &chunks_.at(Location{loc[0], loc[1], loc[2] - 1}),
+    &chunks_.at(Location{loc[0], loc[1], loc[2] + 1})};
+}
+
 std::array<Location, 6> Region::get_adjacent_locations(const Location& loc) const {
-  std::array<Location, 6> arr = {
-    Location{loc[0] + 1, loc[1], loc[2]},
+  return std::array<Location, 6>{
     Location{loc[0] - 1, loc[1], loc[2]},
-    Location{loc[0], loc[1] + 1, loc[2]},
+    Location{loc[0] + 1, loc[1], loc[2]},
     Location{loc[0], loc[1] - 1, loc[2]},
-    Location{loc[0], loc[1], loc[2] + 1},
+    Location{loc[0], loc[1] + 1, loc[2]},
     Location{loc[0], loc[1], loc[2] - 1},
+    Location{loc[0], loc[1], loc[2] + 1},
   };
-  return arr;
+}
+
+void Region::compute_global_lighting(const Location& loc) {
+  auto& chunk = chunks_.at(loc);
+  std::queue<Int3D> lights;
+  // put all non-opaque edge voxels into a queue in global coords
+  for (int z = 0; z < Chunk::sz_z; ++z) {
+    for (int y = 0; y < Chunk::sz_y; ++y) {
+      if (chunk.get_voxel(0, y, z) < Voxel::OPAQUE_LOWER)
+        lights.emplace(Int3D{loc[0] * Chunk::sz_x, y + loc[1] * Chunk::sz_y, z + loc[2] * Chunk::sz_z});
+      if (chunk.get_voxel(Chunk::sz_x - 1, y, z) < Voxel::OPAQUE_LOWER)
+        lights.emplace(Int3D{(loc[0] + 1) * Chunk::sz_x - 1, y + loc[1] * Chunk::sz_y, z + loc[2] * Chunk::sz_z});
+    }
+  }
+  for (int z = 0; z < Chunk::sz_z; ++z) {
+    for (int x = 0; x < Chunk::sz_x; ++x) {
+      if (chunk.get_voxel(x, 0, z) < Voxel::OPAQUE_LOWER)
+        lights.emplace(Int3D{x + loc[0] * Chunk::sz_x, loc[1] * Chunk::sz_y, z + loc[2] * Chunk::sz_z});
+      if (chunk.get_voxel(x, Chunk::sz_y - 1, z) < Voxel::OPAQUE_LOWER)
+        lights.emplace(Int3D{x + loc[0] * Chunk::sz_x, (loc[1] + 1) * Chunk::sz_y - 1, z + loc[2] * Chunk::sz_z});
+    }
+  }
+  for (int y = 0; y < Chunk::sz_y; ++y) {
+    for (int x = 0; x < Chunk::sz_x; ++x) {
+      if (chunk.get_voxel(x, y, 0) < Voxel::OPAQUE_LOWER)
+        lights.emplace(Int3D{x + loc[0] * Chunk::sz_x, y + loc[1] * Chunk::sz_y, loc[2] * Chunk::sz_z});
+      if (chunk.get_voxel(x, y, Chunk::sz_z - 1) < Voxel::OPAQUE_LOWER)
+        lights.emplace(Int3D{x + loc[0] * Chunk::sz_x, y + loc[1] * Chunk::sz_y, (loc[2] + 1) * Chunk::sz_z - 1});
+    }
+  }
+
+  auto adjacent_chunks = get_adjacent_chunks(loc);
+
+  auto get_containing_chunk = [this, &loc, &chunk, &adjacent_chunks](Int3D& coord) {
+    int x_loc = static_cast<int>(std::floor(static_cast<double>(coord[0]) / Chunk::sz_x));
+    int y_loc = static_cast<int>(std::floor(static_cast<double>(coord[1]) / Chunk::sz_y));
+    int z_loc = static_cast<int>(std::floor(static_cast<double>(coord[2]) / Chunk::sz_z));
+
+    Chunk* containing_chunk = nullptr;
+    int x_diff = x_loc - loc[0];
+    int y_diff = y_loc - loc[1];
+    int z_diff = z_loc - loc[2];
+    int sum = std::abs(x_diff) + std::abs(y_diff) + std::abs(z_diff);
+    if (sum == 0) {
+      containing_chunk = &chunk;
+    } else if (sum == 1) {
+      if (x_diff == -1)
+        containing_chunk = adjacent_chunks[Direction::nx];
+      else if (x_diff == 1)
+        containing_chunk = adjacent_chunks[Direction::px];
+      else if (y_diff == -1)
+        containing_chunk = adjacent_chunks[Direction::ny];
+      else if (y_diff == 1)
+        containing_chunk = adjacent_chunks[Direction::py];
+      else if (z_diff == -1)
+        containing_chunk = adjacent_chunks[Direction::nz];
+      else if (z_diff == 1)
+        containing_chunk = adjacent_chunks[Direction::pz];
+    } else if (chunks_.contains(Location{x_loc, y_loc, z_loc})) {
+      containing_chunk = &chunks_.at({Location{x_loc, y_loc, z_loc}});
+    }
+    return containing_chunk;
+  };
+
+  std::array<std::tuple<int, int, int>, 5> coord_flip =
+    {std::make_tuple(1, 0, 0),
+     std::make_tuple(-1, 0, 0),
+     std::make_tuple(0, 1, 0),
+     std::make_tuple(0, 0, 1),
+     std::make_tuple(0, 0, -1)};
+
+  std::unordered_set<Location, LocationHash> dirty;
+
+  while (!lights.empty()) {
+    auto& coord = lights.front();
+    Chunk* origin_chunk = get_containing_chunk(coord);
+    auto local_origin = Chunk::to_local(coord);
+    auto lighting = origin_chunk->get_lighting(local_origin[0], local_origin[1], local_origin[2]);
+
+    // nx ,px, nz, pz, py
+    for (auto& flip : coord_flip) {
+      Int3D global{coord[0] + std::get<0>(flip), coord[1] + std::get<1>(flip), coord[2] + std::get<2>(flip)};
+      Chunk* containing_chunk = get_containing_chunk(global);
+      if (containing_chunk != nullptr) {
+        auto local = Chunk::to_local(global);
+        if (containing_chunk->get_voxel(local[0], local[1], local[2]) < Voxel::OPAQUE_LOWER) {
+          auto adj_lighting = containing_chunk->get_lighting(local[0], local[1], local[2]);
+          if (lighting + 1 < adj_lighting) {
+            origin_chunk->set_lighting(local_origin[0], local_origin[1], local_origin[2], adj_lighting - 1);
+            lights.emplace(coord);
+          } else if (lighting > adj_lighting + 1) {
+            containing_chunk->set_lighting(local[0], local[1], local[2], lighting - 1);
+            dirty.insert(containing_chunk->get_location());
+            lights.emplace(global);
+          }
+        }
+      }
+    }
+
+    // ny
+    Int3D global{coord[0], coord[1] - 1, coord[2]};
+    Chunk* containing_chunk = get_containing_chunk(global);
+    if (containing_chunk != nullptr) {
+      auto local = Chunk::to_local(global);
+      auto v = containing_chunk->get_voxel(local[0], local[1], local[2]);
+      if (v < Voxel::OPAQUE_LOWER) {
+        auto adj_lighting = containing_chunk->get_lighting(local[0], local[1], local[2]);
+        if (lighting + 1 < adj_lighting) {
+          origin_chunk->set_lighting(local_origin[0], local_origin[1], local_origin[2], adj_lighting - 1);
+          lights.emplace(coord);
+        } else if (lighting > adj_lighting) {
+          if (v < Voxel::PARTIAL_OPAQUE_LOWER) {
+            containing_chunk->set_lighting(local[0], local[1], local[2], lighting);
+          } else {
+            containing_chunk->set_lighting(local[0], local[1], local[2], lighting - 1);
+          }
+          dirty.insert(containing_chunk->get_location());
+          lights.emplace(global);
+        }
+      }
+    }
+
+    lights.pop();
+  }
+  for (auto& location : dirty) {
+    if (adjacents_missing_[location] == 0 && location != loc) {
+      std::cout << "Remeshing chunk at" << loc.repr() << std::endl;
+      chunk_to_mesh_generator(location);
+    }
+  }
+}
+
+void Region::chunk_to_mesh_generator(const Location& loc) {
+  delete_furthest_chunk(loc);
+  compute_global_lighting(loc);
+  diffs_.emplace_back(Diff{loc, Diff::water});
+  diffs_.emplace_back(Diff{loc, Diff::creation});
+  chunks_sent_.insert(loc);
 }
 
 void Region::add_chunk(Chunk&& chunk) {
   auto loc = chunk.get_location();
+
+  chunk.compute_lighting(sections_.at(Location2D{loc[0], loc[2]}));
+
   chunks_.insert({loc, std::move(chunk)});
 
-  auto arr = get_adjacent_locations(loc);
+  auto adjacent = get_adjacent_locations(loc);
 
-  for (auto& location : arr) {
-    if (!adjacents_missing_.contains(location)) {
-      adjacents_missing_.insert({location, 6});
-    }
-
-    --adjacents_missing_[location];
+  for (auto& location : adjacent) {
+    if (!adjacents_missing_.contains(location))
+      adjacents_missing_.insert({location, 5});
+    else
+      --adjacents_missing_[location];
 
     if (adjacents_missing_[location] == 0 &&
         chunks_.contains(location) &&
         !chunks_sent_.contains(location) &&
         !chunks_.at(location).check_flag(Chunk::Flags::DELETED) &&
         chunks_.at(location).check_flag(Chunk::Flags::NONEMPTY)) {
-      delete_furthest_chunk(location);
-      diffs_.emplace_back(Diff{location, Diff::water});
-      diffs_.emplace_back(Diff{location, Diff::creation});
-      chunks_sent_.insert(location);
+      chunk_to_mesh_generator(location);
     }
   }
 
@@ -89,10 +241,7 @@ void Region::add_chunk(Chunk&& chunk) {
   } else if (
     adjacents_missing_[loc] == 0 &&
     chunks_.at(loc).check_flag(Chunk::Flags::NONEMPTY)) {
-    delete_furthest_chunk(loc);
-    diffs_.emplace_back(Diff{loc, Diff::water});
-    diffs_.emplace_back(Diff{loc, Diff::creation});
-    chunks_sent_.insert(loc);
+    chunk_to_mesh_generator(loc);
   }
 }
 
@@ -106,8 +255,8 @@ void Region::clear_diffs() {
     if (diff.kind == Region::Diff::deletion) {
       chunks_.erase(loc);
       sections_.erase(Location2D{loc[0], loc[2]});
-      auto arr = get_adjacent_locations(loc);
-      for (auto& location : arr) {
+      auto adjacent = get_adjacent_locations(loc);
+      for (auto& location : adjacent) {
         ++adjacents_missing_[location];
       }
     }
@@ -132,8 +281,8 @@ void Region::clear_diffs() {
 
     for (int i = 0; i < to_remove; ++i) {
       chunks_.erase(loaded_locations[i]);
-      auto arr = get_adjacent_locations(loaded_locations[i]);
-      for (auto& location : arr) {
+      auto adjacent = get_adjacent_locations(loaded_locations[i]);
+      for (auto& location : adjacent) {
         ++adjacents_missing_[location];
       }
     }
@@ -142,20 +291,37 @@ void Region::clear_diffs() {
   diffs_.clear();
 }
 
-// Presumes that the chunk exists
-Voxel Region::get_voxel(int x, int y, int z) const {
+template <typename Func>
+auto Region::get_data(int x, int y, int z, Func func) const {
   auto location = Location{
-    static_cast<int>(std::floor(static_cast<float>(x) / Chunk::sz_x)),
-    static_cast<int>(std::floor(static_cast<float>(y) / Chunk::sz_y)),
-    static_cast<int>(std::floor(static_cast<float>(z) / Chunk::sz_z)),
+    static_cast<int>(std::floor(static_cast<double>(x) / Chunk::sz_x)),
+    static_cast<int>(std::floor(static_cast<double>(y) / Chunk::sz_y)),
+    static_cast<int>(std::floor(static_cast<double>(z) / Chunk::sz_z)),
   };
   auto& chunk = chunks_.at(location);
-  return chunk.get_voxel(
+  return func(
+    chunk,
     ((x % Chunk::sz_x) + Chunk::sz_x) % Chunk::sz_x,
     ((y % Chunk::sz_y) + Chunk::sz_y) % Chunk::sz_y,
     ((z % Chunk::sz_z) + Chunk::sz_z) % Chunk::sz_z);
 }
 
+Voxel Region::get_voxel(int x, int y, int z) const {
+  return get_data(x, y, z, [](const Chunk& chunk, int x, int y, int z) {
+    return chunk.get_voxel(x, y, z);
+  });
+}
+
+unsigned char Region::get_lighting(int x, int y, int z) const {
+  return get_data(x, y, z, [](const Chunk& chunk, int x, int y, int z) {
+    return chunk.get_lighting(x, y, z);
+  });
+}
+
 Player& Region::get_player() {
   return player_;
+}
+
+Section& Region::get_section(const Location2D loc) {
+  return sections_.at(loc);
 }

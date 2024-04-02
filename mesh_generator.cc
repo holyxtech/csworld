@@ -1,5 +1,6 @@
 #include "mesh_generator.h"
 #include <chrono>
+#include <cmath>
 #include <iostream>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
@@ -11,117 +12,136 @@ namespace QuadCoord {
   constexpr glm::vec2 tr = glm::vec2(1.f, 1.f);
 } // namespace QuadCoord
 
+std::array<float, 6> MeshGenerator::get_lighting(Chunk& chunk, std::array<Chunk*, 6>& adjacent_chunks, int x, int y, int z) const {
+  std::array<float, 6> lighting;
+  if (x > 0) {
+    lighting[Direction::nx] = std::pow(light_decay, Chunk::max_lighting - chunk.get_lighting(x - 1, y, z));
+  } else {
+    lighting[Direction::nx] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::nx]->get_lighting(Chunk::sz_x - 1, y, z));
+  }
+  if (x < Chunk::sz_x - 1) {
+    lighting[Direction::px] = std::pow(light_decay, Chunk::max_lighting - chunk.get_lighting(x + 1, y, z));
+  } else {
+    lighting[Direction::px] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::px]->get_lighting(0, y, z));
+  }
+  if (y > 0) {
+    lighting[Direction::ny] = std::pow(light_decay, Chunk::max_lighting - chunk.get_lighting(x, y - 1, z));
+  } else {
+    lighting[Direction::ny] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::ny]->get_lighting(x, Chunk::sz_y - 1, z));
+  }
+  if (y < Chunk::sz_y - 1) {
+    lighting[Direction::py] = std::pow(light_decay, Chunk::max_lighting - chunk.get_lighting(x, y + 1, z));
+  } else {
+    lighting[Direction::py] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::py]->get_lighting(x, 0, z));
+  }
+  if (z > 0) {
+    lighting[Direction::nz] = std::pow(light_decay, Chunk::max_lighting - chunk.get_lighting(x, y, z - 1));
+  } else {
+    lighting[Direction::nz] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::nz]->get_lighting(x, y, Chunk::sz_z - 1));
+  }
+  if (z < Chunk::sz_z - 1) {
+    lighting[Direction::pz] = std::pow(light_decay, Chunk::max_lighting - chunk.get_lighting(x, y, z + 1));
+  } else {
+    lighting[Direction::pz] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::pz]->get_lighting(x, y, 0));
+  }
+
+  return lighting;
+}
+
+// to speed this up, instead of a region ref, pass in a ref to an std::array<Chunk&, 6> or Chunk* or whatever
 std::array<Voxel, 6> MeshGenerator::get_adjacent_voxels(
-  Region& region, Chunk& chunk, int x, int y, int z) const {
+  Chunk& chunk, std::array<Chunk*, 6>& adjacent_chunks, int x, int y, int z) const {
   auto& location = chunk.get_location();
   std::array<Voxel, 6> adjacent{Voxel::empty};
   if (x > 0) {
     adjacent[Direction::nx] = chunk.get_voxel(x - 1, y, z);
   } else {
-
-    adjacent[Direction::nx] = region.get_voxel(
-      location[0] * Chunk::sz_x - 1, location[1] * Chunk::sz_y + y, location[2] * Chunk::sz_z + z);
+    adjacent[Direction::nx] = adjacent_chunks[Direction::nx]->get_voxel(Chunk::sz_x - 1, y, z);
   }
   if (x < Chunk::sz_x - 1) {
     adjacent[Direction::px] = chunk.get_voxel(x + 1, y, z);
   } else {
-
-    adjacent[Direction::px] = region.get_voxel(
-      (location[0] + 1) * Chunk::sz_x, location[1] * Chunk::sz_y + y, location[2] * Chunk::sz_z + z);
+    adjacent[Direction::px] = adjacent_chunks[Direction::px]->get_voxel(0, y, z);
   }
   if (y > 0) {
     adjacent[Direction::ny] = chunk.get_voxel(x, y - 1, z);
   } else {
-
-    adjacent[Direction::ny] = region.get_voxel(
-      location[0] * Chunk::sz_x + x, location[1] * Chunk::sz_y - 1, location[2] * Chunk::sz_z + z);
+    adjacent[Direction::ny] = adjacent_chunks[Direction::ny]->get_voxel(x, Chunk::sz_y - 1, z);
   }
   if (y < Chunk::sz_y - 1) {
     adjacent[Direction::py] = chunk.get_voxel(x, y + 1, z);
   } else {
-    adjacent[Direction::py] = region.get_voxel(
-      location[0] * Chunk::sz_x + x, (location[1] + 1) * Chunk::sz_y, location[2] * Chunk::sz_z + z);
+    adjacent[Direction::py] = adjacent_chunks[Direction::py]->get_voxel(x, 0, z);
   }
   if (z > 0) {
     adjacent[Direction::nz] = chunk.get_voxel(x, y, z - 1);
   } else {
-
-    adjacent[Direction::nz] = region.get_voxel(
-      location[0] * Chunk::sz_x + x, location[1] * Chunk::sz_y + y, location[2] * Chunk::sz_z - 1);
+    adjacent[Direction::nz] = adjacent_chunks[Direction::nz]->get_voxel(x, y, Chunk::sz_z - 1);
   }
   if (z < Chunk::sz_z - 1) {
     adjacent[Direction::pz] = chunk.get_voxel(x, y, z + 1);
   } else {
-
-    adjacent[Direction::pz] = region.get_voxel(
-      location[0] * Chunk::sz_x + x, location[1] * Chunk::sz_y + y, (location[2] + 1) * Chunk::sz_z);
+    adjacent[Direction::pz] = adjacent_chunks[Direction::pz]->get_voxel(x, y, 0);
   }
   return adjacent;
 }
 
-void MeshGenerator::mesh_greedy(const Chunk& chunk) {
-  // positive-x of chunk as one face, negative x of chunk as one face, increment x, ...
-  // and then for y, and then for z
-}
-
-void MeshGenerator::fill_sides(std::vector<Vertex>& mesh, glm::vec3& position, std::array<Voxel, 6>& adjacent, std::array<VoxelTexture, 6>& layers, Voxel TYPE_UPPER_BOUND) {
+void MeshGenerator::fill_sides(
+  std::vector<Vertex>& mesh, glm::vec3& position, std::array<Voxel, 6>& adjacent,
+  std::array<VoxelTexture, 6>& layers, Voxel TYPE_UPPER_BOUND, std::array<float, 6>& lighting) {
   auto [nx, px, ny, py, nz, pz] = adjacent;
   auto [nx_layer, px_layer, ny_layer, py_layer, nz_layer, pz_layer] = reinterpret_cast<std::array<int, 6>&>(layers);
+  auto [nx_lighting, px_lighting, ny_lighting, py_lighting, nz_lighting, pz_lighting] = lighting;
   int i = position[0], j = position[1], k = position[2];
 
   if (nx < TYPE_UPPER_BOUND) {
-    auto normal = glm::vec3(-1.f, 0.f, 0.f);
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::br, nx_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, nx_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tr, nx_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::br, nx_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::bl, nx_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, nx_layer});
+
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, nx_layer, nx_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), QuadCoord::tl, nx_layer, nx_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), QuadCoord::tr, nx_layer, nx_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, nx_layer, nx_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::bl, nx_layer, nx_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), QuadCoord::tl, nx_layer, nx_lighting});
   }
   if (px < TYPE_UPPER_BOUND) {
-    auto normal = glm::vec3(1.f, 0.f, 0.f);
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::bl, px_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tl, px_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, px_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::bl, px_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, px_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, px_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::bl, px_layer, px_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), QuadCoord::tl, px_layer, px_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), QuadCoord::tr, px_layer, px_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::bl, px_layer, px_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), QuadCoord::tr, px_layer, px_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::br, px_layer, px_lighting});
   }
   if (ny < TYPE_UPPER_BOUND) {
-    auto normal = glm::vec3(0.f, -1.f, 0.f);
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::br, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::tr, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::tl, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::br, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::tl, ny_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::bl, ny_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, ny_layer, ny_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::tr, ny_layer, ny_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::tl, ny_layer, ny_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, ny_layer, ny_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::tl, ny_layer, ny_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::bl, ny_layer, ny_lighting});
   }
   if (py < TYPE_UPPER_BOUND) {
-    auto normal = glm::vec3(0.f, 1.f, 0.f);
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::br, py_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tl, py_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, py_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::br, py_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::bl, py_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tl, py_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), QuadCoord::br, py_layer, py_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), QuadCoord::tl, py_layer, py_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), QuadCoord::tr, py_layer, py_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), QuadCoord::br, py_layer, py_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), QuadCoord::bl, py_layer, py_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), QuadCoord::tl, py_layer, py_lighting});
   }
   if (nz < TYPE_UPPER_BOUND) {
-    auto normal = glm::vec3(0.f, 0.f, -1.f);
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, nz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, nz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, nz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, nz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, nz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, nz_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::bl, nz_layer, nz_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), QuadCoord::tl, nz_layer, nz_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), QuadCoord::tr, nz_layer, nz_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::bl, nz_layer, nz_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), QuadCoord::tr, nz_layer, nz_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::br, nz_layer, nz_lighting});
   }
   if (pz < TYPE_UPPER_BOUND) {
-    auto normal = glm::vec3(0.f, 0.f, 1.f);
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::br, pz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tl, pz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tr, pz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::br, pz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::bl, pz_layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tl, pz_layer});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::br, pz_layer, pz_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), QuadCoord::tl, pz_layer, pz_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), QuadCoord::tr, pz_layer, pz_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::br, pz_layer, pz_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::bl, pz_layer, pz_lighting});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), QuadCoord::tl, pz_layer, pz_lighting});
   }
 }
 
@@ -129,44 +149,43 @@ void MeshGenerator::mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position,
   float i = position[0], j = position[1], k = position[2];
   switch (voxel) {
   case Voxel::grass:
-    // emplace back the triangles
     float r = Common::random_float(-0.2f, 0.2f);
     i += r;
     k += r;
 
-    auto normal = glm::vec3(0.f);
     int layer = static_cast<int>(VoxelTexture::standing_grass);
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::bl, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::bl, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::br, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), QuadCoord::tr, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), QuadCoord::tl, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::br, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), QuadCoord::tl, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::bl, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::br, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), QuadCoord::tl, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), QuadCoord::tr, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::br, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::bl, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), QuadCoord::tl, layer, 1.f});
     // cross
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, layer});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::br, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), QuadCoord::tr, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), QuadCoord::tl, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::br, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), QuadCoord::tl, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::bl, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::br, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), QuadCoord::tl, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), QuadCoord::tr, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::br, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::bl, layer, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), QuadCoord::tl, layer, 1.f});
     break;
   }
 }
 
 void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
   auto& chunk = region.get_chunk(location);
+  auto adjacent_chunks = region.get_adjacent_chunks(location);
   auto& mesh = meshes_[location];
   mesh.reserve(default_max_vertices);
   glm::vec3 chunk_position(
@@ -185,7 +204,7 @@ void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
           continue;
         }
 
-        auto adjacent = get_adjacent_voxels(region, chunk, x, y, z);
+        auto adjacent = get_adjacent_voxels(chunk, adjacent_chunks, x, y, z);
         std::array<VoxelTexture, 6> layers;
         switch (voxel) {
         case Voxel::dirt:
@@ -223,10 +242,13 @@ void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
           layers.fill(VoxelTexture::stone);
           break;
         }
+
+        auto lighting = get_lighting(chunk, adjacent_chunks, x, y, z);
+
         if (voxel < Voxel::OPAQUE_LOWER)
-          fill_sides(mesh, position, adjacent, layers, Voxel::num_voxel_types);
+          fill_sides(mesh, position, adjacent, layers, Voxel::voxel_enum_size, lighting);
         else
-          fill_sides(mesh, position, adjacent, layers, Voxel::OPAQUE_LOWER);
+          fill_sides(mesh, position, adjacent, layers, Voxel::OPAQUE_LOWER, lighting);
       }
     }
   }
@@ -235,6 +257,7 @@ void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
 
 void MeshGenerator::mesh_water(Region& region, const Location& location) {
   auto& chunk = region.get_chunk(location);
+  auto adjacent_chunks = region.get_adjacent_chunks(location);
   auto& water_voxels = chunk.get_water_voxels();
   auto& water_mesh = water_meshes_[location];
   glm::vec3 chunk_position(
@@ -242,19 +265,21 @@ void MeshGenerator::mesh_water(Region& region, const Location& location) {
   for (auto& idx : water_voxels) {
     auto [x, y, z] = chunk.flat_index_to_3d(idx);
     auto position = chunk_position + glm::vec3(x, y, z);
-    auto adjacent = get_adjacent_voxels(region, chunk, x, y, z);
+    auto adjacent = get_adjacent_voxels(chunk, adjacent_chunks, x, y, z);
 
     std::array<VoxelTexture, 6> layers;
     layers.fill(VoxelTexture::water);
-    fill_sides(water_mesh, position, adjacent, layers, Voxel::WATER_LOWER);
+    auto lighting = get_lighting(chunk, adjacent_chunks, x, y, z);
+
+    fill_sides(water_mesh, position, adjacent, layers, Voxel::WATER_LOWER, lighting);
   }
   diffs_.emplace_back(Diff{location, Diff::water});
 }
 
 void MeshGenerator::consume_region(Region& region) {
   auto& diffs = region.get_diffs();
-  /* int num_meshed = 0;
-  float total_duration = 0.0; */
+  /*   int num_meshed = 0;
+    float total_duration = 0.0; */
 
   for (auto& diff : diffs) {
     auto& loc = diff.location;
@@ -268,15 +293,16 @@ void MeshGenerator::consume_region(Region& region) {
     if (diff.kind == Region::Diff::creation) {
       auto& chunk = region.get_chunk(loc);
 
-      // auto start = std::chrono::high_resolution_clock::now();
+      //      auto start = std::chrono::high_resolution_clock::now();
       mesh_chunk(region, loc);
-      /*       auto end = std::chrono::high_resolution_clock::now();
+      /*
+            auto end = std::chrono::high_resolution_clock::now();
 
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start); */
-      // std::cout << "mesh time: " << duration.count() << std::endl;
-
-      /* num_meshed++;
-      total_duration += duration.count(); */
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+            std::cout << "mesh time: " << duration.count() << std::endl;
+       */
+      /*     num_meshed++;
+          total_duration += duration.count(); */
     } else if (diff.kind == Region::Diff::deletion) {
       diffs_.emplace_back(Diff{loc, Diff::deletion});
     } else if (diff.kind == Region::Diff::water) {
@@ -284,7 +310,8 @@ void MeshGenerator::consume_region(Region& region) {
       mesh_water(region, loc);
     }
   }
-  // std::cout << "Average execution time: " << total_duration / num_meshed << " microseconds" << std::endl;
+  /* if (num_meshed > 0)
+    std::cout << "Average execution time: " << total_duration / num_meshed << " microseconds" << std::endl; */
   region.clear_diffs();
 }
 

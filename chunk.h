@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <vector>
 #include "common.h"
+#include "section.h"
 #include "types.h"
 
 class Chunk {
@@ -32,15 +33,25 @@ public:
   static Location pos_to_loc(const std::array<double, 3>& position);
   static std::array<int, 3> flat_index_to_3d(int i);
 
+  void compute_lighting(Section& section);
+  unsigned char get_lighting(int x, int y, int z) const;
+  void set_lighting(int x, int y, int z, unsigned char value);
+  void set_lighting(int i, unsigned char value);
+  static Int3D to_local(Int3D coord);
+
   static constexpr int sz_x = Common::chunk_sz_x;
   static constexpr int sz_y = Common::chunk_sz_y;
   static constexpr int sz_z = Common::chunk_sz_z;
   static constexpr int sz = Common::chunk_sz;
 
+  static constexpr unsigned char max_lighting = 0xF;
+
 private:
   std::array<Voxel, sz> voxels_;
   static constexpr int water_voxels_reserve = sz / 10;
   std::unordered_set<std::size_t> water_voxels_;
+
+  std::array<unsigned char, sz> lighting_;
 
   Location location_;
 

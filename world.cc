@@ -2,8 +2,8 @@
 
 World::World() {
   sun_dir_ = glm::vec3(-1.f, 1.f, 1.f);
-  sun_col_ = glm::vec3(0.4f);
-  ambient_col_ = glm::vec3(0.7f);
+  sun_col_ = glm::vec3(1.f);
+  ambient_col_ = glm::vec3(0.1f);
 }
 
 const glm::vec3& World::get_sun_dir() const {

@@ -7,10 +7,10 @@
 #include <map>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <glm/glm.hpp>
 
-// using Location = std::array<int, 3>;
 using Location2D = std::array<int, 2>;
 
 class Location {
@@ -47,6 +47,8 @@ public:
   }
 };
 
+using Int3D = Location;
+
 struct LocationMath {
   static double distance(Location l1, Location l2) {
     int x_squared = (l1[0] - l2[0]) * (l1[0] - l2[0]);
@@ -61,12 +63,12 @@ struct LocationMath {
 
 struct LocationHash {
   std::size_t operator()(const Location& l) const {
-    std::hash<int> h;
-    int ret = 3;
-    ret ^= h(l[0]) | l[0];
-    ret ^= h(l[1]) | l[1];
-    ret ^= h(l[2]) | l[2];
-    return ret;
+    std::hash<int> hasher;
+    std::size_t hashValue = 0;
+    hashValue ^= hasher(l[0]) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+    hashValue ^= hasher(l[1]) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+    hashValue ^= hasher(l[2]) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+    return hashValue;
   }
 };
 
@@ -82,9 +84,9 @@ struct Location2DHash final {
 
 struct Vertex {
   glm::vec3 position;
-  glm::vec3 normal;
   glm::vec2 uvs;
   int layer;
+  float lighting;
 };
 
 using Message = std::vector<uint8_t>;
@@ -98,6 +100,9 @@ enum class Voxel {
   grass,
 
   CUBE_LOWER,
+  glass,
+
+  PARTIAL_OPAQUE_LOWER,
   leaves,
 
   OPAQUE_LOWER,
@@ -107,7 +112,7 @@ enum class Voxel {
   sandstone,
   stone,
 
-  num_voxel_types
+  voxel_enum_size
 };
 
 enum class VoxelTexture {
@@ -133,10 +138,5 @@ enum Direction {
   nz,
   pz
 };
-
-/* struct Section {
-  Location2D location;
-  int elevation;
-}; */
 
 #endif

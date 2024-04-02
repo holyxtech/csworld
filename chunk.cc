@@ -1,12 +1,12 @@
 #include "chunk.h"
 #include <iostream>
+#include <queue>
 
 Chunk::Chunk(int x, int y, int z)
     : location_{x, y, z} {
   voxels_.fill(Voxel::empty);
-  /*   voxels_.reserve(sz);
-    voxels_.insert(voxels_.end(), sz, Voxel::empty); */
   water_voxels_.reserve(water_voxels_reserve);
+  lighting_.fill(0);
   flags_ = 0;
 }
 
@@ -72,4 +72,91 @@ Location Chunk::pos_to_loc(const std::array<double, 3>& position) {
     static_cast<int>(std::floor(position[1] / Chunk::sz_y)),
     static_cast<int>(std::floor(position[2] / Chunk::sz_z)),
   };
+}
+
+void Chunk::compute_lighting(Section& section) {
+  std::queue<Int3D> lights;
+
+  int top_y = sz_y - 1 + location_[1] * sz_y;
+  for (int z = 0; z < sz_z; ++z) {
+    for (int x = 0; x < sz_x; ++x) {
+      int obstructing_height = section.get_subsection_obstructing_height(x, z);
+
+      if (top_y <= obstructing_height) {
+        continue;
+      }
+
+      int idx = get_index(x, sz_y - 1, z);
+      set_lighting(idx, max_lighting);
+      lights.emplace(Int3D{x, sz_y - 1, z});
+    }
+  }
+  
+  while (!lights.empty()) {
+    auto& coord = lights.front();
+    int x = coord[0], y = coord[1], z = coord[2];
+    auto lighting = get_lighting(x, y, z);
+    lights.pop();
+
+    if (x > 0 && get_voxel(x - 1, y, z) < Voxel::OPAQUE_LOWER &&
+        lighting > get_lighting(x - 1, y, z) + 1) {
+      set_lighting(x - 1, y, z, lighting - 1);
+      lights.emplace(Int3D{x - 1, y, z});
+    }
+
+    if ((x < sz_x - 1) && get_voxel(x + 1, y, z) < Voxel::OPAQUE_LOWER &&
+        lighting > get_lighting(x + 1, y, z) + 1) {
+      set_lighting(x + 1, y, z, lighting - 1);
+      lights.emplace(Int3D{x + 1, y, z});
+    }
+
+    if (y > 0 && lighting > get_lighting(x, y - 1, z) + 1) {
+      auto v = get_voxel(x, y - 1, z);
+      if (v < Voxel::OPAQUE_LOWER) {
+        lights.emplace(Int3D{x, y - 1, z});
+        if (v < Voxel::PARTIAL_OPAQUE_LOWER) {
+          set_lighting(x, y - 1, z, lighting);
+        } else {
+          set_lighting(x, y - 1, z, lighting - 1);
+        }
+      }
+    }
+
+    if ((y < sz_y - 1) && get_voxel(x, y + 1, z) < Voxel::OPAQUE_LOWER &&
+        lighting > get_lighting(x, y + 1, z) + 1) {
+      set_lighting(x, y + 1, z, lighting - 1);
+      lights.emplace(Int3D{x, y + 1, z});
+    }
+
+    if (z > 0 && get_voxel(x, y, z - 1) < Voxel::OPAQUE_LOWER &&
+        lighting > get_lighting(x, y, z - 1) + 1) {
+      set_lighting(x, y, z - 1, lighting - 1);
+      lights.emplace(Int3D{x, y, z - 1});
+    }
+    if ((z < sz_z - 1) && get_voxel(x, y, z + 1) < Voxel::OPAQUE_LOWER &&
+        lighting > get_lighting(x, y, z + 1) + 1) {
+      set_lighting(x, y, z + 1, lighting - 1);
+      lights.emplace(Int3D{x, y, z + 1});
+    }
+  }
+}
+
+void Chunk::set_lighting(int i, unsigned char value) {
+  lighting_[i] = value;
+};
+
+void Chunk::set_lighting(int x, int y, int z, unsigned char value) {
+  int idx = get_index(x, y, z);
+  set_lighting(idx, value);
+}
+
+unsigned char Chunk::get_lighting(int x, int y, int z) const {
+  return lighting_[x + sz_x * (y + sz_y * z)];
+}
+
+Int3D Chunk::to_local(Int3D coord) {
+  int x = ((coord[0] % sz_x) + sz_x) % sz_x;
+  int y = ((coord[1] % sz_y) + sz_y) % sz_y;
+  int z = ((coord[2] % sz_z) + sz_z) % sz_z;
+  return Int3D{x, y, z};
 }
