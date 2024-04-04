@@ -40,8 +40,8 @@ private:
   std::mutex camera_mutex_;
   std::condition_variable cv_;
   bool ready_to_mesh_ = true;
-
   std::unordered_set<Location2D, Location2DHash> requested_sections_;
+  Int3D ray_collision_;
 
   static constexpr int min_render_distance = 2;
   static constexpr int min_section_distance = min_render_distance + 2;

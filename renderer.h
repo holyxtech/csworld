@@ -8,6 +8,7 @@
 #include "mesh_generator.h"
 #include "region.h"
 #include "sky.h"
+#include "ui.h"
 #include "world.h"
 
 typedef struct {
@@ -22,6 +23,7 @@ public:
   Renderer(World& world);
   void consume_mesh_generator(MeshGenerator& mesh_generator);
   void consume_camera(const Camera& camera);
+  void consume_ray(Int3D& ray);
   void render() const;
   const glm::mat4& get_view_matrix() const;
   const glm::mat4& get_projection_matrix() const;
@@ -30,17 +32,19 @@ public:
   static constexpr GLuint window_height = 1440;
 
 private:
+  void creation(
+    const Location& loc,
+    const std::vector<Vertex>* mesh,
+    std::unordered_map<GLuint, GLuint>* vbo_to_vao,
+    std::unordered_map<GLuint, Location>* vbo_map,
+    std::unordered_map<Location, GLuint, LocationHash>* loc_map,
+    std::unordered_map<GLuint, int>* mesh_size_map);
 
-  std::array<GLuint, Region::max_sz> vaos_;
-  std::array<GLuint, Region::max_sz> vbos_;
+  std::unordered_map<GLuint, GLuint> vbo_to_vao_;
   std::unordered_map<GLuint, Location> vbo_map_;
   std::unordered_map<Location, GLuint, LocationHash> loc_map_;
   std::unordered_map<GLuint, int> mesh_size_map_;
-  // Would probably be a better solution to put all the water meshes into a single VBO
-  // because if they're greedy meshed, then it would probably take very few kbs on average
-  // so can just allocate a spacious VBO up front then render with multidrawarray
-  std::array<GLuint, Region::max_sz> water_vaos_;
-  std::array<GLuint, Region::max_sz> water_vbos_;
+  std::unordered_map<GLuint, GLuint> water_vbo_to_vao_;
   std::unordered_map<GLuint, Location> water_vbo_map_;
   std::unordered_map<Location, GLuint, LocationHash> water_loc_map_;
   std::unordered_map<GLuint, int> water_mesh_size_map_;
@@ -52,15 +56,22 @@ private:
   GLuint water_dbo_;
   GLuint window_vao_;
   GLuint window_vbo_;
+  GLuint voxel_highlight_vbo_;
+  GLuint voxel_highlight_vao_;
+  bool render_highlight_ = true;
+
   GLuint shader_;
   GLuint window_shader_;
+  GLuint voxel_highlight_shader_;
+  glm::vec3 voxel_highlight_position_;
+
 
   glm::dvec3 camera_offset_;
   glm::mat4 projection_;
   glm::mat4 view_;
-
   World& world_;
   Sky sky_;
+  UI ui_;
 };
 
 #endif

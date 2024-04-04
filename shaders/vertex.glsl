@@ -8,7 +8,6 @@ layout (location = 2) in float layer;
 layout (location = 3) in float lighting;
 
 out vec2 fragUvs;
-out vec3 fragNormal;
 flat out float fragLayer;
 flat out float fragLighting;
 

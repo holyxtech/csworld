@@ -10,6 +10,7 @@
 #include "player.h"
 #include "section.h"
 #include "simobject.h"
+#include "camera.h"
 
 class Region {
 public:
@@ -17,7 +18,6 @@ public:
     enum Kind {
       creation,
       deletion,
-      water
     };
     Location location;
     Kind kind;
@@ -33,20 +33,28 @@ public:
   void add_chunk(Chunk&& chunk);
   const std::vector<Diff>& get_diffs() const;
   void clear_diffs();
-  Voxel get_voxel(int x, int y, int z) const;
-  unsigned char get_lighting(int x, int y, int z) const;
+  Voxel get_voxel(int x, int y, int z);
+  unsigned char get_lighting(int x, int y, int z);
+  void set_lighting(int x, int y, int z, unsigned char lighting);
+  void set_voxel(int x, int y, int z, Voxel voxel);
   std::array<Chunk*, 6> get_adjacent_chunks(const Location& loc);
   Section& get_section(const Location2D loc);
+  static std::vector<Int3D> raycast(Camera& camera);
+  void raycast_place(Camera& camera, Voxel voxel);
+  void raycast_remove(Camera& camera);
+  static Location location_from_global_coords(int x, int y, int z);
 
   static constexpr int max_sz = 256;
 
 private:
-  template <typename Func>
-  auto get_data(int x, int y, int z, Func func) const;
+  template <typename Func, typename... Args>
+  auto get_data(int x, int y, int z, Func func, Args&&... args);
   void chunk_to_mesh_generator(const Location& loc);
   void compute_global_lighting(const Location& loc);
   void delete_furthest_chunk(const Location& loc);
   std::array<Location, 6> get_adjacent_locations(const Location& loc) const;
+  
+  int find_obstructing_height(Int3D root) const;
 
   std::unordered_map<Location2D, Section, Location2DHash> sections_;
   std::unordered_map<Location, Chunk, LocationHash> chunks_;

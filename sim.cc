@@ -17,9 +17,9 @@
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window), tcp_client_(tcp_client), renderer_(world_) {
 
-  //std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-11-0-0", "37-59-03");
-  //starting_pos[1] = 350;
-  std::array<double, 3> starting_pos{4229159,326,-1222663};
+  // std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-11-0-0", "37-59-03");
+  // starting_pos[1] = 350;
+  std::array<double, 3> starting_pos{4229159, 326, -1222663};
   // std::array<double, 3> starting_pos{0,0,0};
 
   {
@@ -42,6 +42,7 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     request_sections(locs);
   player.set_last_location(loc);
 }
+
 
 void Sim::step() {
   bool new_sections = false;
@@ -72,28 +73,38 @@ void Sim::step() {
   }
 
   auto& player = region_.get_player();
+
   {
     std::unique_lock<std::mutex> lock(camera_mutex_);
     auto& camera_pos = camera_.get_position();
     player.set_position(camera_pos[0], camera_pos[1], camera_pos[2]);
+    auto ray = Region::raycast(camera_);
+    ray_collision_ = Int3D{INT_MAX, INT_MAX, INT_MAX};
+    for (auto& coord : ray) {
+      auto loc = Region::location_from_global_coords(coord[0], coord[1], coord[2]);
+      if (region_.has_chunk(loc) && region_.get_voxel(coord[0], coord[1], coord[2]) != Voxel::empty) {
+        ray_collision_ = coord;
+        return;
+      }
+    }
   }
+
   auto& pos = player.get_position();
   auto loc = Chunk::pos_to_loc(pos);
-/* 
-   if (region_.has_chunk(loc)) {
-    int x = std::floor(pos[0]);
-    int y = std::floor(pos[1]);
-    int z = std::floor(pos[2]);
-    std::cout<<loc.repr()<<std::endl;
 
-    auto v = region_.get_voxel(x, y, z);
-  }  */
+  /*  if (region_.has_chunk(loc)) {
+     int x = std::floor(pos[0]);
+     int y = std::floor(pos[1]);
+     int z = std::floor(pos[2]);
+     auto v = region_.get_voxel(x, y, z);
+     // std::cout << x<<","<<y<<","<<z << ": " << (int)v<<std::endl;
+   } */
 
   auto& last_location = player.get_last_location();
   if (loc != last_location || new_sections) {
     auto& sections = region_.get_sections();
     for (int x = -min_render_distance; x <= min_render_distance; ++x) {
-      for (int y = 1; y >-2; --y) {
+      for (int y = 1; y > -2; --y) {
         for (int z = -min_render_distance; z <= min_render_distance; ++z) {
           auto location = Location{loc[0] + x, loc[1] + y, loc[2] + z};
           if (!region_.has_chunk(location) && world_generator_.ready_to_fill(location, sections)) {
@@ -129,6 +140,27 @@ void Sim::step() {
       request_sections(locs);
   }
   player.set_last_location(loc);
+
+  // actions
+  // ...
+  auto& mouse_button_events = Input::instance()->get_mouse_button_events();
+  MouseButtonEvent event;
+  success = mouse_button_events.try_dequeue(event);
+  while (success) {
+
+    if (event.button == GLFW_MOUSE_BUTTON_LEFT && event.action == GLFW_PRESS) {
+      {
+        std::unique_lock<std::mutex> lock(camera_mutex_);
+        region_.raycast_remove(camera_);
+      }
+      {
+        std::unique_lock<std::mutex> lock(mesh_mutex_);
+        mesh_generator_.consume_region(region_);
+      }
+    }
+
+    success = mouse_button_events.try_dequeue(event);
+  }
 }
 
 void Sim::request_sections(std::vector<Location2D>& locs) {
@@ -157,17 +189,15 @@ void Sim::request_sections(std::vector<Location2D>& locs) {
 void Sim::draw(int64_t ms) {
   {
     std::unique_lock<std::mutex> lock(camera_mutex_);
-    double xpos, ypos;
-    glfwGetCursorPos(window_, &xpos, &ypos);
-
     int mouse_right_state = glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT);
-    if (mouse_right_state == GLFW_PRESS) {
-      auto& cursor_start_pos = Input::instance()->get_cursor_start_pos();
-      auto xoff = xpos - cursor_start_pos[0];
-      auto yoff = cursor_start_pos[1] - ypos;
-      camera_.pan(xoff, yoff);
+    auto& cursor_pos = Input::instance()->get_cursor_pos();
+
+    auto last_cursor_pos = camera_.get_last_cursor_pos();
+    if (cursor_pos[0] != last_cursor_pos[0] || cursor_pos[1] != last_cursor_pos[1]) {
+      camera_.pan(cursor_pos[0], cursor_pos[1]);
+      camera_.set_last_cursor_pos(cursor_pos[0], cursor_pos[1]);
     }
-    Input::instance()->set_cursor_start_pos(xpos, ypos);
+    renderer_.consume_ray(ray_collision_);
 
     if (glfwGetKey(window_, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
       camera_.set_base_translation_speed(3);
@@ -191,26 +221,20 @@ void Sim::draw(int64_t ms) {
     }
 
     if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS) {
-      if (mouse_right_state == GLFW_PRESS) {
-        camera_.move_left();
-      } else {
-        camera_.turn_left();
-      }
+      camera_.move_left();
+
     } else if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS) {
-      if (mouse_right_state == GLFW_PRESS) {
-        camera_.move_right();
-      } else {
-        camera_.turn_right();
-      }
+      camera_.move_right();
     }
     renderer_.consume_camera(camera_);
   }
+  camera_mutex_.unlock();
 
   {
     std::unique_lock<std::mutex> lock(mutex_);
-
     bool suc = mesh_mutex_.try_lock();
     if (suc) {
+
       renderer_.consume_mesh_generator(mesh_generator_);
       ready_to_mesh_ = true;
       mesh_mutex_.unlock();

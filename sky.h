@@ -5,7 +5,6 @@
 #include <vector>
 #include <GL/glew.h>
 
-
 class Renderer;
 
 class Sky {

@@ -42,8 +42,12 @@ public:
     return "(" + std::to_string(coordinates[0]) + "," + std::to_string(coordinates[1]) + "," + std::to_string(coordinates[2]) + ")";
   }
 
-  void print() const {
-    std::cout << "(" << coordinates[0] << "," << coordinates[1] << "," << coordinates[2] << ")" << std::endl;
+  // Overloading += operator to perform addition of two Location objects
+  Location& operator+=(const Location& other) {
+    coordinates[0] += other.coordinates[0];
+    coordinates[1] += other.coordinates[1];
+    coordinates[2] += other.coordinates[2];
+    return *this;
   }
 };
 
@@ -72,7 +76,7 @@ struct LocationHash {
   }
 };
 
-struct Location2DHash final {
+struct Location2DHash {
   template <class T, std::size_t N>
   size_t operator()(const std::array<T, N>& arr) const noexcept {
     uintmax_t hash = std::hash<T>{}(arr[0]);

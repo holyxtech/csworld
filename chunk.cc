@@ -6,7 +6,7 @@ Chunk::Chunk(int x, int y, int z)
     : location_{x, y, z} {
   voxels_.fill(Voxel::empty);
   water_voxels_.reserve(water_voxels_reserve);
-  lighting_.fill(0);
+
   flags_ = 0;
 }
 
@@ -75,6 +75,7 @@ Location Chunk::pos_to_loc(const std::array<double, 3>& position) {
 }
 
 void Chunk::compute_lighting(Section& section) {
+  lighting_.fill(0);
   std::queue<Int3D> lights;
 
   int top_y = sz_y - 1 + location_[1] * sz_y;
@@ -91,7 +92,7 @@ void Chunk::compute_lighting(Section& section) {
       lights.emplace(Int3D{x, sz_y - 1, z});
     }
   }
-  
+
   while (!lights.empty()) {
     auto& coord = lights.front();
     int x = coord[0], y = coord[1], z = coord[2];

@@ -10,5 +10,4 @@ void main() {
     TexCoords = position;
     vec4 pos = uTransform * vec4(position, 1.0); 
     gl_Position = pos.xyww;
-
 }  

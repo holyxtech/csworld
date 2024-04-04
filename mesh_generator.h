@@ -12,7 +12,6 @@ public:
     enum Kind {
       creation,
       deletion,
-      water,
       origin
     };
     Location location;
@@ -43,6 +42,7 @@ private:
   Location origin_;
   bool origin_set_ = false;
   float light_decay = 0.9;
+  std::uint32_t random_seed_ = 0;
 };
 
 #endif

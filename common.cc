@@ -7,6 +7,7 @@ namespace {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<float> uniform_probability(0.0f, 1.0f);
+
 } // namespace
 
 namespace Common {
@@ -64,6 +65,40 @@ namespace Common {
   int random_int(int low, int high) {
     std::uniform_int_distribution<int> dist(low, high);
     return dist(gen);
+  }
+
+  // Stateless and repeatable function that returns a
+  // pseduo-random number in the range [0, 0xFFFFFFFF].
+  std::uint32_t Hash(const std::uint32_t seed) {
+    // So that we can use unsigned int literals, e.g. 42u.
+    static_assert(sizeof(unsigned int) == sizeof(std::uint32_t),
+                  "integer size mismatch");
+
+    auto i = std::uint32_t{(seed ^ 12345391U) * 2654435769U}; // NOLINT
+    i ^= (i << 6U) ^ (i >> 26U);                              // NOLINT
+    i *= 2654435769U;                                         // NOLINT
+    i += (i << 5U) ^ (i >> 12U);                              // NOLINT
+    return i;
+  }
+
+  // Returns a pseduo-random number in the range [0, 0xFFFFFFFF].
+  // Note that seed is incremented for each invokation.
+  std::uint32_t Rand(std::uint32_t const seed) {
+    // Not worrying about seed "overflow" since it is unsigned.
+    return Hash(seed);
+  }
+
+  // Returns a pseduo-random number in the range [0, 1].
+  float NormRand(std::uint32_t const seed) {
+    return (1 / static_cast<float>(std::numeric_limits<std::uint32_t>::max())) *
+           static_cast<float>(Rand(seed));
+  }
+
+  // Returns a pseduo-random number in the range [offset, offset + range].
+  // Assumes range > 0.
+  float RangeRand(const float offset, const float range,
+                  std::uint32_t const seed) {
+    return offset + range * NormRand(seed);
   }
 
 } // namespace Common

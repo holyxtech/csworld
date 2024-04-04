@@ -14,25 +14,31 @@
 Renderer::Renderer(World& world) : world_(world) {
   RenderUtils::create_shader(&shader_, "shaders/vertex.glsl", "shaders/fragment.glsl");
   RenderUtils::create_shader(&window_shader_, "shaders/window_vertex.glsl", "shaders/window_fragment.glsl");
+  RenderUtils::create_shader(&voxel_highlight_shader_, "shaders/voxel_highlight_vertex.glsl", "shaders/voxel_highlight_fragment.glsl");
 
-  glGenBuffers(vbos_.size(), vbos_.data());
-  glGenVertexArrays(vaos_.size(), vaos_.data());
-  glGenBuffers(water_vbos_.size(), water_vbos_.data());
-  glGenVertexArrays(water_vaos_.size(), water_vaos_.data());
-  for (int i = 0; i < vbos_.size() && i < vaos_.size(); ++i) {
-    auto vbo = vbos_[i];
-    auto vao = vaos_[i];
+  std::array<GLuint, Region::max_sz> vbos;
+  std::array<GLuint, Region::max_sz> vaos;
+  glGenBuffers(vbos.size(), vbos.data());
+  glGenVertexArrays(vaos.size(), vaos.data());
+  for (int i = 0; i < vbos.size(); ++i) {
+    auto vbo = vbos[i];
+    auto vao = vaos[i];
     RenderUtils::set_up_standard_vao(vbo, vao);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MeshGenerator::default_max_vertices, nullptr, GL_STATIC_DRAW);
-  }
-  for (int i = 0; i < water_vbos_.size() && i < water_vaos_.size(); ++i) {
-    auto vbo = water_vbos_[i];
-    auto vao = water_vaos_[i];
-    RenderUtils::set_up_standard_vao(vbo, vao);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MeshGenerator::default_max_water_vertices, nullptr, GL_STATIC_DRAW);
+    vbo_to_vao_[vbo] = vao;
   }
 
-  float vertices[] = {
+  glGenBuffers(vbos.size(), vbos.data());
+  glGenVertexArrays(vaos.size(), vaos.data());
+  for (int i = 0; i < vbos.size(); ++i) {
+    auto vbo = vbos[i];
+    auto vao = vaos[i];
+    RenderUtils::set_up_standard_vao(vbo, vao);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MeshGenerator::default_max_water_vertices, nullptr, GL_STATIC_DRAW);
+    water_vbo_to_vao_[vbo] = vao;
+  }
+
+  float skybox_vertices[] = {
     -1.0f, -1.0f, 0.0f,
     -1.0f, 1.0f, 0.0f,
     1.0f, -1.0f, 0.0f,
@@ -45,7 +51,7 @@ Renderer::Renderer(World& world) : world_(world) {
   glBindVertexArray(window_vao_);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
   glEnableVertexAttribArray(0);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(skybox_vertices), skybox_vertices, GL_STATIC_DRAW);
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -125,96 +131,117 @@ Renderer::Renderer(World& world) : world_(world) {
   set_up_framebuffers(&main_framebuffer_, &main_cbo_, &main_dbo_);
   set_up_framebuffers(&water_framebuffer_, &water_cbo_, &water_dbo_);
 
-  // upload lights
-  auto& sun_dir = world_.get_sun_dir();
-  GLint sun_dir_loc = glGetUniformLocation(shader_, "sunDir");
-  glUniform3fv(sun_dir_loc, 1, glm::value_ptr(sun_dir));
-  auto& sun_col = world_.get_sun_col();
-  GLint sun_col_loc = glGetUniformLocation(shader_, "sunCol");
-  glUniform3fv(sun_col_loc, 1, glm::value_ptr(sun_col));
-  auto& ambient_col = world_.get_ambient_col();
-  GLint ambient_col_loc = glGetUniformLocation(shader_, "ambientCol");
-  glUniform3fv(ambient_col_loc, 1, glm::value_ptr(ambient_col));
+  float voxel_highlight_vertices[] = {
+    // Front face
+    0.0f, 0.0f, 1.0f, // Bottom-left
+    1.0f, 0.0f, 1.0f, // Bottom-right
+    1.0f, 1.0f, 1.0f, // Top-right
+    0.0f, 1.0f, 1.0f, // Top-left
+    // Back face
+    0.0f, 0.0f, 0.0f, // Bottom-left
+    1.0f, 0.0f, 0.0f, // Bottom-right
+    1.0f, 1.0f, 0.0f, // Top-right
+    0.0f, 1.0f, 0.0f  // Top-left
+  };
 
+  unsigned int indices[] = {
+    // Front face
+    0, 1, 1, 2, 2, 3, 3, 0,
+    // Back face
+    4, 5, 5, 6, 6, 7, 7, 4,
+    // Connecting lines
+    0, 4, 1, 5, 2, 6, 3, 7};
+
+  GLuint voxel_highlight_ebo;
+  glGenVertexArrays(1, &voxel_highlight_vao_);
+  glGenBuffers(1, &voxel_highlight_vbo_);
+  glGenBuffers(1, &voxel_highlight_ebo);
+  glBindVertexArray(voxel_highlight_vao_);
+  glBindBuffer(GL_ARRAY_BUFFER, voxel_highlight_vbo_);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(voxel_highlight_vertices), voxel_highlight_vertices, GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, voxel_highlight_ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+
+  glLineWidth(4.f);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
   glFrontFace(GL_CW);
   glClearColor(0.702f, 0.266f, 1.f, 1.0f);
 
-  projection_ = glm::perspective(glm::radians(55.l), 16 / 9.l, 0.1l, 4000.l);
+  projection_ = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 4000.l);
+}
+
+void Renderer::creation(
+  const Location& loc,
+  const std::vector<Vertex>* mesh,
+  std::unordered_map<GLuint, GLuint>* vbo_to_vao,
+  std::unordered_map<GLuint, Location>* vbo_map,
+  std::unordered_map<Location, GLuint, LocationHash>* loc_map,
+  std::unordered_map<GLuint, int>* mesh_size_map) {
+
+  GLuint vbo_to_use = 0;
+  GLuint vao_to_use = 0;
+  GLuint* vbo_ptr = &vbo_to_use;
+
+  if (loc_map->contains(loc)) {
+    vbo_to_use = loc_map->at(loc);
+    vao_to_use = vbo_to_vao->at(vbo_to_use);
+  } else {
+    for (auto& [vbo, vao] : *vbo_to_vao) {
+      if (!vbo_map->contains(vbo)) {
+        vbo_to_use = vbo;
+        vao_to_use = vao;
+        break;
+      }
+    }
+  }
+
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_to_use);
+  GLint bufferSize;
+  glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &bufferSize);
+  if (bufferSize < sizeof(Vertex) * mesh->size()) {
+    std::cout << "Buffer too small! This mesh has size " << mesh->size() << std::endl;
+
+    glDeleteBuffers(1, vbo_ptr);
+    glGenBuffers(1, vbo_ptr);
+    vbo_to_use = *vbo_ptr;
+    RenderUtils::set_up_standard_vao(vbo_to_use, vao_to_use);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * mesh->size(), mesh->data(), GL_STATIC_DRAW);
+  } else {
+    GLint mesh_size_bytes = sizeof(Vertex) * mesh->size();
+    glBufferSubData(GL_ARRAY_BUFFER, 0, mesh_size_bytes, mesh->data());
+    GLint remaining_bytes = bufferSize - mesh_size_bytes;
+    // Fill the remaining bytes with zeros starting from mesh size
+    glBufferSubData(GL_ARRAY_BUFFER, mesh_size_bytes, remaining_bytes, nullptr);
+  }
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  (*vbo_map)[vbo_to_use] = loc;
+  (*loc_map)[loc] = vbo_to_use;
+  (*mesh_size_map)[vbo_to_use] = mesh->size();
 }
 
 void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
   auto& diffs = mesh_generator.get_diffs();
   for (auto& diff : diffs) {
-    if (diff.kind == MeshGenerator::Diff::creation || diff.kind == MeshGenerator::Diff::water) {
+    if (diff.kind == MeshGenerator::Diff::creation) {
       auto& loc = diff.location;
-
-      const std::vector<Vertex>* mesh;
-      std::unordered_map<GLuint, Location>* vbo_map;
-      std::array<GLuint, Region::max_sz>* vbos;
-      std::array<GLuint, Region::max_sz>* vaos;
-      if (diff.kind == MeshGenerator::Diff::creation) {
-        mesh = &mesh_generator.get_meshes().at(loc);
-        vbo_map = &vbo_map_;
-        vbos = &vbos_;
-        vaos = &vaos_;
-      } else {
-        mesh = &mesh_generator.get_water_meshes().at(loc);
-        vbo_map = &water_vbo_map_;
-        vbos = &water_vbos_;
-        vaos = &water_vaos_;
-      }
-
-      GLuint vbo_to_use = 0;
-      GLuint vao = 0;
-      GLuint* vbo_ptr = nullptr;
-
-      for (int i = 0; i < vbos_.size(); ++i) {
-        auto& vbo = (*vbos)[i];
-
-        if (!vbo_map->contains(vbo)) {
-          vbo_to_use = vbo;
-          vbo_ptr = &(*vbos)[i];
-          vao = (*vaos)[i];
-          break;
-        }
-      }
-
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_to_use);
-      GLint bufferSize;
-      glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &bufferSize);
-      if (bufferSize < sizeof(Vertex) * mesh->size()) {
-        std::cout << "Buffer too small! This mesh has size " << mesh->size() << std::endl;
-
-        glDeleteBuffers(1, vbo_ptr);
-        glGenBuffers(1, vbo_ptr);
-        vbo_to_use = *vbo_ptr;
-        RenderUtils::set_up_standard_vao(vbo_to_use, vao);
-
-        glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * mesh->size(), mesh->data(), GL_STATIC_DRAW);
-      } else {
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * mesh->size(), mesh->data());
-      }
-
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-      if (diff.kind == MeshGenerator::Diff::creation) {
-        (*vbo_map)[vbo_to_use] = loc;
-        loc_map_[loc] = vbo_to_use;
-        mesh_size_map_[vbo_to_use] = mesh->size();
-      } else {
-        (*vbo_map)[vbo_to_use] = loc;
-        water_loc_map_[loc] = vbo_to_use;
-        water_mesh_size_map_[vbo_to_use] = mesh->size();
-      }
+      creation(loc, &mesh_generator.get_meshes().at(loc), &vbo_to_vao_, &vbo_map_, &loc_map_, &mesh_size_map_);
+      creation(loc, &mesh_generator.get_water_meshes().at(loc), &water_vbo_to_vao_, &water_vbo_map_, &water_loc_map_, &water_mesh_size_map_);
 
     } else if (diff.kind == MeshGenerator::Diff::deletion) {
       GLuint vbo = loc_map_[diff.location];
       vbo_map_.erase(vbo);
+      loc_map_.erase(diff.location);
       GLuint water_vbo = water_loc_map_[diff.location];
       water_vbo_map_.erase(water_vbo);
+      water_loc_map_.erase(diff.location);
     } else if (diff.kind == MeshGenerator::Diff::origin) {
       auto& loc = diff.location;
       camera_offset_ = glm::dvec3(loc[0] * Chunk::sz_x, loc[1] * Chunk::sz_y, loc[2] * Chunk::sz_z);
@@ -241,10 +268,7 @@ void Renderer::render() const {
 
   glBindFramebuffer(GL_FRAMEBUFFER, water_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  for (int i = 0; i < water_vbos_.size() && i < water_vaos_.size(); ++i) {
-    auto vbo = water_vbos_[i];
-    auto vao = water_vaos_[i];
-
+  for (auto& [vbo, vao] : water_vbo_to_vao_) {
     if (!(water_vbo_map_.contains(vbo) && water_mesh_size_map_.at(vbo) > 0))
       continue;
 
@@ -256,10 +280,7 @@ void Renderer::render() const {
   glBindFramebuffer(GL_FRAMEBUFFER, main_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  for (int i = 0; i < vbos_.size() && i < vaos_.size(); ++i) {
-    auto vbo = vbos_[i];
-    auto vao = vaos_[i];
-
+  for (auto& [vbo, vao] : vbo_to_vao_) {
     if (!vbo_map_.contains(vbo))
       continue;
 
@@ -270,6 +291,13 @@ void Renderer::render() const {
   }
 
   sky_.render(*this);
+
+  glUseProgram(voxel_highlight_shader_);
+  transform_loc = glGetUniformLocation(voxel_highlight_shader_, "uTransform");
+  transform = projection_ * view_ * glm::translate(voxel_highlight_position_) * glm::scale(glm::vec3(1.001));
+  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, &transform[0][0]);
+  glBindVertexArray(voxel_highlight_vao_);
+  glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0); // 24 indices to draw lines for a cube
 
   glUseProgram(window_shader_);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -299,4 +327,11 @@ const glm::mat4& Renderer::get_projection_matrix() const {
 
 const glm::mat4& Renderer::get_view_matrix() const {
   return view_;
+}
+
+void Renderer::consume_ray(Int3D& ray) {
+  // produce the translation for the highlight
+  /* std::cout<<"Camera offset: "<<glm::to_string(camera_offset_);
+  std::cout<<ray.repr()<<std::endl; */
+  voxel_highlight_position_ = glm::dvec3(ray[0], ray[1], ray[2]) - camera_offset_;
 }

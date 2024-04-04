@@ -44,7 +44,9 @@ std::array<float, 6> MeshGenerator::get_lighting(Chunk& chunk, std::array<Chunk*
   } else {
     lighting[Direction::pz] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::pz]->get_lighting(x, y, 0));
   }
-
+  /*  std::cout<<":"<<std::endl;
+   for (int i =0 ;i<6;++i)
+   std::cout<<lighting[i]<<std::endl; */
   return lighting;
 }
 
@@ -147,9 +149,14 @@ void MeshGenerator::fill_sides(
 
 void MeshGenerator::mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position, Voxel voxel) {
   float i = position[0], j = position[1], k = position[2];
+  std::uint32_t seed = 0;
+  seed ^= 0x9e3779b9 + (int)i;
+  seed ^= 0x9e3779b9 + (int)j;
+  seed ^= 0x9e3779b9 + (int)k;
   switch (voxel) {
+
   case Voxel::grass:
-    float r = Common::random_float(-0.2f, 0.2f);
+    float r = Common::RangeRand(-0.2f, 0.4f, seed);
     i += r;
     k += r;
 
@@ -252,7 +259,6 @@ void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
       }
     }
   }
-  diffs_.emplace_back(Diff{location, Diff::creation});
 }
 
 void MeshGenerator::mesh_water(Region& region, const Location& location) {
@@ -273,7 +279,6 @@ void MeshGenerator::mesh_water(Region& region, const Location& location) {
 
     fill_sides(water_mesh, position, adjacent, layers, Voxel::WATER_LOWER, lighting);
   }
-  diffs_.emplace_back(Diff{location, Diff::water});
 }
 
 void MeshGenerator::consume_region(Region& region) {
@@ -294,7 +299,10 @@ void MeshGenerator::consume_region(Region& region) {
       auto& chunk = region.get_chunk(loc);
 
       //      auto start = std::chrono::high_resolution_clock::now();
+      random_seed_ = 0;
       mesh_chunk(region, loc);
+      mesh_water(region, loc);
+      diffs_.emplace_back(Diff{loc, Diff::creation});
       /*
             auto end = std::chrono::high_resolution_clock::now();
 
@@ -305,9 +313,6 @@ void MeshGenerator::consume_region(Region& region) {
           total_duration += duration.count(); */
     } else if (diff.kind == Region::Diff::deletion) {
       diffs_.emplace_back(Diff{loc, Diff::deletion});
-    } else if (diff.kind == Region::Diff::water) {
-      auto& chunk = region.get_chunk(loc);
-      mesh_water(region, loc);
     }
   }
   /* if (num_meshed > 0)
