@@ -327,3 +327,7 @@ void Renderer::set_highlight(Int3D& highlight) {
 void Renderer::consume_ui(UI& ui) {
   ui_.consume_ui(ui);
 }
+
+float Renderer::normalize_x(float x) {
+  return x * (window_height / static_cast<float>(window_width));
+}

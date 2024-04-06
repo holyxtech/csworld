@@ -20,7 +20,7 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
 
   // std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-11-0-0", "37-59-03");
   // starting_pos[1] = 350;
-  std::array<double, 3> starting_pos{4229159, 326, -1222663};
+  std::array<double, 3> starting_pos{4228928, 396, -1221535};
   // std::array<double, 3> starting_pos{0,0,0};
 
   {
@@ -143,7 +143,6 @@ void Sim::step() {
       } else if (event.button == GLFW_MOUSE_BUTTON_RIGHT && event.action == GLFW_PRESS) {
         {
           std::unique_lock<std::mutex> lock(camera_mutex_);
-          // need to know what item is active on the player
           auto item = player.get_active_item();
           if (item == Item::dirt) {
             region_.raycast_place(camera_, Voxel::dirt);

@@ -29,9 +29,11 @@ public:
   void render() const;
   const glm::mat4& get_view_matrix() const;
   const glm::mat4& get_projection_matrix() const;
+  static float normalize_x(float x);
 
   static constexpr GLuint window_width = 2560;
   static constexpr GLuint window_height = 1440;
+  
 
 private:
   void creation(

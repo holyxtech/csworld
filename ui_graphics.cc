@@ -5,8 +5,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-UIGraphics::UIGraphics()
-    : border_box_offset_(glm::vec2(-border_offset * (Renderer::window_height / static_cast<float>(Renderer::window_width)), border_offset)) {
+UIGraphics::UIGraphics() {
 
   RenderUtils::create_shader(&shader_, "shaders/ui_vertex.glsl", "shaders/ui_fragment.glsl");
 
@@ -35,6 +34,9 @@ UIGraphics::UIGraphics()
   int _width, _height, channels;
   auto* image_data = stbi_load("images/white.png", &_width, &_height, &channels, STBI_rgb_alpha);
   glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(UITexture::white), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  stbi_image_free(image_data);
+  image_data = stbi_load("images/black.png", &_width, &_height, &channels, STBI_rgb_alpha);
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(UITexture::black), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   stbi_image_free(image_data);
   image_data = stbi_load("images/dirt.png", &_width, &_height, &channels, STBI_rgb_alpha);
   glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(UITexture::dirt), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
@@ -92,9 +94,9 @@ UIGraphics::UIGraphics()
 
     hs += rw + wt(w);
   }
-
-  glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * mesh_.size(), mesh_.data(), GL_STATIC_DRAW);
-
+  
+  float border_offset = 0.006;
+  border_box_offset_ = glm::vec2(-border_offset * (Renderer::window_height / static_cast<float>(Renderer::window_width)), border_offset);
   auto border_box_size_loc = glGetUniformLocation(shader_, "uBorderBoxSize");
   auto border_box_size = glm::vec2(rw, rh) + glm::vec2(2 * border_offset * (Renderer::window_height / static_cast<float>(Renderer::window_width)), 2 * border_offset);
   glUniform2fv(border_box_size_loc, 1, glm::value_ptr(border_box_size));
@@ -102,6 +104,23 @@ UIGraphics::UIGraphics()
   auto icon_size_loc = glGetUniformLocation(shader_, "uIconSize");
   auto icon_size = glm::vec2(rw, rh);
   glUniform2fv(icon_size_loc, 1, glm::value_ptr(icon_size));
+
+  // draw square in center of screen
+  {
+    float aim_box_size = 0.015;
+    float w = Renderer::normalize_x(aim_box_size);
+    float h = aim_box_size;
+    auto top_left = glm::vec2(-w / 2, h / 2);
+    layer = static_cast<int>(UITexture::black);
+    mesh_.emplace_back(Vertex{top_left, QuadCoord::tl, layer});
+    mesh_.emplace_back(Vertex{top_left + glm::vec2(w, 0), QuadCoord::tr, layer});
+    mesh_.emplace_back(Vertex{top_left + glm::vec2(w, -h), QuadCoord::br, layer});
+    mesh_.emplace_back(Vertex{top_left, QuadCoord::tl, layer});
+    mesh_.emplace_back(Vertex{top_left + glm::vec2(w, -h), QuadCoord::br, layer});
+    mesh_.emplace_back(Vertex{top_left + glm::vec2(0, -h), QuadCoord::bl, layer});
+  }
+
+  glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * mesh_.size(), mesh_.data(), GL_STATIC_DRAW);
 }
 
 void UIGraphics::render(const Renderer& renderer) const {

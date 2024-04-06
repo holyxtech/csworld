@@ -7,7 +7,9 @@ UI::UI() {
   action_bar_[0] = Item::dirt;
   action_bar_[1] = Item::stone;
   action_bar_[2] = Item::sandstone;
-  actions_.emplace_back(Action{Action::new_active_item, Action::NewActiveItemData{action_bar_[0]}});
+  size_t index = 0;
+  actions_.emplace_back(Action{Action::new_active_item, Action::NewActiveItemData{action_bar_[index]}});
+  diffs_.emplace_back(Diff{Diff::action_bar_selection, Diff::ActionBarData{index}});
 }
 
 void UI::action_bar_select(size_t index) {
