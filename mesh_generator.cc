@@ -5,13 +5,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
 
-namespace QuadCoord {
-  constexpr glm::vec2 bl = glm::vec2(0.f, 0.f);
-  constexpr glm::vec2 br = glm::vec2(1.f, 0.f);
-  constexpr glm::vec2 tl = glm::vec2(0.f, 1.f);
-  constexpr glm::vec2 tr = glm::vec2(1.f, 1.f);
-} // namespace QuadCoord
-
 std::array<float, 6> MeshGenerator::get_lighting(Chunk& chunk, std::array<Chunk*, 6>& adjacent_chunks, int x, int y, int z) const {
   std::array<float, 6> lighting;
   if (x > 0) {
@@ -97,7 +90,6 @@ void MeshGenerator::fill_sides(
   int i = position[0], j = position[1], k = position[2];
 
   if (nx < TYPE_UPPER_BOUND) {
-
     mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, nx_layer, nx_lighting});
     mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), QuadCoord::tl, nx_layer, nx_lighting});
     mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), QuadCoord::tr, nx_layer, nx_lighting});

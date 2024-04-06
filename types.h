@@ -1,6 +1,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <any>
 #include <array>
 #include <cmath>
 #include <iostream>
@@ -93,7 +94,21 @@ struct Vertex {
   float lighting;
 };
 
+namespace QuadCoord {
+  constexpr glm::vec2 bl = glm::vec2(0.f, 0.f);
+  constexpr glm::vec2 br = glm::vec2(1.f, 0.f);
+  constexpr glm::vec2 tl = glm::vec2(0.f, 1.f);
+  constexpr glm::vec2 tr = glm::vec2(1.f, 1.f);
+} // namespace QuadCoord
+
 using Message = std::vector<uint8_t>;
+
+enum class Item {
+  empty,
+  dirt,
+  stone,
+  sandstone
+};
 
 enum class Voxel {
   empty,
@@ -141,6 +156,21 @@ enum Direction {
   py,
   nz,
   pz
+};
+
+struct Action {
+  struct NewActiveItemData {
+    Item item;
+  };
+  enum Kind {
+    new_active_item,
+    create_group // blah blah
+  };
+  Kind kind;
+  std::any data;
+
+  template <typename T>
+  Action(Kind k, const T& obj) : kind(k), data(obj) {}
 };
 
 #endif

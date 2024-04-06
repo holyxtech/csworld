@@ -11,6 +11,11 @@ struct MouseButtonEvent {
   int mods;
 };
 
+struct KeyButtonEvent {
+  int key;
+  int action;
+};
+
 class Input {
 public:
   static Input* instance() {
@@ -25,12 +30,14 @@ public:
   const std::array<double, 2>& get_cursor_pos() const;
   int get_last_mouse_button_state(int button) const;
   moodycamel::ReaderWriterQueue<MouseButtonEvent>& get_mouse_button_events();
+  moodycamel::ReaderWriterQueue<KeyButtonEvent>& get_key_button_events();
 
 private:
   std::array<double, 2> cursor_pos_;
   std::array<int, 8> mouse_button_state_;
 
   moodycamel::ReaderWriterQueue<MouseButtonEvent> mouse_button_events_;
+  moodycamel::ReaderWriterQueue<KeyButtonEvent> key_button_events_;
 };
 
 #endif

@@ -16,6 +16,7 @@
 #include "tcp_client.h"
 #include "world.h"
 #include "world_generator.h"
+#include "ui.h"
 
 class Sim {
 public:
@@ -34,6 +35,7 @@ private:
   MeshGenerator mesh_generator_;
   Renderer renderer_;
   Camera camera_;
+  UI ui_;
 
   std::mutex mutex_;
   std::mutex mesh_mutex_;

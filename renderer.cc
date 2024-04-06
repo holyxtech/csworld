@@ -6,7 +6,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
 #include <glm/gtc/random.hpp>
-#define STB_IMAGE_IMPLEMENTATION
 #include "render_utils.h"
 #include "stb_image.h"
 #include "types.h"
@@ -27,7 +26,6 @@ Renderer::Renderer(World& world) : world_(world) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MeshGenerator::default_max_vertices, nullptr, GL_STATIC_DRAW);
     vbo_to_vao_[vbo] = vao;
   }
-
   glGenBuffers(vbos.size(), vbos.data());
   glGenVertexArrays(vaos.size(), vaos.data());
   for (int i = 0; i < vbos.size(); ++i) {
@@ -37,23 +35,6 @@ Renderer::Renderer(World& world) : world_(world) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MeshGenerator::default_max_water_vertices, nullptr, GL_STATIC_DRAW);
     water_vbo_to_vao_[vbo] = vao;
   }
-
-  float skybox_vertices[] = {
-    -1.0f, -1.0f, 0.0f,
-    -1.0f, 1.0f, 0.0f,
-    1.0f, -1.0f, 0.0f,
-    -1.0f, 1.0f, 0.0f,
-    1.0f, 1.0f, 0.0f,
-    1.0f, -1.0f, 0.0f};
-  glGenBuffers(1, &window_vbo_);
-  glGenVertexArrays(1, &window_vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, window_vbo_);
-  glBindVertexArray(window_vao_);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-  glEnableVertexAttribArray(0);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(skybox_vertices), skybox_vertices, GL_STATIC_DRAW);
-  glBindVertexArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   GLuint texture_array;
   glGenTextures(1, &texture_array);
@@ -102,11 +83,24 @@ Renderer::Renderer(World& world) : world_(world) {
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
   // glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, 4.0);
-
-  GLint texture_loc = glGetUniformLocation(shader_, "textureArray");
   glUseProgram(shader_);
-  glUniform1i(texture_loc, GL_TEXTURE0);
+  GLint texture_loc = glGetUniformLocation(shader_, "textureArray");
+  glUniform1i(texture_loc, 0);
 
+  float window_vertices[] = {
+    -1.0f, -1.0f,
+    -1.0f, 1.0f,
+    1.0f, -1.0f,
+    -1.0f, 1.0f,
+    1.0f, 1.0f,
+    1.0f, -1.0f};
+  glGenBuffers(1, &window_vbo_);
+  glGenVertexArrays(1, &window_vao_);
+  glBindBuffer(GL_ARRAY_BUFFER, window_vbo_);
+  glBindVertexArray(window_vao_);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+  glEnableVertexAttribArray(0);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(window_vertices), window_vertices, GL_STATIC_DRAW);
   auto set_up_framebuffers = [](GLuint* fbo, GLuint* cbo, GLuint* dbo) {
     glGenFramebuffers(1, fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, *fbo);
@@ -126,10 +120,22 @@ Renderer::Renderer(World& world) : world_(world) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, window_width, window_height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *cbo, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, *dbo, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
   };
   set_up_framebuffers(&main_framebuffer_, &main_cbo_, &main_dbo_);
   set_up_framebuffers(&water_framebuffer_, &water_cbo_, &water_dbo_);
+  glUseProgram(window_shader_);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, main_cbo_);
+  glUniform1i(glGetUniformLocation(window_shader_, "MainColor"), 0);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, water_cbo_);
+  glUniform1i(glGetUniformLocation(window_shader_, "WaterColor"), 1);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, main_dbo_);
+  glUniform1i(glGetUniformLocation(window_shader_, "MainDepth"), 2);
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, water_dbo_);
+  glUniform1i(glGetUniformLocation(window_shader_, "WaterDepth"), 3);
 
   float voxel_highlight_vertices[] = {
     // Front face
@@ -161,10 +167,11 @@ Renderer::Renderer(World& world) : world_(world) {
   glBufferData(GL_ARRAY_BUFFER, sizeof(voxel_highlight_vertices), voxel_highlight_vertices, GL_STATIC_DRAW);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, voxel_highlight_ebo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
 
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_BLEND);
   glLineWidth(4.f);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
@@ -185,7 +192,6 @@ void Renderer::creation(
 
   GLuint vbo_to_use = 0;
   GLuint vao_to_use = 0;
-  GLuint* vbo_ptr = &vbo_to_use;
 
   if (loc_map->contains(loc)) {
     vbo_to_use = loc_map->at(loc);
@@ -206,9 +212,8 @@ void Renderer::creation(
   if (bufferSize < sizeof(Vertex) * mesh->size()) {
     std::cout << "Buffer too small! This mesh has size " << mesh->size() << std::endl;
 
-    glDeleteBuffers(1, vbo_ptr);
-    glGenBuffers(1, vbo_ptr);
-    vbo_to_use = *vbo_ptr;
+    glDeleteBuffers(1, &vbo_to_use);
+    glGenBuffers(1, &vbo_to_use);
     RenderUtils::set_up_standard_vao(vbo_to_use, vao_to_use);
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * mesh->size(), mesh->data(), GL_STATIC_DRAW);
@@ -265,7 +270,6 @@ void Renderer::render() const {
   glUniformMatrix4fv(transform_loc, 1, GL_FALSE, &transform[0][0]);
 
   glUseProgram(shader_);
-
   glBindFramebuffer(GL_FRAMEBUFFER, water_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   for (auto& [vbo, vao] : water_vbo_to_vao_) {
@@ -277,9 +281,9 @@ void Renderer::render() const {
     int mesh_size = water_mesh_size_map_.at(vbo);
     glDrawArrays(GL_TRIANGLES, 0, mesh_size);
   }
+
   glBindFramebuffer(GL_FRAMEBUFFER, main_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   for (auto& [vbo, vao] : vbo_to_vao_) {
     if (!vbo_map_.contains(vbo))
       continue;
@@ -302,23 +306,10 @@ void Renderer::render() const {
   glUseProgram(window_shader_);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, main_cbo_);
-  glUniform1i(glGetUniformLocation(window_shader_, "MainColor"), 0);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, water_cbo_);
-  glUniform1i(glGetUniformLocation(window_shader_, "WaterColor"), 1);
-  glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, main_dbo_);
-  glUniform1i(glGetUniformLocation(window_shader_, "MainDepth"), 2);
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, water_dbo_);
-  glUniform1i(glGetUniformLocation(window_shader_, "WaterDepth"), 3);
-  // glBindBuffer(GL_ARRAY_BUFFER, window_vbo_);
   glBindVertexArray(window_vao_);
   glDrawArrays(GL_TRIANGLES, 0, 6);
-  glBindVertexArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  ui_.render(*this);
 }
 
 const glm::mat4& Renderer::get_projection_matrix() const {
@@ -329,9 +320,10 @@ const glm::mat4& Renderer::get_view_matrix() const {
   return view_;
 }
 
-void Renderer::consume_ray(Int3D& ray) {
-  // produce the translation for the highlight
-  /* std::cout<<"Camera offset: "<<glm::to_string(camera_offset_);
-  std::cout<<ray.repr()<<std::endl; */
-  voxel_highlight_position_ = glm::dvec3(ray[0], ray[1], ray[2]) - camera_offset_;
+void Renderer::set_highlight(Int3D& highlight) {
+  voxel_highlight_position_ = glm::dvec3(highlight[0], highlight[1], highlight[2]) - camera_offset_;
+}
+
+void Renderer::consume_ui(UI& ui) {
+  ui_.consume_ui(ui);
 }

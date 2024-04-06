@@ -3,6 +3,7 @@
 #include <cfloat>
 #include <chrono>
 #include <iostream>
+#include <optional>
 #include <queue>
 
 std::unordered_map<Location, Chunk, LocationHash>& Region::get_chunks() {
@@ -78,7 +79,6 @@ std::array<Location, 6> Region::get_adjacent_locations(const Location& loc) cons
 void Region::compute_global_lighting(const Location& loc) {
   auto& chunk = chunks_.at(loc);
   std::queue<Int3D> lights;
-  // put all non-opaque edge voxels into a queue in global coords
   for (int z = 0; z < Chunk::sz_z; ++z) {
     for (int y = 0; y < Chunk::sz_y; ++y) {
       if (chunk.get_voxel(0, y, z) < Voxel::OPAQUE_LOWER)
@@ -111,7 +111,8 @@ void Region::compute_global_lighting(const Location& loc) {
     int y_loc = static_cast<int>(std::floor(static_cast<double>(coord[1]) / Chunk::sz_y));
     int z_loc = static_cast<int>(std::floor(static_cast<double>(coord[2]) / Chunk::sz_z));
 
-    Chunk* containing_chunk = nullptr;
+    std::optional<Chunk*> containing_chunk;
+
     int x_diff = x_loc - loc[0];
     int y_diff = y_loc - loc[1];
     int z_diff = z_loc - loc[2];
@@ -148,24 +149,25 @@ void Region::compute_global_lighting(const Location& loc) {
 
   while (!lights.empty()) {
     auto& coord = lights.front();
-    Chunk* origin_chunk = get_containing_chunk(coord);
+    Chunk& origin_chunk = *get_containing_chunk(coord).value();
     auto local_origin = Chunk::to_local(coord);
-    auto lighting = origin_chunk->get_lighting(local_origin[0], local_origin[1], local_origin[2]);
+    auto lighting = origin_chunk.get_lighting(local_origin[0], local_origin[1], local_origin[2]);
 
     // nx ,px, nz, pz, py
     for (auto& flip : coord_flip) {
       Int3D global{coord[0] + std::get<0>(flip), coord[1] + std::get<1>(flip), coord[2] + std::get<2>(flip)};
-      Chunk* containing_chunk = get_containing_chunk(global);
-      if (containing_chunk != nullptr) {
+      std::optional<Chunk*> containing_chunk_opt = get_containing_chunk(global);
+      if (containing_chunk_opt.has_value()) {
+        Chunk& containing_chunk = *containing_chunk_opt.value();
         auto local = Chunk::to_local(global);
-        if (containing_chunk->get_voxel(local[0], local[1], local[2]) < Voxel::OPAQUE_LOWER) {
-          auto adj_lighting = containing_chunk->get_lighting(local[0], local[1], local[2]);
+        if (containing_chunk.get_voxel(local[0], local[1], local[2]) < Voxel::OPAQUE_LOWER) {
+          auto adj_lighting = containing_chunk.get_lighting(local[0], local[1], local[2]);
           if (lighting + 1 < adj_lighting) {
-            origin_chunk->set_lighting(local_origin[0], local_origin[1], local_origin[2], adj_lighting - 1);
+            origin_chunk.set_lighting(local_origin[0], local_origin[1], local_origin[2], adj_lighting - 1);
             lights.emplace(coord);
           } else if (lighting > adj_lighting + 1) {
-            containing_chunk->set_lighting(local[0], local[1], local[2], lighting - 1);
-            dirty.insert(containing_chunk->get_location());
+            containing_chunk.set_lighting(local[0], local[1], local[2], lighting - 1);
+            dirty.insert(containing_chunk.get_location());
             lights.emplace(global);
           }
         }
@@ -174,22 +176,23 @@ void Region::compute_global_lighting(const Location& loc) {
 
     // ny
     Int3D global{coord[0], coord[1] - 1, coord[2]};
-    Chunk* containing_chunk = get_containing_chunk(global);
-    if (containing_chunk != nullptr) {
+    std::optional<Chunk*> containing_chunk_opt = get_containing_chunk(global);
+    if (containing_chunk_opt.has_value()) {
+      Chunk& containing_chunk = *containing_chunk_opt.value();
       auto local = Chunk::to_local(global);
-      auto v = containing_chunk->get_voxel(local[0], local[1], local[2]);
+      auto v = containing_chunk.get_voxel(local[0], local[1], local[2]);
       if (v < Voxel::OPAQUE_LOWER) {
-        auto adj_lighting = containing_chunk->get_lighting(local[0], local[1], local[2]);
+        auto adj_lighting = containing_chunk.get_lighting(local[0], local[1], local[2]);
         if (lighting + 1 < adj_lighting) {
-          origin_chunk->set_lighting(local_origin[0], local_origin[1], local_origin[2], adj_lighting - 1);
+          origin_chunk.set_lighting(local_origin[0], local_origin[1], local_origin[2], adj_lighting - 1);
           lights.emplace(coord);
         } else if (lighting > adj_lighting) {
           if (v < Voxel::PARTIAL_OPAQUE_LOWER) {
-            containing_chunk->set_lighting(local[0], local[1], local[2], lighting);
+            containing_chunk.set_lighting(local[0], local[1], local[2], lighting);
           } else {
-            containing_chunk->set_lighting(local[0], local[1], local[2], lighting - 1);
+            containing_chunk.set_lighting(local[0], local[1], local[2], lighting - 1);
           }
-          dirty.insert(containing_chunk->get_location());
+          dirty.insert(containing_chunk.get_location());
           lights.emplace(global);
         }
       }
@@ -465,7 +468,62 @@ int Region::find_obstructing_height(Int3D root) const {
 }
 
 void Region::raycast_place(Camera& camera, Voxel voxel) {
+  auto visited = raycast(camera);
+  std::unordered_set<Location, LocationHash> dirty;
+  for (int i = 0; i < visited.size(); ++i) {
+    auto coord = visited[i];
+    auto loc = location_from_global_coords(coord[0], coord[1], coord[2]);
+    if (chunks_.contains(loc)) {
+      auto& chunk = chunks_.at(loc);
+      auto local = Chunk::to_local(coord);
+      auto voxel_at_position = chunk.get_voxel(local[0], local[1], local[2]);
+      if (voxel_at_position != Voxel::empty) {
+        if (i == 0)
+          return;
+
+        auto coord = visited[i - 1];
+        auto loc = location_from_global_coords(coord[0], coord[1], coord[2]);
+        if (chunks_.contains(loc) && adjacents_missing_[loc] == 0) {
+          auto& chunk = chunks_.at(loc);
+          auto local = Chunk::to_local(coord);
+          chunk.set_voxel(local[0], local[1], local[2], voxel);
+          auto& section = sections_.at(Location2D{loc[0], loc[2]});
+          if (section.get_subsection_obstructing_height(local[0], local[2]) < coord[1]) {
+            section.set_subsection_obstructing_height(local[0], local[2], coord[1]);
+          }
+
+          chunks_.at(loc).compute_lighting(section);
+          compute_global_lighting(loc);
+          diffs_.emplace_back(Diff{loc, Diff::creation});
+
+          if (local[0] == 0) {
+            dirty.insert(Location{loc[0] - 1, loc[1], loc[2]});
+          } else if (local[0] == Chunk::sz_x - 1) {
+            dirty.insert(Location{loc[0] + 1, loc[1], loc[2]});
+          }
+          if (local[1] == 0) {
+            dirty.insert(Location{loc[0], loc[1] - 1, loc[2]});
+          } else if (local[1] == Chunk::sz_y - 1) {
+            dirty.insert(Location{loc[0], loc[1] + 1, loc[2]});
+          }
+          if (local[2] == 0) {
+            dirty.insert(Location{loc[0], loc[1], loc[2] - 1});
+          } else if (local[2] == Chunk::sz_z - 1) {
+            dirty.insert(Location{loc[0], loc[1], loc[2] + 1});
+          }
+        }
+
+        break;
+      }
+    }
+  }
+  for (auto& loc : dirty) {
+    if (chunks_sent_.contains(loc) && adjacents_missing_[loc] == 0) {
+      diffs_.emplace_back(Diff{loc, Diff::creation});
+    }
+  }
 }
+
 void Region::raycast_remove(Camera& camera) {
   auto visited = raycast(camera);
   std::unordered_set<Location, LocationHash> dirty;
@@ -474,11 +532,11 @@ void Region::raycast_remove(Camera& camera) {
     auto loc = location_from_global_coords(v[0], v[1], v[2]);
     if (chunks_.contains(loc) && adjacents_missing_[loc] == 0) {
       auto& chunk = chunks_.at(loc);
-      auto& section = sections_.at(Location2D{loc[0], loc[2]});
       auto local = Chunk::to_local(v);
       auto voxel = chunk.get_voxel(local[0], local[1], local[2]);
       if (voxel != Voxel::empty) {
         chunk.set_voxel(local[0], local[1], local[2], Voxel::empty);
+        auto& section = sections_.at(Location2D{loc[0], loc[2]});
         if (section.get_subsection_obstructing_height(local[0], local[2]) == v[1]) {
           int height = find_obstructing_height(v);
           section.set_subsection_obstructing_height(local[0], local[2], height);

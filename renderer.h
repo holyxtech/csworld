@@ -9,6 +9,7 @@
 #include "region.h"
 #include "sky.h"
 #include "ui.h"
+#include "ui_graphics.h"
 #include "world.h"
 
 typedef struct {
@@ -23,7 +24,8 @@ public:
   Renderer(World& world);
   void consume_mesh_generator(MeshGenerator& mesh_generator);
   void consume_camera(const Camera& camera);
-  void consume_ray(Int3D& ray);
+  void consume_ui(UI& ui);
+  void set_highlight(Int3D& highlight);
   void render() const;
   const glm::mat4& get_view_matrix() const;
   const glm::mat4& get_projection_matrix() const;
@@ -58,20 +60,18 @@ private:
   GLuint window_vbo_;
   GLuint voxel_highlight_vbo_;
   GLuint voxel_highlight_vao_;
-  bool render_highlight_ = true;
 
   GLuint shader_;
   GLuint window_shader_;
   GLuint voxel_highlight_shader_;
   glm::vec3 voxel_highlight_position_;
 
-
   glm::dvec3 camera_offset_;
   glm::mat4 projection_;
   glm::mat4 view_;
   World& world_;
   Sky sky_;
-  UI ui_;
+  UIGraphics ui_;
 };
 
 #endif

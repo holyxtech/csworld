@@ -2,11 +2,11 @@
 #include <iostream>
 
 void Input::mouse_button_callback(int button, int action, int mods) {
-  mouse_button_events_.enqueue(MouseButtonEvent{button,action,mods});
+  mouse_button_events_.enqueue(MouseButtonEvent{button, action, mods});
 }
 
 void Input::key_callback(GLFWwindow* window, int key, int action) {
-  // std::cout << key << "," << action << std::endl;
+  key_button_events_.enqueue(KeyButtonEvent{key, action});
 }
 
 void Input::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -27,4 +27,8 @@ int Input::get_last_mouse_button_state(int button) const {
 
 moodycamel::ReaderWriterQueue<MouseButtonEvent>& Input::get_mouse_button_events() {
   return mouse_button_events_;
+}
+
+moodycamel::ReaderWriterQueue<KeyButtonEvent>& Input::get_key_button_events() {
+  return key_button_events_;
 }
