@@ -11,6 +11,7 @@ class Sky {
 public:
   Sky();
   void render(const Renderer& renderer) const;
+  GLuint get_texture() const;
 
 private:
   GLuint shader_;

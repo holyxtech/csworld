@@ -93,10 +93,14 @@ void Camera::set_base_translation_speed(float base_translation_speed) {
 }
 
 void Camera::set_last_cursor_pos(double xpos, double ypos) {
-    last_xpos_ = xpos;
-    last_ypos_ = ypos;
+  last_xpos_ = xpos;
+  last_ypos_ = ypos;
 }
 
-std::array<double,2> Camera::get_last_cursor_pos() {
-  return std::array<double,2>{last_xpos_,last_ypos_};
+std::array<double, 2> Camera::get_last_cursor_pos() {
+  return std::array<double, 2>{last_xpos_, last_ypos_};
+}
+
+glm::vec3 Camera::get_world_position(glm::dvec3 camera_offset) const {
+  return position_ - camera_offset;
 }

@@ -21,10 +21,13 @@ public:
   glm::mat4 get_view(glm::dvec3 camera_offset) const;
   const glm::dvec3& get_position() const;
   const glm::vec3& get_front() const;
+  glm::vec3 get_world_position(glm::dvec3 camera_offset) const;
   void set_position(glm::dvec3 position);
   void scale_translation_speed(float scale);
   void scale_rotation_speed(float scale);
   void set_base_translation_speed(float base_translation_speed);
+
+  // this is weird to have in this class
   void set_last_cursor_pos(double xpos, double ypos);
   std::array<double, 2> get_last_cursor_pos();
 

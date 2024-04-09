@@ -87,6 +87,11 @@ struct Location2DHash {
   }
 };
 
+// this can be reduced from 28 bytes to 3
+// 6 bits * 3 for x,y,z position (0-32 offset + chunk uniform)
+// 16 discrete lighting levels require 4 bits
+// 10 bits left for up to 1024 textures
+// +2 bytes for uvs
 struct Vertex {
   glm::vec3 position;
   glm::vec2 uvs;

@@ -11,6 +11,8 @@
 #include "types.h"
 
 Renderer::Renderer(World& world) : world_(world) {
+
+
   RenderUtils::create_shader(&shader_, "shaders/vertex.glsl", "shaders/fragment.glsl");
   RenderUtils::create_shader(&window_shader_, "shaders/window_vertex.glsl", "shaders/window_fragment.glsl");
   RenderUtils::create_shader(&voxel_highlight_shader_, "shaders/voxel_highlight_vertex.glsl", "shaders/voxel_highlight_fragment.glsl");
@@ -149,7 +151,6 @@ Renderer::Renderer(World& world) : world_(world) {
     1.0f, 1.0f, 0.0f, // Top-right
     0.0f, 1.0f, 0.0f  // Top-left
   };
-
   unsigned int indices[] = {
     // Front face
     0, 1, 1, 2, 2, 3, 3, 0,
@@ -157,7 +158,6 @@ Renderer::Renderer(World& world) : world_(world) {
     4, 5, 5, 6, 6, 7, 7, 4,
     // Connecting lines
     0, 4, 1, 5, 2, 6, 3, 7};
-
   GLuint voxel_highlight_ebo;
   glGenVertexArrays(1, &voxel_highlight_vao_);
   glGenBuffers(1, &voxel_highlight_vbo_);
@@ -170,6 +170,14 @@ Renderer::Renderer(World& world) : world_(world) {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
 
+  // fog
+  auto texture = sky_.get_texture();
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+  glUseProgram(shader_);
+  glUniform1i(glGetUniformLocation(shader_, "skybox"), 1);
+
+
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
   glLineWidth(4.f);
@@ -178,6 +186,13 @@ Renderer::Renderer(World& world) : world_(world) {
   glCullFace(GL_BACK);
   glFrontFace(GL_CW);
   glClearColor(0.702f, 0.266f, 1.f, 1.0f);
+
+    GLenum error = glGetError();
+if (error != GL_NO_ERROR) {
+    std::cout << "OpenGL Error: " << error << std::endl;
+    // Handle error
+}
+
 
   projection_ = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 4000.l);
 }
@@ -260,16 +275,17 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
 
 void Renderer::consume_camera(const Camera& camera) {
   view_ = camera.get_view(camera_offset_);
+  camera_world_position_ = camera.get_world_position(camera_offset_);
 }
 
 void Renderer::render() const {
-
   glUseProgram(shader_);
   auto transform_loc = glGetUniformLocation(shader_, "uTransform");
   auto transform = projection_ * view_;
   glUniformMatrix4fv(transform_loc, 1, GL_FALSE, &transform[0][0]);
+  auto camera_world_position_loc = glGetUniformLocation(shader_, "uCameraWorldPosition");
+  glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_world_position_));
 
-  glUseProgram(shader_);
   glBindFramebuffer(GL_FRAMEBUFFER, water_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   for (auto& [vbo, vao] : water_vbo_to_vao_) {

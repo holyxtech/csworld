@@ -8,10 +8,14 @@
 #include "stb_image.h"
 
 Sky::Sky() {
+
+  RenderUtils::create_shader(&shader_, "shaders/sky_vertex.glsl", "shaders/sky_fragment.glsl");
+
   glGenTextures(1, &cube_texture_);
-  glActiveTexture(GL_TEXTURE0);
+  glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_CUBE_MAP, cube_texture_);
-  glUniform1i(glGetUniformLocation(shader_, "skybox"), 0);
+  glUseProgram(shader_);
+  glUniform1i(glGetUniformLocation(shader_, "skybox"), 1);
 
   std::vector<std::string> textures_faces = {
     "images/sky/pos_x.png",
@@ -34,8 +38,6 @@ Sky::Sky() {
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-  RenderUtils::create_shader(&shader_, "shaders/sky_vertex.glsl", "shaders/sky_fragment.glsl");
 
   float vertices[] = {
     -1.0f, 1.0f, -1.0f,
@@ -101,4 +103,8 @@ void Sky::render(const Renderer& renderer) const {
   glDrawArrays(GL_TRIANGLES, 0, 36);
   glBindVertexArray(0);
   glDepthFunc(GL_LESS);
+}
+
+GLuint Sky::get_texture() const {
+  return cube_texture_;
 }

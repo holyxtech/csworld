@@ -69,6 +69,7 @@ private:
   glm::vec3 voxel_highlight_position_;
 
   glm::dvec3 camera_offset_;
+  glm::vec3 camera_world_position_;
   glm::mat4 projection_;
   glm::mat4 view_;
   World& world_;
