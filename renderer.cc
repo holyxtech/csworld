@@ -12,7 +12,6 @@
 
 Renderer::Renderer(World& world) : world_(world) {
 
-
   RenderUtils::create_shader(&shader_, "shaders/vertex.glsl", "shaders/fragment.glsl");
   RenderUtils::create_shader(&window_shader_, "shaders/window_vertex.glsl", "shaders/window_fragment.glsl");
   RenderUtils::create_shader(&voxel_highlight_shader_, "shaders/voxel_highlight_vertex.glsl", "shaders/voxel_highlight_fragment.glsl");
@@ -45,40 +44,28 @@ Renderer::Renderer(World& world) : world_(world) {
   GLint num_layers = static_cast<GLint>(VoxelTexture::num_voxel_textures);
   GLsizei width = 16;
   GLsizei height = 16;
+  GLsizei channels;
   GLsizei num_mipmaps = 1;
   glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_RGBA8, width, height, num_layers);
   stbi_set_flip_vertically_on_load(1);
-  int _width, _height, channels;
-  auto* image_data = stbi_load("images/dirt.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::dirt), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/grass.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::grass), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/grass_side.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::grass_side), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/water.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::water), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/sand.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::sand), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/tree_trunk.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::tree_trunk), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/leaves.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::leaves), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/sandstone.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::sandstone), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/stone.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::stone), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/standing_grass.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(VoxelTexture::standing_grass), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
+  std::vector<std::pair<std::string, VoxelTexture>> textures = {
+    std::make_pair("dirt", VoxelTexture::dirt),
+    std::make_pair("grass", VoxelTexture::grass),
+    std::make_pair("grass_side", VoxelTexture::grass_side),
+    std::make_pair("water", VoxelTexture::water),
+    std::make_pair("sand", VoxelTexture::sand),
+    std::make_pair("tree_trunk", VoxelTexture::tree_trunk),
+    std::make_pair("leaves", VoxelTexture::leaves),
+    std::make_pair("sandstone", VoxelTexture::sandstone),
+    std::make_pair("stone", VoxelTexture::stone),
+    std::make_pair("standing_grass", VoxelTexture::standing_grass),
+  };
+  for (auto [filename, texture] : textures) {
+    std::string path = "images/" + filename + ".png";
+    auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(texture), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    stbi_image_free(image_data);
+  }
   // glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -177,7 +164,6 @@ Renderer::Renderer(World& world) : world_(world) {
   glUseProgram(shader_);
   glUniform1i(glGetUniformLocation(shader_, "skybox"), 1);
 
-
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
   glLineWidth(4.f);
@@ -187,12 +173,11 @@ Renderer::Renderer(World& world) : world_(world) {
   glFrontFace(GL_CW);
   glClearColor(0.702f, 0.266f, 1.f, 1.0f);
 
-    GLenum error = glGetError();
-if (error != GL_NO_ERROR) {
+  GLenum error = glGetError();
+  if (error != GL_NO_ERROR) {
     std::cout << "OpenGL Error: " << error << std::endl;
     // Handle error
-}
-
+  }
 
   projection_ = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 4000.l);
 }

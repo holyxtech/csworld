@@ -1,41 +1,62 @@
 #include "mesh_generator.h"
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <iostream>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
 
+MeshGenerator::MeshGenerator() {
+  lighting_levels_ =
+    {0.20589113209464907,
+     0.2287679245496101,
+     0.2541865828329001,
+     0.2824295364810001,
+     0.31381059609000006,
+     0.3486784401000001,
+     0.3874204890000001,
+     0.4304672100000001,
+     0.4782969000000001,
+     0.531441,
+     0.5904900000000001,
+     0.6561,
+     0.7290000000000001,
+     0.81,
+     0.9,
+     1.0};
+}
+
 std::array<float, 6> MeshGenerator::get_lighting(Chunk& chunk, std::array<Chunk*, 6>& adjacent_chunks, int x, int y, int z) const {
   std::array<float, 6> lighting;
   if (x > 0) {
-    lighting[Direction::nx] = std::pow(light_decay, Chunk::max_lighting - chunk.get_lighting(x - 1, y, z));
+    lighting[Direction::nx] = lighting_levels_[std::max(chunk.get_lighting(x - 1, y, z)-x_lighting_reduction,0)];
   } else {
-    lighting[Direction::nx] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::nx]->get_lighting(Chunk::sz_x - 1, y, z));
+    lighting[Direction::nx] = lighting_levels_[std::max(adjacent_chunks[Direction::nx]->get_lighting(Chunk::sz_x - 1, y, z)-x_lighting_reduction,0)];
   }
   if (x < Chunk::sz_x - 1) {
-    lighting[Direction::px] = std::pow(light_decay, Chunk::max_lighting - chunk.get_lighting(x + 1, y, z));
+    lighting[Direction::px] = lighting_levels_[std::max(chunk.get_lighting(x + 1, y, z)-x_lighting_reduction,0)];
   } else {
-    lighting[Direction::px] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::px]->get_lighting(0, y, z));
+    lighting[Direction::px] = lighting_levels_[std::max(adjacent_chunks[Direction::px]->get_lighting(0, y, z)-x_lighting_reduction,0)];
   }
   if (y > 0) {
-    lighting[Direction::ny] = std::pow(light_decay, Chunk::max_lighting - chunk.get_lighting(x, y - 1, z));
+    lighting[Direction::ny] = lighting_levels_[chunk.get_lighting(x, y - 1, z)];
   } else {
-    lighting[Direction::ny] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::ny]->get_lighting(x, Chunk::sz_y - 1, z));
+    lighting[Direction::ny] = lighting_levels_[adjacent_chunks[Direction::ny]->get_lighting(x, Chunk::sz_y - 1, z)];
   }
   if (y < Chunk::sz_y - 1) {
-    lighting[Direction::py] = std::pow(light_decay, Chunk::max_lighting - chunk.get_lighting(x, y + 1, z));
+    lighting[Direction::py] = lighting_levels_[chunk.get_lighting(x, y + 1, z)];
   } else {
-    lighting[Direction::py] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::py]->get_lighting(x, 0, z));
+    lighting[Direction::py] = lighting_levels_[adjacent_chunks[Direction::py]->get_lighting(x, 0, z)];
   }
   if (z > 0) {
-    lighting[Direction::nz] = std::pow(light_decay, Chunk::max_lighting - chunk.get_lighting(x, y, z - 1));
+    lighting[Direction::nz] = lighting_levels_[chunk.get_lighting(x, y, z - 1)];
   } else {
-    lighting[Direction::nz] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::nz]->get_lighting(x, y, Chunk::sz_z - 1));
+    lighting[Direction::nz] = lighting_levels_[adjacent_chunks[Direction::nz]->get_lighting(x, y, Chunk::sz_z - 1)];
   }
   if (z < Chunk::sz_z - 1) {
-    lighting[Direction::pz] = std::pow(light_decay, Chunk::max_lighting - chunk.get_lighting(x, y, z + 1));
+    lighting[Direction::pz] = lighting_levels_[chunk.get_lighting(x, y, z + 1)];
   } else {
-    lighting[Direction::pz] = std::pow(light_decay, Chunk::max_lighting - adjacent_chunks[Direction::pz]->get_lighting(x, y, 0));
+    lighting[Direction::pz] = lighting_levels_[adjacent_chunks[Direction::pz]->get_lighting(x, y, 0)];
   }
   /*  std::cout<<":"<<std::endl;
    for (int i =0 ;i<6;++i)

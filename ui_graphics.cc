@@ -31,23 +31,20 @@ UIGraphics::UIGraphics() {
   GLsizei num_mipmaps = 1;
   glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_RGBA8, width, height, num_layers);
   stbi_set_flip_vertically_on_load(1);
-  int _width, _height, channels;
-  auto* image_data = stbi_load("images/white.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(UITexture::white), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/black.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(UITexture::black), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/dirt.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(UITexture::dirt), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/stone.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(UITexture::stone), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-  image_data = stbi_load("images/sandstone.png", &_width, &_height, &channels, STBI_rgb_alpha);
-  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(UITexture::sandstone), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-
+  GLsizei channels;
+  std::vector<std::pair<std::string, UITexture>> textures = {
+    std::make_pair("white",UITexture::white),
+    std::make_pair("black",UITexture::black),
+    std::make_pair("dirt",UITexture::dirt),
+    std::make_pair("stone",UITexture::stone),
+    std::make_pair("sandstone",UITexture::sandstone)
+  };
+  for (auto [filename, texture] : textures) {
+    std::string path = "images/" + filename + ".png";
+    auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(texture), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    stbi_image_free(image_data);
+  }
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);

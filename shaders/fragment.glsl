@@ -26,10 +26,11 @@ void main() {
   vec3 direction_to_sky = fragWorldPosition - uCameraWorldPosition;
   vec4 skyboxColor = texture(skybox, direction_to_sky);
   vec4 textureColor = texture(textureArray, vec3(fragUvs, fragLayer));
+  vec4 lightedColor = vec4(textureColor.rgb * fragLighting, textureColor.a);
 
   if (textureColor.a == 0.0)
     discard;
   
   float fog = LinearFog();
-  color = mix(skyboxColor, textureColor, fog);
+  color = mix(skyboxColor, lightedColor, fog);
 }

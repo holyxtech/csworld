@@ -17,13 +17,14 @@ public:
     Location location;
     Kind kind;
   };
+  MeshGenerator();
   void consume_region(Region& region);
   const std::unordered_map<Location, std::vector<Vertex>, LocationHash>& get_meshes() const;
   const std::unordered_map<Location, std::vector<Vertex>, LocationHash>& get_water_meshes() const;
   const std::vector<Diff>& get_diffs() const;
   void clear_diffs();
-  static constexpr int default_max_vertices = 150000;
-  static constexpr int default_max_water_vertices = 30000;
+  static constexpr int default_max_vertices = 33000;
+  static constexpr int default_max_water_vertices = 10000;
 
 private:
   void mesh_chunk(Region& region, const Location& location);
@@ -38,10 +39,11 @@ private:
   std::unordered_map<Location, std::vector<Vertex>, LocationHash> meshes_;
   std::unordered_map<Location, std::vector<Vertex>, LocationHash> water_meshes_;
   std::vector<Diff> diffs_;
+  std::array<float, Chunk::max_lighting+1> lighting_levels_;
 
+  int x_lighting_reduction = 3;
   Location origin_;
   bool origin_set_ = false;
-  float light_decay = 0.9;
   std::uint32_t random_seed_ = 0;
 };
 
