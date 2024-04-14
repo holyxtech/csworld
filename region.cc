@@ -349,73 +349,41 @@ Section& Region::get_section(const Location2D loc) {
   return sections_.at(loc);
 }
 
+// Credit: https://github.com/francisengelmann/fast_voxel_traversal
 std::vector<Int3D> Region::raycast(Camera& camera) {
   auto& pos = camera.get_position();
   std::vector<Int3D> visited_voxels;
 
-  // This id of the first/current voxel hit by the ray.
-  // Using floor (round down) is actually very important,
-  // the implicit int-casting will round up for negative numbers.
   Int3D current_voxel{
     static_cast<int>(std::floor(pos[0])),
     static_cast<int>(std::floor(pos[1])),
     static_cast<int>(std::floor(pos[2]))};
 
-  // Compute normalized ray direction.
   auto& ray = camera.get_front();
 
-  // In which direction the voxel ids are incremented.
-  double stepX = (ray[0] >= 0) ? 1 : -1; // correct
-  double stepY = (ray[1] >= 0) ? 1 : -1; // correct
-  double stepZ = (ray[2] >= 0) ? 1 : -1; // correct
+  double stepX = (ray[0] >= 0) ? 1 : -1;
+  double stepY = (ray[1] >= 0) ? 1 : -1;
+  double stepZ = (ray[2] >= 0) ? 1 : -1;
 
-  // Distance along the ray to the next voxel border from the current position (tMaxX, tMaxY, tMaxZ).
   double next_voxel_boundary_x = (current_voxel[0] + stepX);
   double next_voxel_boundary_y = (current_voxel[1] + stepY);
   double next_voxel_boundary_z = (current_voxel[2] + stepZ);
 
-  if (stepX < 0) {
-    next_voxel_boundary_x += 1;
-  }
-  if (stepY < 0) {
-    next_voxel_boundary_y += 1;
-  }
-  if (stepZ < 0) {
-    next_voxel_boundary_z += 1;
-  }
-  // tMaxX, tMaxY, tMaxZ -- distance until next intersection with voxel-border
-  // the value of t at which the ray crosses the first vertical voxel boundary
-  double tMaxX = (ray[0] != 0) ? (next_voxel_boundary_x - pos[0]) / ray[0] : DBL_MAX; //
-  double tMaxY = (ray[1] != 0) ? (next_voxel_boundary_y - pos[1]) / ray[1] : DBL_MAX; //
-  double tMaxZ = (ray[2] != 0) ? (next_voxel_boundary_z - pos[2]) / ray[2] : DBL_MAX; //
+  if (stepX < 0)
+    ++next_voxel_boundary_x;
+  if (stepY < 0)
+    ++next_voxel_boundary_y;
+  if (stepZ < 0)
+    ++next_voxel_boundary_z;
+  double tMaxX = (ray[0] != 0) ? (next_voxel_boundary_x - pos[0]) / ray[0] : DBL_MAX;
+  double tMaxY = (ray[1] != 0) ? (next_voxel_boundary_y - pos[1]) / ray[1] : DBL_MAX;
+  double tMaxZ = (ray[2] != 0) ? (next_voxel_boundary_z - pos[2]) / ray[2] : DBL_MAX;
 
-  // tDeltaX, tDeltaY, tDeltaZ --
-  // how far along the ray we must move for the horizontal component to equal the width of a voxel
-  // the direction in which we traverse the grid
-  // can only be FLT_MAX if we never go in that direction
   double tDeltaX = (ray[0] != 0) ? 1 / ray[0] * stepX : DBL_MAX;
   double tDeltaY = (ray[1] != 0) ? 1 / ray[1] * stepY : DBL_MAX;
   double tDeltaZ = (ray[2] != 0) ? 1 / ray[2] * stepZ : DBL_MAX;
 
-  Int3D diff{0, 0, 0};
-  bool neg_ray = false;
-  if (ray[0] < 0) {
-    diff[0]--;
-    neg_ray = true;
-  }
-  if (ray[1] < 0) {
-    diff[1]--;
-    neg_ray = true;
-  }
-  if (ray[2] < 0) {
-    diff[2]--;
-    neg_ray = true;
-  }
   visited_voxels.push_back(current_voxel);
-  /*   if (neg_ray) {
-      current_voxel += diff;
-      visited_voxels.push_back(current_voxel);
-    } */
 
   int limit = 50;
   int i = 0;
@@ -467,9 +435,34 @@ int Region::find_obstructing_height(Int3D root) const {
   return height;
 }
 
+void Region::raycast_update_adjacent_chunks(Int3D coord) {
+  std::unordered_set<Location, LocationHash> dirty;
+  auto loc = location_from_global_coords(coord[0], coord[1], coord[2]);
+  auto local = Chunk::to_local(coord);
+  if (local[0] == 0) {
+    dirty.insert(Location{loc[0] - 1, loc[1], loc[2]});
+  } else if (local[0] == Chunk::sz_x - 1) {
+    dirty.insert(Location{loc[0] + 1, loc[1], loc[2]});
+  }
+  if (local[1] == 0) {
+    dirty.insert(Location{loc[0], loc[1] - 1, loc[2]});
+  } else if (local[1] == Chunk::sz_y - 1) {
+    dirty.insert(Location{loc[0], loc[1] + 1, loc[2]});
+  }
+  if (local[2] == 0) {
+    dirty.insert(Location{loc[0], loc[1], loc[2] - 1});
+  } else if (local[2] == Chunk::sz_z - 1) {
+    dirty.insert(Location{loc[0], loc[1], loc[2] + 1});
+  }
+  for (auto& loc : dirty) {
+    if (chunks_sent_.contains(loc) && adjacents_missing_[loc] == 0) {
+      diffs_.emplace_back(Diff{loc, Diff::creation});
+    }
+  }
+}
+
 void Region::raycast_place(Camera& camera, Voxel voxel) {
   auto visited = raycast(camera);
-  std::unordered_set<Location, LocationHash> dirty;
   for (int i = 0; i < visited.size(); ++i) {
     auto coord = visited[i];
     auto loc = location_from_global_coords(coord[0], coord[1], coord[2]);
@@ -496,49 +489,29 @@ void Region::raycast_place(Camera& camera, Voxel voxel) {
           compute_global_lighting(loc);
           diffs_.emplace_back(Diff{loc, Diff::creation});
 
-          if (local[0] == 0) {
-            dirty.insert(Location{loc[0] - 1, loc[1], loc[2]});
-          } else if (local[0] == Chunk::sz_x - 1) {
-            dirty.insert(Location{loc[0] + 1, loc[1], loc[2]});
-          }
-          if (local[1] == 0) {
-            dirty.insert(Location{loc[0], loc[1] - 1, loc[2]});
-          } else if (local[1] == Chunk::sz_y - 1) {
-            dirty.insert(Location{loc[0], loc[1] + 1, loc[2]});
-          }
-          if (local[2] == 0) {
-            dirty.insert(Location{loc[0], loc[1], loc[2] - 1});
-          } else if (local[2] == Chunk::sz_z - 1) {
-            dirty.insert(Location{loc[0], loc[1], loc[2] + 1});
-          }
+          raycast_update_adjacent_chunks(coord);
         }
 
         break;
       }
     }
   }
-  for (auto& loc : dirty) {
-    if (chunks_sent_.contains(loc) && adjacents_missing_[loc] == 0) {
-      diffs_.emplace_back(Diff{loc, Diff::creation});
-    }
-  }
 }
 
 void Region::raycast_remove(Camera& camera) {
   auto visited = raycast(camera);
-  std::unordered_set<Location, LocationHash> dirty;
   for (int i = 0; i < visited.size(); ++i) {
-    auto v = visited[i];
-    auto loc = location_from_global_coords(v[0], v[1], v[2]);
+    auto coord = visited[i];
+    auto loc = location_from_global_coords(coord[0], coord[1], coord[2]);
     if (chunks_.contains(loc) && adjacents_missing_[loc] == 0) {
       auto& chunk = chunks_.at(loc);
-      auto local = Chunk::to_local(v);
+      auto local = Chunk::to_local(coord);
       auto voxel = chunk.get_voxel(local[0], local[1], local[2]);
       if (voxel != Voxel::empty) {
         chunk.set_voxel(local[0], local[1], local[2], Voxel::empty);
         auto& section = sections_.at(Location2D{loc[0], loc[2]});
-        if (section.get_subsection_obstructing_height(local[0], local[2]) == v[1]) {
-          int height = find_obstructing_height(v);
+        if (section.get_subsection_obstructing_height(local[0], local[2]) == coord[1]) {
+          int height = find_obstructing_height(coord);
           section.set_subsection_obstructing_height(local[0], local[2], height);
         }
 
@@ -546,30 +519,9 @@ void Region::raycast_remove(Camera& camera) {
         compute_global_lighting(loc);
         diffs_.emplace_back(Diff{loc, Diff::creation});
 
-        if (local[0] == 0) {
-          dirty.insert(Location{loc[0] - 1, loc[1], loc[2]});
-        } else if (local[0] == Chunk::sz_x - 1) {
-          dirty.insert(Location{loc[0] + 1, loc[1], loc[2]});
-        }
-        if (local[1] == 0) {
-          dirty.insert(Location{loc[0], loc[1] - 1, loc[2]});
-        } else if (local[1] == Chunk::sz_y - 1) {
-          dirty.insert(Location{loc[0], loc[1] + 1, loc[2]});
-        }
-        if (local[2] == 0) {
-          dirty.insert(Location{loc[0], loc[1], loc[2] - 1});
-        } else if (local[2] == Chunk::sz_z - 1) {
-          dirty.insert(Location{loc[0], loc[1], loc[2] + 1});
-        }
-
+        raycast_update_adjacent_chunks(coord);
         break;
       }
-    }
-  }
-
-  for (auto& loc : dirty) {
-    if (chunks_sent_.contains(loc) && adjacents_missing_[loc] == 0) {
-      diffs_.emplace_back(Diff{loc, Diff::creation});
     }
   }
 }

@@ -6,11 +6,11 @@
 #include <unordered_set>
 #include <vector>
 #include <tsl/robin_map.h>
+#include "camera.h"
 #include "chunk.h"
 #include "player.h"
 #include "section.h"
 #include "simobject.h"
-#include "camera.h"
 
 class Region {
 public:
@@ -53,8 +53,8 @@ private:
   void compute_global_lighting(const Location& loc);
   void delete_furthest_chunk(const Location& loc);
   std::array<Location, 6> get_adjacent_locations(const Location& loc) const;
-  
   int find_obstructing_height(Int3D root) const;
+  void raycast_update_adjacent_chunks(Int3D coord);
 
   std::unordered_map<Location2D, Section, Location2DHash> sections_;
   std::unordered_map<Location, Chunk, LocationHash> chunks_;
