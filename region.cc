@@ -435,7 +435,7 @@ int Region::find_obstructing_height(Int3D root) const {
   return height;
 }
 
-void Region::raycast_update_adjacent_chunks(Int3D coord) {
+void Region::update_adjacent_chunks(Int3D coord) {
   std::unordered_set<Location, LocationHash> dirty;
   auto loc = location_from_global_coords(coord[0], coord[1], coord[2]);
   auto local = Chunk::to_local(coord);
@@ -489,7 +489,7 @@ void Region::raycast_place(Camera& camera, Voxel voxel) {
           compute_global_lighting(loc);
           diffs_.emplace_back(Diff{loc, Diff::creation});
 
-          raycast_update_adjacent_chunks(coord);
+          update_adjacent_chunks(coord);
         }
 
         break;
@@ -519,7 +519,7 @@ void Region::raycast_remove(Camera& camera) {
         compute_global_lighting(loc);
         diffs_.emplace_back(Diff{loc, Diff::creation});
 
-        raycast_update_adjacent_chunks(coord);
+        update_adjacent_chunks(coord);
         break;
       }
     }

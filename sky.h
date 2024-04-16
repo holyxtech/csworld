@@ -33,6 +33,7 @@ private:
   GLuint cb_shader_;
   GLuint cb_vao_;
   GLuint cb_vbo_;
+  GLuint sun_texture_;
 };
 
 #endif

@@ -54,7 +54,7 @@ private:
   void delete_furthest_chunk(const Location& loc);
   std::array<Location, 6> get_adjacent_locations(const Location& loc) const;
   int find_obstructing_height(Int3D root) const;
-  void raycast_update_adjacent_chunks(Int3D coord);
+  void update_adjacent_chunks(Int3D coord);
 
   std::unordered_map<Location2D, Section, Location2DHash> sections_;
   std::unordered_map<Location, Chunk, LocationHash> chunks_;

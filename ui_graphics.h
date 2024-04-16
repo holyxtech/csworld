@@ -36,6 +36,7 @@ private:
   GLuint shader_;
   GLuint vao_;
   GLuint vbo_;
+  GLuint icon_texture_array_;
   std::vector<Vertex> mesh_;
   static constexpr int num_icons = 3;
   std::array<glm::vec2, num_icons> icon_positions_;

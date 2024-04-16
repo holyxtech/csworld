@@ -33,17 +33,18 @@ public:
 
   static constexpr GLuint window_width = 2560;
   static constexpr GLuint window_height = 1440;
-  
 
 private:
   void creation(
     const Location& loc,
-    const std::vector<Vertex>* mesh,
-    std::unordered_map<GLuint, GLuint>* vbo_to_vao,
-    std::unordered_map<GLuint, Location>* vbo_map,
-    std::unordered_map<Location, GLuint, LocationHash>* loc_map,
-    std::unordered_map<GLuint, int>* mesh_size_map);
+    const std::vector<Vertex>& mesh,
+    std::unordered_map<GLuint, GLuint>& vbo_to_vao,
+    std::unordered_map<GLuint, Location>& vbo_map,
+    std::unordered_map<Location, GLuint, LocationHash>& loc_map,
+    std::unordered_map<GLuint, int>& mesh_size_map);
+  void set_up_terrain_vao(GLuint, GLuint) const;
 
+  GLuint voxel_texture_array_;
   std::unordered_map<GLuint, GLuint> vbo_to_vao_;
   std::unordered_map<GLuint, Location> vbo_map_;
   std::unordered_map<Location, GLuint, LocationHash> loc_map_;
@@ -54,20 +55,26 @@ private:
   std::unordered_map<GLuint, int> water_mesh_size_map_;
   GLuint main_framebuffer_;
   GLuint water_framebuffer_;
+  GLuint composite_framebuffer_;
   GLuint main_cbo_;
   GLuint main_dbo_;
   GLuint water_cbo_;
   GLuint water_dbo_;
-  GLuint window_vao_;
-  GLuint window_vbo_;
+  GLuint quad_vao_;
+  GLuint quad_vbo_;
   GLuint voxel_highlight_vbo_;
   GLuint voxel_highlight_vao_;
+  std::array<GLuint, 2> composite_cbos_;
+  std::array<GLuint, 2> pingpong_framebuffers_;
+  std::array<GLuint, 2> pingpong_textures_;
 
   GLuint shader_;
-  GLuint window_shader_;
+  GLuint composite_shader_;
   GLuint voxel_highlight_shader_;
-  glm::vec3 voxel_highlight_position_;
+  GLuint blur_shader_;
+  GLuint final_shader_;
 
+  glm::vec3 voxel_highlight_position_;
   glm::dvec3 camera_offset_;
   glm::vec3 camera_world_position_;
   glm::mat4 projection_;

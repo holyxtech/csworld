@@ -4,12 +4,12 @@
 #include "renderer.h"
 #include "stb_image.h"
 
- glm::vec3 Sky::spherical_to_cartesian(float r, float theta, float phi) {
+glm::vec3 Sky::spherical_to_cartesian(float r, float theta, float phi) {
   return glm::vec3(r * sin(theta) * sin(phi), r * cos(theta), -r * sin(theta) * cos(phi));
 }
 
 Sky::Sky() {
-  RenderUtils::create_shader(&shader_, "shaders/sky_vertex.glsl", "shaders/sky_fragment.glsl");
+  RenderUtils::create_shader(&shader_, "shaders/sky.vs", "shaders/sky.fs");
   RenderUtils::create_shader(&cb_shader_, "shaders/cb.vs", "shaders/cb.fs");
 
   glGenTextures(1, &cube_texture_);
@@ -41,47 +41,119 @@ Sky::Sky() {
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
   float vertices[] = {
-    -1.0f, 1.0f, -1.0f,
-    -1.0f, -1.0f, -1.0f,
-    1.0f, -1.0f, -1.0f,
-    1.0f, -1.0f, -1.0f,
-    1.0f, 1.0f, -1.0f,
-    -1.0f, 1.0f, -1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
 
-    -1.0f, -1.0f, 1.0f,
-    -1.0f, -1.0f, -1.0f,
-    -1.0f, 1.0f, -1.0f,
-    -1.0f, 1.0f, -1.0f,
-    -1.0f, 1.0f, 1.0f,
-    -1.0f, -1.0f, 1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
 
-    1.0f, -1.0f, -1.0f,
-    1.0f, -1.0f, 1.0f,
-    1.0f, 1.0f, 1.0f,
-    1.0f, 1.0f, 1.0f,
-    1.0f, 1.0f, -1.0f,
-    1.0f, -1.0f, -1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
 
-    -1.0f, -1.0f, 1.0f,
-    -1.0f, 1.0f, 1.0f,
-    1.0f, 1.0f, 1.0f,
-    1.0f, 1.0f, 1.0f,
-    1.0f, -1.0f, 1.0f,
-    -1.0f, -1.0f, 1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
 
-    -1.0f, 1.0f, -1.0f,
-    1.0f, 1.0f, -1.0f,
-    1.0f, 1.0f, 1.0f,
-    1.0f, 1.0f, 1.0f,
-    -1.0f, 1.0f, 1.0f,
-    -1.0f, 1.0f, -1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
+    1.0f,
+    1.0f,
+    -1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    1.0f,
+    -1.0f,
+    1.0f,
+    1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
 
-    -1.0f, -1.0f, -1.0f,
-    -1.0f, -1.0f, 1.0f,
-    1.0f, -1.0f, -1.0f,
-    1.0f, -1.0f, -1.0f,
-    -1.0f, -1.0f, 1.0f,
-    1.0f, -1.0f, 1.0f,
+    -1.0f,
+    -1.0f,
+    -1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    -1.0f,
+    -1.0f,
+    -1.0f,
+    -1.0f,
+    1.0f,
+    1.0f,
+    -1.0f,
+    1.0f,
   };
 
   glGenVertexArrays(1, &vao_);
@@ -114,18 +186,13 @@ Sky::Sky() {
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
 
-    GLuint sun_texture;
-    glGenTextures(1, &sun_texture);
-    glActiveTexture(GL_TEXTURE4);
-    glBindTexture(GL_TEXTURE_2D, sun_texture);
+    glGenTextures(1, &sun_texture_);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, sun_texture_);
     int width, height, channels;
     auto* image_data = stbi_load("images/sun.png", &width, &height, &channels, STBI_rgb_alpha);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     stbi_image_free(image_data);
-
-    glUseProgram(cb_shader_);
-    GLint texture_loc = glGetUniformLocation(cb_shader_, "cbTexture");
-    glUniform1i(texture_loc, 4);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -151,6 +218,10 @@ void Sky::render(const Renderer& renderer) const {
 
   {
     glUseProgram(cb_shader_);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, sun_texture_);
+    GLint texture_loc = glGetUniformLocation(cb_shader_, "cbTexture");
+    glUniform1i(texture_loc, 0);
     auto transform_loc = glGetUniformLocation(cb_shader_, "uTransform");
     glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
     glBindVertexArray(cb_vao_);

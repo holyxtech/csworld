@@ -13,7 +13,6 @@
 
 namespace RenderUtils {
   void create_shader(GLuint* shader, std::string vertex_shader_path, std::string fragment_shader_path);
-  void set_up_standard_vao(GLuint vbo, GLuint vao);
 } // namespace RenderUtils
 
 #endif

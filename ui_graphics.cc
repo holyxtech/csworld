@@ -7,7 +7,7 @@
 
 UIGraphics::UIGraphics() {
 
-  RenderUtils::create_shader(&shader_, "shaders/ui_vertex.glsl", "shaders/ui_fragment.glsl");
+  RenderUtils::create_shader(&shader_, "shaders/ui.vs", "shaders/ui.fs");
 
   glGenVertexArrays(1, &vao_);
   glGenBuffers(1, &vbo_);
@@ -21,11 +21,10 @@ UIGraphics::UIGraphics() {
   glEnableVertexAttribArray(1);
   glEnableVertexAttribArray(2);
 
-  GLuint texture_array;
-  glGenTextures(1, &texture_array);
+  glGenTextures(1, &icon_texture_array_);
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
-  GLint num_layers = static_cast<GLint>(num_ui_textures);
+  glBindTexture(GL_TEXTURE_2D_ARRAY, icon_texture_array_);
+  GLuint num_layers = static_cast<GLuint>(num_ui_textures);
   GLsizei width = 16;
   GLsizei height = 16;
   GLsizei num_mipmaps = 1;
@@ -33,12 +32,11 @@ UIGraphics::UIGraphics() {
   stbi_set_flip_vertically_on_load(1);
   GLsizei channels;
   std::vector<std::pair<std::string, UITexture>> textures = {
-    std::make_pair("white",UITexture::white),
-    std::make_pair("black",UITexture::black),
-    std::make_pair("dirt",UITexture::dirt),
-    std::make_pair("stone",UITexture::stone),
-    std::make_pair("sandstone",UITexture::sandstone)
-  };
+    std::make_pair("white", UITexture::white),
+    std::make_pair("black", UITexture::black),
+    std::make_pair("dirt", UITexture::dirt),
+    std::make_pair("stone", UITexture::stone),
+    std::make_pair("sandstone", UITexture::sandstone)};
   for (auto [filename, texture] : textures) {
     std::string path = "images/" + filename + ".png";
     auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
@@ -50,8 +48,6 @@ UIGraphics::UIGraphics() {
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glUseProgram(shader_);
-  GLint texture_loc = glGetUniformLocation(shader_, "textureArray");
-  glUniform1i(texture_loc, 1);
 
   float w = 0.3;
   float h = 0.07;
@@ -91,7 +87,7 @@ UIGraphics::UIGraphics() {
 
     hs += rw + wt(w);
   }
-  
+
   float border_offset = 0.006;
   border_box_offset_ = glm::vec2(-border_offset * (Renderer::window_height / static_cast<float>(Renderer::window_width)), border_offset);
   auto border_box_size_loc = glGetUniformLocation(shader_, "uBorderBoxSize");
@@ -136,6 +132,10 @@ void UIGraphics::consume_ui(UI& ui) {
       auto& data = std::any_cast<const UI::Diff::ActionBarData&>(diff.data);
       auto index = data.index;
       glUseProgram(shader_);
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_2D_ARRAY, icon_texture_array_);
+      GLint texture_loc = glGetUniformLocation(shader_, "textureArray");
+      glUniform1i(texture_loc, 1);
       auto border_box_top_left_loc = glGetUniformLocation(shader_, "uBorderBoxTopLeft");
       glm::vec2 pos = icon_positions_[index] + border_box_offset_;
       glUniform2fv(border_box_top_left_loc, 1, glm::value_ptr(pos));
