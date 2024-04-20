@@ -66,6 +66,8 @@ int main() {
   glfwSetKeyCallback(window, key_callback);
   glfwSetCursorPosCallback(window, cursor_position_callback);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  Input::instance()->set_prev_cursor_pos(Renderer::window_width / 2, Renderer::window_height / 2);
+  Input::instance()->set_cursor_pos(Renderer::window_width / 2, Renderer::window_height / 2);
 
   asio::io_context io_context;
   TCPClient tcp_client(io_context);
@@ -75,7 +77,7 @@ int main() {
 
   std::thread build_thread([&sim, window]() {
     while (!glfwWindowShouldClose(window)) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000/60));
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60));
       sim.step();
     }
   });

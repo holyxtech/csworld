@@ -7,36 +7,36 @@
 #include <glm/ext.hpp>
 
 MeshGenerator::MeshGenerator() {
-  lighting_levels_ =
-    {0.20589113209464907,
-     0.2287679245496101,
-     0.2541865828329001,
-     0.2824295364810001,
-     0.31381059609000006,
-     0.3486784401000001,
-     0.3874204890000001,
-     0.4304672100000001,
-     0.4782969000000001,
-     0.531441,
-     0.5904900000000001,
-     0.6561,
-     0.7290000000000001,
-     0.81,
-     0.9,
-     1.0};
+  lighting_levels_ = {
+    0.03518437208883203,
+    0.043980465111040035,
+    0.054975581388800036,
+    0.06871947673600004,
+    0.08589934592000005,
+    0.10737418240000006,
+    0.13421772800000006,
+    0.1677721600000001,
+    0.20971520000000007,
+    0.2621440000000001,
+    0.3276800000000001,
+    0.4096000000000001,
+    0.5120000000000001,
+    0.6400000000000001,
+    0.8,
+    1.0};
 }
 
 std::array<float, 6> MeshGenerator::get_lighting(Chunk& chunk, std::array<Chunk*, 6>& adjacent_chunks, int x, int y, int z) const {
   std::array<float, 6> lighting;
   if (x > 0) {
-    lighting[Direction::nx] = lighting_levels_[std::max(chunk.get_lighting(x - 1, y, z)-x_lighting_reduction,0)];
+    lighting[Direction::nx] = lighting_levels_[std::max(chunk.get_lighting(x - 1, y, z) - x_lighting_reduction, 0)];
   } else {
-    lighting[Direction::nx] = lighting_levels_[std::max(adjacent_chunks[Direction::nx]->get_lighting(Chunk::sz_x - 1, y, z)-x_lighting_reduction,0)];
+    lighting[Direction::nx] = lighting_levels_[std::max(adjacent_chunks[Direction::nx]->get_lighting(Chunk::sz_x - 1, y, z) - x_lighting_reduction, 0)];
   }
   if (x < Chunk::sz_x - 1) {
-    lighting[Direction::px] = lighting_levels_[std::max(chunk.get_lighting(x + 1, y, z)-x_lighting_reduction,0)];
+    lighting[Direction::px] = lighting_levels_[std::max(chunk.get_lighting(x + 1, y, z) - x_lighting_reduction, 0)];
   } else {
-    lighting[Direction::px] = lighting_levels_[std::max(adjacent_chunks[Direction::px]->get_lighting(0, y, z)-x_lighting_reduction,0)];
+    lighting[Direction::px] = lighting_levels_[std::max(adjacent_chunks[Direction::px]->get_lighting(0, y, z) - x_lighting_reduction, 0)];
   }
   if (y > 0) {
     lighting[Direction::ny] = lighting_levels_[chunk.get_lighting(x, y - 1, z)];

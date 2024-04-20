@@ -4,13 +4,14 @@ uniform sampler2D scene;
 uniform sampler2D bloom;
 uniform float exposure = 1.f;
 
+in vec2 texCoords;
+
 out vec4 color;
 
 void main() {
-  ivec2 texcoord = ivec2(floor(gl_FragCoord.xy));
+  vec3 hdrColor = texture(scene, texCoords).rgb;
+  vec3 bloomColor = texture(bloom, texCoords).rgb;
   const float gamma = 2.2;
-  vec3 hdrColor = texelFetch(scene, texcoord, 0).rgb;      
-  vec3 bloomColor = texelFetch(bloom, texcoord, 0).rgb;
   hdrColor += bloomColor; // additive blending
   // tone mapping
   vec3 result = vec3(1.0) - exp(-hdrColor * exposure);

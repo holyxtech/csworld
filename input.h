@@ -26,13 +26,16 @@ public:
   void key_callback(GLFWwindow* window, int key, int action);
   void mouse_button_callback(int button, int action, int mods);
   void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
-  void set_cursor_start_pos(double xpos, double ypos);
   const std::array<double, 2>& get_cursor_pos() const;
+  const std::array<double, 2>& get_prev_cursor_pos() const;
+  void set_cursor_pos(double xpos, double ypos);
+  void set_prev_cursor_pos(double xpos, double ypos);
   int get_last_mouse_button_state(int button) const;
   moodycamel::ReaderWriterQueue<MouseButtonEvent>& get_mouse_button_events();
   moodycamel::ReaderWriterQueue<KeyButtonEvent>& get_key_button_events();
 
 private:
+  std::array<double, 2> prev_cursor_pos_;
   std::array<double, 2> cursor_pos_;
   std::array<int, 8> mouse_button_state_;
 

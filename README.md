@@ -1,0 +1,1 @@
+This repo contains the source for the CS World client and server, along with its assets. An installation guide is forthcoming.

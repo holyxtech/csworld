@@ -22,6 +22,7 @@ public:
   Voxel get_voxel(int x, int y, int z) const;
   Voxel get_voxel(int i) const;
   static int get_index(int x, int y, int z);
+  static int get_index(const Int3D& coord);
 
   void set_voxel(int i, Voxel voxel);
   void set_voxel(int x, int y, int z, Voxel voxel);

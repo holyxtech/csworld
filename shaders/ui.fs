@@ -14,6 +14,7 @@ out vec4 color;
 
 void main() {
     vec4 textureColor = texture(textureArray, vec3(fragUvs, fragLayer));
+    vec3 result;
     if (fragPosition.x >= uBorderBoxTopLeft.x &&
         fragPosition.x <= uBorderBoxTopLeft.x + uBorderBoxSize.x &&
         fragPosition.y <= uBorderBoxTopLeft.y &&

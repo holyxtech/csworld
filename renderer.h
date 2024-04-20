@@ -74,6 +74,9 @@ private:
   GLuint blur_shader_;
   GLuint final_shader_;
 
+  static constexpr GLuint blur_texture_width_ = window_width / 8;
+  static constexpr GLuint blur_texture_height_ = window_height / 8;
+
   glm::vec3 voxel_highlight_position_;
   glm::dvec3 camera_offset_;
   glm::vec3 camera_world_position_;

@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 #include "poisson_disk_sampling.h"
+#include "region.h"
 #include "types.h"
 
 WorldGenerator::WorldGenerator() {
@@ -19,19 +20,11 @@ bool WorldGenerator::ready_to_fill(Location& location, const std::unordered_map<
   return true;
 }
 
+// Implement world gen -> region messaging system to recreate chunks when they receive new feature data
 void WorldGenerator::insert_into_features(int x, int y, int z, Voxel voxel) {
-  auto location = Location{
-    static_cast<int>(std::floor(static_cast<float>(x) / Chunk::sz_x)),
-    static_cast<int>(std::floor(static_cast<float>(y) / Chunk::sz_y)),
-    static_cast<int>(std::floor(static_cast<float>(z) / Chunk::sz_z)),
-  };
+  auto location = Region::location_from_global_coords(x, y, z);
   auto& location_features = features_[location];
-
-  int idx = Chunk::get_index(
-    ((x % Chunk::sz_x) + Chunk::sz_x) % Chunk::sz_x,
-    ((y % Chunk::sz_y) + Chunk::sz_y) % Chunk::sz_y,
-    ((z % Chunk::sz_z) + Chunk::sz_z) % Chunk::sz_z);
-
+  int idx = Chunk::get_index(Chunk::to_local(Int3D{x, y, z}));
   // these are never removed...
   location_features.emplace_back(std::make_pair(idx, voxel));
 }

@@ -24,10 +24,7 @@ glm::mat4 Camera::get_view(glm::dvec3 camera_offset) const {
   return glm::lookAt(adjusted_pos, adjusted_pos + front_, up_);
 }
 
-void Camera::pan(float xpos, float ypos) {
-  auto xoff = xpos - last_xpos_;
-  auto yoff = last_ypos_ - ypos;
-
+void Camera::pan(float xoff, float yoff) {
   yaw_ += xoff * pan_sensitivity_;
   pitch_ += yoff * pan_sensitivity_;
 
@@ -90,15 +87,6 @@ void Camera::scale_rotation_speed(float scale) {
 
 void Camera::set_base_translation_speed(float base_translation_speed) {
   base_translation_speed_ = base_translation_speed;
-}
-
-void Camera::set_last_cursor_pos(double xpos, double ypos) {
-  last_xpos_ = xpos;
-  last_ypos_ = ypos;
-}
-
-std::array<double, 2> Camera::get_last_cursor_pos() {
-  return std::array<double, 2>{last_xpos_, last_ypos_};
 }
 
 glm::vec3 Camera::get_world_position(glm::dvec3 camera_offset) const {

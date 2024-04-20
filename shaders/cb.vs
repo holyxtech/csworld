@@ -9,6 +9,7 @@ out vec2 fragUvs;
 
 void main() {
   vec4 pos = uTransform * vec4(position, 1.0); 
-  gl_Position = pos.xyww;
+  // getting z fighting with the sky when the sun is in the corner unless i do this
+  gl_Position = vec4(pos.xy, pos.w-0.000001, pos.w);
   fragUvs = uvs;
 }

@@ -31,7 +31,7 @@ Sky::Sky() {
     data = stbi_load(textures_faces[i].c_str(), &width, &height, &channels, 0);
     glTexImage2D(
       GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-      0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+      0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
     stbi_image_free(data);
   }
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -166,8 +166,10 @@ Sky::Sky() {
 
   {
     std::vector<CBVertex> mesh;
-    float theta = M_PI / 2 - 0.0043633;
-    float phi = M_PI / 2 - 0.0043633;
+     float theta = M_PI / 2 - 0.0043633;
+   float phi = M_PI / 2 - 0.0043633;  
+    /* float theta = M_PI / 2 - 0.01;
+    float phi = M_PI / 2 - 0.01; */
 
     mesh.emplace_back(CBVertex{spherical_to_cartesian(1, theta, M_PI - phi), QuadCoord::tl});
     mesh.emplace_back(CBVertex{spherical_to_cartesian(1, theta, phi), QuadCoord::tr});
@@ -191,13 +193,13 @@ Sky::Sky() {
     glBindTexture(GL_TEXTURE_2D, sun_texture_);
     int width, height, channels;
     auto* image_data = stbi_load("images/sun.png", &width, &height, &channels, STBI_rgb_alpha);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     stbi_image_free(image_data);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   }
 }
 

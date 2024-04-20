@@ -214,11 +214,11 @@ void Sim::draw(int64_t ms) {
   {
     std::unique_lock<std::mutex> lock(camera_mutex_);
     auto& cursor_pos = Input::instance()->get_cursor_pos();
+    auto& prev_cursor_pos = Input::instance()->get_prev_cursor_pos();
 
-    auto last_cursor_pos = camera_.get_last_cursor_pos();
-    if (cursor_pos[0] != last_cursor_pos[0] || cursor_pos[1] != last_cursor_pos[1]) {
-      camera_.pan(cursor_pos[0], cursor_pos[1]);
-      camera_.set_last_cursor_pos(cursor_pos[0], cursor_pos[1]);
+    if (cursor_pos[0] != prev_cursor_pos[0] || cursor_pos[1] != prev_cursor_pos[1]) {
+      camera_.pan(cursor_pos[0] - prev_cursor_pos[0], prev_cursor_pos[1] - cursor_pos[1]);
+      Input::instance()->set_prev_cursor_pos(cursor_pos[0], cursor_pos[1]);
     }
     renderer_.set_highlight(ray_collision_);
 

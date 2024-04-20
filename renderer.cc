@@ -46,7 +46,7 @@ Renderer::Renderer(World& world) : world_(world) {
   GLsizei height = 16;
   GLsizei channels;
   GLsizei num_mipmaps = 1;
-  glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_RGBA8, width, height, num_layers);
+  glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_SRGB8_ALPHA8, width, height, num_layers);
   stbi_set_flip_vertically_on_load(1);
   std::vector<std::pair<std::string, VoxelTexture>> textures = {
     std::make_pair("dirt", VoxelTexture::dirt),
@@ -151,6 +151,8 @@ Renderer::Renderer(World& world) : world_(world) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_width, window_height, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, composite_cbos_[i], 0);
   }
   std::array<GLuint, 2> attachments = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
@@ -158,10 +160,10 @@ Renderer::Renderer(World& world) : world_(world) {
 
   glGenFramebuffers(2, pingpong_framebuffers_.data());
   glGenTextures(2, pingpong_textures_.data());
-  for (size_t i = 0; i < 2; i++) {
+  for (size_t i = 0; i < 2; ++i) {
     glBindFramebuffer(GL_FRAMEBUFFER, pingpong_framebuffers_[i]);
     glBindTexture(GL_TEXTURE_2D, pingpong_textures_[i]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_width, window_height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, blur_texture_width_, blur_texture_height_, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -341,22 +343,25 @@ void Renderer::render() const {
 
   // apply bloom...
   glUseProgram(blur_shader_);
+  glViewport(0, 0, blur_texture_width_, blur_texture_height_);
   glActiveTexture(GL_TEXTURE4);
   glUniform1i(glGetUniformLocation(blur_shader_, "image"), 4);
   bool horizontal = true, first_iteration = true;
-  int amount = 10;
+  int amount = 3;
   for (size_t i = 0; i < amount; ++i) {
     glBindFramebuffer(GL_FRAMEBUFFER, pingpong_framebuffers_[horizontal]);
     glUniform1i(glGetUniformLocation(blur_shader_, "horizontal"), horizontal);
     glBindTexture(GL_TEXTURE_2D, first_iteration ? composite_cbos_[1] : pingpong_textures_[!horizontal]);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     horizontal = !horizontal;
-    if (first_iteration)
-      first_iteration = false;
+    first_iteration = false;
   }
+
+  glViewport(0, 0, window_width, window_height);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glUseProgram(final_shader_);
+  glBindVertexArray(quad_vao_);
   glActiveTexture(GL_TEXTURE5);
   glBindTexture(GL_TEXTURE_2D, composite_cbos_[0]);
   glUniform1i(glGetUniformLocation(final_shader_, "scene"), 5);

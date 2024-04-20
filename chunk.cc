@@ -26,6 +26,10 @@ int Chunk::get_index(int x, int y, int z) {
   return x + sz_x * (y + sz_y * z);
 }
 
+int Chunk::get_index(const Int3D& coord) {
+  return coord[0] + sz_x * (coord[1] + sz_y * coord[2]);
+}
+
 std::array<int, 3> Chunk::flat_index_to_3d(int i) {
   std::array<int, 3> arr;
   arr[0] = i % Chunk::sz_x;
