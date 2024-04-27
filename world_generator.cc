@@ -83,11 +83,16 @@ void WorldGenerator::build_tree(int x, int y, int z) {
 void WorldGenerator::populate(Section& section) {
   auto& loc = section.get_location();
 
-  float kRadius = 12;
+  float kRadius = 6;
   auto kXMin = std::array<float, 2>{{0.f, 0.f}};
   auto kXMax = std::array<float, 2>{{Section::sz_x, Section::sz_z}};
 
-  auto samples = thinks::PoissonDiskSampling(kRadius, kXMin, kXMax);
+  std::hash<int> hasher;
+  std::uint32_t seed = 0;
+  seed ^= hasher(loc[0]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  seed ^= hasher(loc[1]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  std::uint32_t max_sample_attempts = 30;
+  auto samples = thinks::PoissonDiskSampling(kRadius, kXMin, kXMax, max_sample_attempts, seed);
 
   for (auto s : samples) {
     auto landcover = section.get_landcover(s[0], s[1]);
@@ -112,9 +117,8 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
         section.compute_subsection_elevations(sections);
         section.set_subsection_obstructing_heights_from_elevations();
       }
-      if (!sections_populated_.contains(section_loc)) {
+      if (!sections_populated_.contains(section_loc))
         populate(section);
-      }
     }
   }
   auto& section = sections.at(Location2D{location[0], location[2]});

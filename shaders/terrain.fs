@@ -31,6 +31,7 @@ void main() {
   if (textureColor.a == 0.0)
     discard;
   
-  float fog = LinearFog();
-  color = mix(skyboxColor, lightedColor, fog);
+  //float fog = LinearFog();
+  //color = mix(skyboxColor, lightedColor, fog);
+  color = lightedColor;
 }

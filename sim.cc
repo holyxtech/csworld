@@ -20,7 +20,8 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
 
   // std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-11-0-0", "37-59-03");
   // starting_pos[1] = 350;
-  std::array<double, 3> starting_pos{4228928, 396, -1221535};
+  std::array<double, 3> starting_pos{4230188,309,-1220666};
+  //std::array<double, 3> starting_pos{4230367,320,-1220630};
   // std::array<double, 3> starting_pos{0,0,0};
 
   {
@@ -95,7 +96,7 @@ void Sim::step() {
   if (loc != last_location || new_sections) {
     auto& sections = region_.get_sections();
     for (int x = -min_render_distance; x <= min_render_distance; ++x) {
-      for (int y = 1; y > -2; --y) {
+      for (int y = 1; y > -3; --y) {
         for (int z = -min_render_distance; z <= min_render_distance; ++z) {
           auto location = Location{loc[0] + x, loc[1] + y, loc[2] + z};
           if (!region_.has_chunk(location) && world_generator_.ready_to_fill(location, sections)) {

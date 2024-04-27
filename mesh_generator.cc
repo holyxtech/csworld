@@ -58,13 +58,9 @@ std::array<float, 6> MeshGenerator::get_lighting(Chunk& chunk, std::array<Chunk*
   } else {
     lighting[Direction::pz] = lighting_levels_[adjacent_chunks[Direction::pz]->get_lighting(x, y, 0)];
   }
-  /*  std::cout<<":"<<std::endl;
-   for (int i =0 ;i<6;++i)
-   std::cout<<lighting[i]<<std::endl; */
   return lighting;
 }
 
-// to speed this up, instead of a region ref, pass in a ref to an std::array<Chunk&, 6> or Chunk* or whatever
 std::array<Voxel, 6> MeshGenerator::get_adjacent_voxels(
   Chunk& chunk, std::array<Chunk*, 6>& adjacent_chunks, int x, int y, int z) const {
   auto& location = chunk.get_location();
@@ -215,7 +211,7 @@ void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
       for (int x = 0; x < Chunk::sz_x; ++x) {
         auto voxel = chunk.get_voxel(x, y, z);
 
-        if (voxel < Voxel::WATER_UPPER) {
+        if (voxel < Voxel::WATER_UPPER) { 
           continue;
         }
         auto position = chunk_position + glm::vec3(x, y, z);
@@ -274,7 +270,7 @@ void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
   }
 }
 
-void MeshGenerator::mesh_water(Region& region, const Location& location) {
+/* void MeshGenerator::mesh_water(Region& region, const Location& location) {
   auto& chunk = region.get_chunk(location);
   auto adjacent_chunks = region.get_adjacent_chunks(location);
   auto& water_voxels = chunk.get_water_voxels();
@@ -292,7 +288,7 @@ void MeshGenerator::mesh_water(Region& region, const Location& location) {
 
     fill_sides(water_mesh, position, adjacent, layers, Voxel::WATER_LOWER, lighting);
   }
-}
+} */
 
 void MeshGenerator::consume_region(Region& region) {
   auto& diffs = region.get_diffs();
@@ -314,7 +310,7 @@ void MeshGenerator::consume_region(Region& region) {
       //      auto start = std::chrono::high_resolution_clock::now();
       random_seed_ = 0;
       mesh_chunk(region, loc);
-      mesh_water(region, loc);
+      //mesh_water(region, loc);
       diffs_.emplace_back(Diff{loc, Diff::creation});
       /*
             auto end = std::chrono::high_resolution_clock::now();
@@ -339,13 +335,13 @@ const std::vector<MeshGenerator::Diff>& MeshGenerator::get_diffs() const {
 
 void MeshGenerator::clear_diffs() {
   meshes_.clear();
-  water_meshes_.clear();
+  //water_meshes_.clear();
   diffs_.clear();
 }
 
 const std::unordered_map<Location, std::vector<Vertex>, LocationHash>& MeshGenerator::get_meshes() const {
   return meshes_;
 }
-const std::unordered_map<Location, std::vector<Vertex>, LocationHash>& MeshGenerator::get_water_meshes() const {
+/* const std::unordered_map<Location, std::vector<Vertex>, LocationHash>& MeshGenerator::get_water_meshes() const {
   return water_meshes_;
-}
+} */

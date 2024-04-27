@@ -12,6 +12,16 @@
 #include <vector>
 #include <glm/glm.hpp>
 
+namespace {
+  constexpr unsigned int create_bitmask(int start, int end) {
+    unsigned int mask = 0;
+    for (int i = start; i <= end; ++i) {
+      mask |= (1 << i);
+    }
+    return mask;
+  }
+} // namespace
+
 using Location2D = std::array<int, 2>;
 
 class Location {
@@ -39,11 +49,11 @@ public:
     return coordinates == other.coordinates;
   }
 
-  std::string repr() const {
-    return "(" + std::to_string(coordinates[0]) + "," + std::to_string(coordinates[1]) + "," + std::to_string(coordinates[2]) + ")";
+  friend std::ostream& operator<<(std::ostream& os, const Location& loc) {
+    os << "(" + std::to_string(loc.coordinates[0]) + "," + std::to_string(loc.coordinates[1]) + "," + std::to_string(loc.coordinates[2]) + ")";
+    return os;
   }
 
-  // Overloading += operator to perform addition of two Location objects
   Location& operator+=(const Location& other) {
     coordinates[0] += other.coordinates[0];
     coordinates[1] += other.coordinates[1];
@@ -87,16 +97,38 @@ struct Location2DHash {
   }
 };
 
-// this can be reduced from 28 bytes to 3
-// 6 bits * 3 for x,y,z position (0-32 offset + chunk uniform)
-// 16 discrete lighting levels require 4 bits
-// 10 bits left for up to 1024 textures
-// +2 bytes for uvs
 struct Vertex {
   glm::vec3 position;
   glm::vec2 uvs;
   int layer;
   float lighting;
+};
+
+class NewVertex {
+public:
+  std::uint32_t data;
+  glm::vec2 uvs;
+
+  void set_position(int x, int y, int z) {
+    data |= (x & xpos_mask);
+    data |= (y & ypos_mask);
+    data |= (z & zpos_mask);
+  }
+
+  void set_lighting(int lighting) {
+    data |= (lighting & lighting_mask);
+  }
+
+  void set_texture(int texture) {
+    data |= (texture & texture_mask);
+  }
+
+private:
+  static constexpr unsigned int xpos_mask = create_bitmask(0, 5);
+  static constexpr unsigned int ypos_mask = create_bitmask(6, 11);
+  static constexpr unsigned int zpos_mask = create_bitmask(12, 17);
+  static constexpr unsigned int lighting_mask = create_bitmask(18, 21);
+  static constexpr unsigned int texture_mask = create_bitmask(22, 31);
 };
 
 namespace QuadCoord {

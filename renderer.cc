@@ -11,68 +11,10 @@
 #include "types.h"
 
 Renderer::Renderer(World& world) : world_(world) {
-  RenderUtils::create_shader(&shader_, "shaders/terrain.vs", "shaders/terrain.fs");
   RenderUtils::create_shader(&composite_shader_, "shaders/composite.vs", "shaders/composite.fs");
   RenderUtils::create_shader(&voxel_highlight_shader_, "shaders/voxel_highlight.vs", "shaders/voxel_highlight.fs");
   RenderUtils::create_shader(&blur_shader_, "shaders/blur.vs", "shaders/blur.fs");
   RenderUtils::create_shader(&final_shader_, "shaders/final.vs", "shaders/final.fs");
-
-  std::array<GLuint, Region::max_sz> vbos;
-  std::array<GLuint, Region::max_sz> vaos;
-  glGenBuffers(vbos.size(), vbos.data());
-  glGenVertexArrays(vaos.size(), vaos.data());
-  for (int i = 0; i < vbos.size(); ++i) {
-    auto vbo = vbos[i];
-    auto vao = vaos[i];
-    set_up_terrain_vao(vbo, vao);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MeshGenerator::default_max_vertices, nullptr, GL_STATIC_DRAW);
-    vbo_to_vao_[vbo] = vao;
-  }
-  glGenBuffers(vbos.size(), vbos.data());
-  glGenVertexArrays(vaos.size(), vaos.data());
-  for (int i = 0; i < vbos.size(); ++i) {
-    auto vbo = vbos[i];
-    auto vao = vaos[i];
-    set_up_terrain_vao(vbo, vao);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * MeshGenerator::default_max_water_vertices, nullptr, GL_STATIC_DRAW);
-    water_vbo_to_vao_[vbo] = vao;
-  }
-
-  glGenTextures(1, &voxel_texture_array_);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D_ARRAY, voxel_texture_array_);
-  GLint num_layers = static_cast<GLint>(VoxelTexture::num_voxel_textures);
-  GLsizei width = 16;
-  GLsizei height = 16;
-  GLsizei channels;
-  GLsizei num_mipmaps = 1;
-  glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_SRGB8_ALPHA8, width, height, num_layers);
-  stbi_set_flip_vertically_on_load(1);
-  std::vector<std::pair<std::string, VoxelTexture>> textures = {
-    std::make_pair("dirt", VoxelTexture::dirt),
-    std::make_pair("grass", VoxelTexture::grass),
-    std::make_pair("grass_side", VoxelTexture::grass_side),
-    std::make_pair("water", VoxelTexture::water),
-    std::make_pair("sand", VoxelTexture::sand),
-    std::make_pair("tree_trunk", VoxelTexture::tree_trunk),
-    std::make_pair("leaves", VoxelTexture::leaves),
-    std::make_pair("sandstone", VoxelTexture::sandstone),
-    std::make_pair("stone", VoxelTexture::stone),
-    std::make_pair("standing_grass", VoxelTexture::standing_grass),
-  };
-  for (auto [filename, texture] : textures) {
-    std::string path = "images/" + filename + ".png";
-    auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(texture), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-    stbi_image_free(image_data);
-  }
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glUseProgram(shader_);
-  GLint texture_loc = glGetUniformLocation(shader_, "textureArray");
-  glUniform1i(texture_loc, 0);
 
   float voxel_highlight_vertices[] = {
     // Front face
@@ -142,7 +84,7 @@ Renderer::Renderer(World& world) : world_(world) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, dbo, 0);
   };
   set_up_framebuffers(main_framebuffer_, main_cbo_, main_dbo_);
-  set_up_framebuffers(water_framebuffer_, water_cbo_, water_dbo_);
+  // set_up_framebuffers(water_framebuffer_, water_cbo_, water_dbo_);
   glGenFramebuffers(1, &composite_framebuffer_);
   glBindFramebuffer(GL_FRAMEBUFFER, composite_framebuffer_);
   glGenTextures(2, composite_cbos_.data());
@@ -182,86 +124,15 @@ Renderer::Renderer(World& world) : world_(world) {
   projection_ = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 4000.l);
 }
 
-void Renderer::set_up_terrain_vao(GLuint vbo, GLuint vao) const {
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBindVertexArray(vao);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvs));
-  glVertexAttribPointer(2, 1, GL_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, layer));
-  glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, lighting));
-  glEnableVertexAttribArray(0);
-  glEnableVertexAttribArray(1);
-  glEnableVertexAttribArray(2);
-  glEnableVertexAttribArray(3);
-}
-
-void Renderer::creation(
-  const Location& loc,
-  const std::vector<Vertex>& mesh,
-  std::unordered_map<GLuint, GLuint>& vbo_to_vao,
-  std::unordered_map<GLuint, Location>& vbo_map,
-  std::unordered_map<Location, GLuint, LocationHash>& loc_map,
-  std::unordered_map<GLuint, int>& mesh_size_map) {
-
-  GLuint vbo_to_use = 0;
-  GLuint vao_to_use = 0;
-
-  if (loc_map.contains(loc)) {
-    vbo_to_use = loc_map.at(loc);
-    vao_to_use = vbo_to_vao.at(vbo_to_use);
-  } else {
-    for (auto [vbo, vao] : vbo_to_vao) {
-      if (!vbo_map.contains(vbo)) {
-        vbo_to_use = vbo;
-        vao_to_use = vao;
-        break;
-      }
-    }
-  }
-
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_to_use);
-  GLint bufferSize;
-  glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &bufferSize);
-  if (bufferSize < sizeof(Vertex) * mesh.size()) {
-    std::cout << "Buffer too small! This mesh has size " << mesh.size() << std::endl;
-
-    glDeleteBuffers(1, &vbo_to_use);
-    glGenBuffers(1, &vbo_to_use);
-    set_up_terrain_vao(vbo_to_use, vao_to_use);
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * mesh.size(), mesh.data(), GL_STATIC_DRAW);
-  } else {
-    GLint mesh_size_bytes = sizeof(Vertex) * mesh.size();
-    glBufferSubData(GL_ARRAY_BUFFER, 0, mesh_size_bytes, mesh.data());
-    GLint remaining_bytes = bufferSize - mesh_size_bytes;
-    // Fill the remaining bytes with zeros starting from mesh size
-    glBufferSubData(GL_ARRAY_BUFFER, mesh_size_bytes, remaining_bytes, nullptr);
-  }
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  vbo_map[vbo_to_use] = loc;
-  loc_map[loc] = vbo_to_use;
-  mesh_size_map[vbo_to_use] = mesh.size();
-}
-
 void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
   auto& diffs = mesh_generator.get_diffs();
   for (auto& diff : diffs) {
+    auto& loc = diff.location;
     if (diff.kind == MeshGenerator::Diff::creation) {
-      auto& loc = diff.location;
-      creation(loc, mesh_generator.get_meshes().at(loc), vbo_to_vao_, vbo_map_, loc_map_, mesh_size_map_);
-      creation(loc, mesh_generator.get_water_meshes().at(loc), water_vbo_to_vao_, water_vbo_map_, water_loc_map_, water_mesh_size_map_);
-
+      terrain_.create(loc, mesh_generator.get_meshes().at(loc));
     } else if (diff.kind == MeshGenerator::Diff::deletion) {
-      GLuint vbo = loc_map_[diff.location];
-      vbo_map_.erase(vbo);
-      loc_map_.erase(diff.location);
-      GLuint water_vbo = water_loc_map_[diff.location];
-      water_vbo_map_.erase(water_vbo);
-      water_loc_map_.erase(diff.location);
+      terrain_.destroy(loc);
     } else if (diff.kind == MeshGenerator::Diff::origin) {
-      auto& loc = diff.location;
       camera_offset_ = glm::dvec3(loc[0] * Chunk::sz_x, loc[1] * Chunk::sz_y, loc[2] * Chunk::sz_z);
     }
   }
@@ -277,49 +148,20 @@ void Renderer::consume_camera(const Camera& camera) {
 }
 
 void Renderer::render() const {
-  glUseProgram(shader_);
-  auto transform_loc = glGetUniformLocation(shader_, "uTransform");
-  auto transform = projection_ * view_;
-  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, &transform[0][0]);
-  auto camera_world_position_loc = glGetUniformLocation(shader_, "uCameraWorldPosition");
-  glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_world_position_));
-
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D_ARRAY, voxel_texture_array_);
-  GLuint voxel_textures_loc = glGetUniformLocation(shader_, "textureArray");
-  glUniform1i(voxel_textures_loc, 0);
-  GLuint texture = sky_.get_texture();
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
-  glUniform1i(glGetUniformLocation(shader_, "skybox"), 1);
 
   glEnable(GL_DEPTH_TEST);
-  glBindFramebuffer(GL_FRAMEBUFFER, water_framebuffer_);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  for (auto [vbo, vao] : water_vbo_to_vao_) {
-    if (!(water_vbo_map_.contains(vbo) && water_mesh_size_map_.at(vbo) > 0))
-      continue;
-    glBindVertexArray(vao);
-    int mesh_size = water_mesh_size_map_.at(vbo);
-    glDrawArrays(GL_TRIANGLES, 0, mesh_size);
-  }
-
   glBindFramebuffer(GL_FRAMEBUFFER, main_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  for (auto [vbo, vao] : vbo_to_vao_) {
-    if (!vbo_map_.contains(vbo))
-      continue;
-    glBindVertexArray(vao);
-    int mesh_size = mesh_size_map_.at(vbo);
-    glDrawArrays(GL_TRIANGLES, 0, mesh_size);
-  }
+
+  terrain_.render(*this);
 
   sky_.render(*this);
 
   glUseProgram(voxel_highlight_shader_);
-  transform_loc = glGetUniformLocation(voxel_highlight_shader_, "uTransform");
+  auto transform_loc = glGetUniformLocation(voxel_highlight_shader_, "uTransform");
+  auto transform = projection_ * view_;
   transform = projection_ * view_ * glm::translate(voxel_highlight_position_) * glm::scale(glm::vec3(1.001));
-  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, &transform[0][0]);
+  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
   glBindVertexArray(voxel_highlight_vao_);
   glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
   glDisable(GL_DEPTH_TEST);
@@ -329,15 +171,9 @@ void Renderer::render() const {
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, main_cbo_);
   glUniform1i(glGetUniformLocation(composite_shader_, "mainColor"), 0);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, water_cbo_);
-  glUniform1i(glGetUniformLocation(composite_shader_, "waterColor"), 1);
   glActiveTexture(GL_TEXTURE2);
   glBindTexture(GL_TEXTURE_2D, main_dbo_);
   glUniform1i(glGetUniformLocation(composite_shader_, "mainDepth"), 2);
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, water_dbo_);
-  glUniform1i(glGetUniformLocation(composite_shader_, "waterDepth"), 3);
   glBindVertexArray(quad_vao_);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -356,7 +192,6 @@ void Renderer::render() const {
     horizontal = !horizontal;
     first_iteration = false;
   }
-
   glViewport(0, 0, window_width, window_height);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -391,4 +226,12 @@ void Renderer::consume_ui(UI& ui) {
 
 float Renderer::normalize_x(float x) {
   return x * (window_height / static_cast<float>(window_width));
+}
+
+const Sky& Renderer::get_sky() const {
+  return sky_;
+}
+
+const glm::vec3 Renderer::get_camera_world_position() const {
+  return camera_world_position_;
 }

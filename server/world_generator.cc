@@ -124,6 +124,9 @@ Section WorldGenerator::get_section(Location2D loc) {
         case 16443040:
           section.landcover[row * num_cols + col] = Common::LandCover::moss;
           break;
+        case 15767295:
+          section.landcover[row * num_cols + col] = Common::LandCover::grass;
+          break;
         }
       }
     }

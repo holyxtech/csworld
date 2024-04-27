@@ -121,7 +121,6 @@ void UIGraphics::render(const Renderer& renderer) const {
   glUseProgram(shader_);
   glBindVertexArray(vao_);
   glDrawArrays(GL_TRIANGLES, 0, mesh_.size());
-  glEnable(GL_DEPTH_TEST);
 }
 
 void UIGraphics::consume_ui(UI& ui) {
