@@ -17,13 +17,13 @@ namespace Common {
 
   constexpr int equator_circumference = 40075000;
   constexpr int polar_circumference = 40008000;
-  constexpr int chunk_sz_uniform = 32;
+  constexpr int chunk_sz_uniform = 16;
   constexpr int chunk_sz_x = chunk_sz_uniform;
   constexpr int chunk_sz_y = chunk_sz_uniform;
   constexpr int chunk_sz_z = chunk_sz_uniform;
   constexpr int chunk_sz = chunk_sz_x * chunk_sz_y * chunk_sz_z;
-  constexpr int landcover_rows_per_sector = 2;
-  constexpr int landcover_cols_per_sector = 2;
+  constexpr int landcover_rows_per_sector = 1;
+  constexpr int landcover_cols_per_sector = 1;
   constexpr int landcover_tiles_per_sector = landcover_rows_per_sector * landcover_cols_per_sector;
 
   enum class LandCover : uint8_t {

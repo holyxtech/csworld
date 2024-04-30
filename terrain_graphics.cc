@@ -1,4 +1,5 @@
 #include "terrain_graphics.h"
+#include "mesh_generator.h"
 #include "render_utils.h"
 #include "renderer.h"
 #include "sky.h"
@@ -20,17 +21,17 @@ TerrainGraphics::TerrainGraphics() {
   glEnableVertexAttribArray(1);
   glEnableVertexAttribArray(2);
   glEnableVertexAttribArray(3);
-  vbo_size_ = sizeof(Vertex) * defacto_vertices_per_mesh * Region::max_sz;
+  vbo_size_ = sizeof(Vertex) * MeshGenerator::defacto_vertices_per_mesh * Region::max_sz;
   glBufferData(GL_ARRAY_BUFFER, vbo_size_, nullptr, GL_STATIC_DRAW);
 
   for (int idx = 0; idx < commands_.size(); ++idx) {
     auto& command = commands_[idx];
     command.count = 0;
     command.instance_count = 1;
-    command.first = idx * defacto_vertices_per_mesh;
+    command.first = idx * MeshGenerator::defacto_vertices_per_mesh;
     command.base_instance = 0;
     auto& metadata = commands_metadata_[idx];
-    metadata.buffer_size = sizeof(Vertex) * defacto_vertices_per_mesh;
+    metadata.buffer_size = sizeof(Vertex) * MeshGenerator::defacto_vertices_per_mesh;
     metadata.occupied = false;
   }
   glGenBuffers(1, &ibo_);
@@ -92,7 +93,6 @@ void TerrainGraphics::create(const Location& loc, const std::vector<Vertex>& mes
   auto& command = commands_[idx];
   auto& metadata = commands_metadata_[idx];
 
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_);
   GLuint mesh_size_bytes = sizeof(Vertex) * mesh.size();
   if (mesh_size_bytes > metadata.buffer_size) {
     std::cout << "Buffer too small for mesh with size " << mesh.size() << std::endl;
@@ -139,7 +139,7 @@ void TerrainGraphics::create(const Location& loc, const std::vector<Vertex>& mes
     command.count = mesh.size();
 
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, ibo_);
-    glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawArraysIndirectCommand) * commands_.size(), commands_.data());
+    glBufferSubData(GL_DRAW_INDIRECT_BUFFER, idx * sizeof(DrawArraysIndirectCommand), sizeof(DrawArraysIndirectCommand) * (commands_.size() - idx), commands_.data() + idx);
 
     glDeleteBuffers(1, &vbo_);
     vbo_ = new_vbo;
@@ -152,6 +152,7 @@ void TerrainGraphics::create(const Location& loc, const std::vector<Vertex>& mes
     glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, lighting));
 
   } else {
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_);
     glBufferSubData(GL_ARRAY_BUFFER, sizeof(Vertex) * command.first, mesh_size_bytes, mesh.data());
 
     command.count = mesh.size();

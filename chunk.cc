@@ -5,17 +5,12 @@
 Chunk::Chunk(int x, int y, int z)
     : location_{x, y, z} {
   voxels_.fill(Voxel::empty);
-  water_voxels_.reserve(water_voxels_reserve);
 
   flags_ = 0;
 }
 
 const Location& Chunk::get_location() const {
   return location_;
-}
-
-const std::unordered_set<std::size_t>& Chunk::get_water_voxels() const {
-  return water_voxels_;
 }
 
 Voxel Chunk::get_voxel(int x, int y, int z) const {
@@ -41,11 +36,6 @@ std::array<int, 3> Chunk::flat_index_to_3d(int i) {
 
 void Chunk::set_voxel(int i, Voxel voxel) {
   Voxel cur = voxels_[i];
-  if (voxel < Voxel::WATER_UPPER && voxel > Voxel::WATER_LOWER) {
-    water_voxels_.insert(i);
-  } else if (cur < Voxel::WATER_UPPER && cur > Voxel::WATER_LOWER) {
-    water_voxels_.erase(i);
-  }
   voxels_[i] = voxel;
 }
 

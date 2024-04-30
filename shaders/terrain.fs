@@ -6,7 +6,7 @@ uniform vec3 uCameraWorldPosition;
 
 in vec2 fragUvs;
 flat in float fragLayer;
-flat in float fragLighting;
+in float fragLighting;
 in vec3 fragWorldPosition;
 
 out vec4 color;

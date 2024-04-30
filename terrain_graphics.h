@@ -40,7 +40,6 @@ private:
   std::array<CommandMetadata, Region::max_sz> commands_metadata_;
   std::unordered_map<Location, std::size_t, LocationHash> loc_to_command_index_;
 
-  static constexpr int defacto_vertices_per_mesh = 90000;
   int vbo_size_ = 0;
 };
 

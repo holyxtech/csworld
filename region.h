@@ -44,7 +44,7 @@ public:
   void raycast_remove(Camera& camera);
   static Location location_from_global_coords(int x, int y, int z);
 
-  static constexpr int max_sz = 256;
+  static constexpr int max_sz = 1024;
 
 private:
   template <typename Func, typename... Args>
@@ -53,6 +53,7 @@ private:
   void compute_global_lighting(const Location& loc);
   void delete_furthest_chunk(const Location& loc);
   std::array<Location, 6> get_adjacent_locations(const Location& loc) const;
+  std::array<Location, 26> get_covering_locations(const Location& loc) const;
   int find_obstructing_height(Int3D root) const;
   void update_adjacent_chunks(Int3D coord);
 

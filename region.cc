@@ -76,6 +76,24 @@ std::array<Location, 6> Region::get_adjacent_locations(const Location& loc) cons
   };
 }
 
+std::array<Location, 26> Region::get_covering_locations(const Location& loc) const {
+  std::array<Location, 26> covering;
+
+  int i = 0;
+  for (int x = -1; x <= 1; ++x) {
+    for (int y = -1; y <= 1; ++y) {
+      for (int z = -1; z <= 1; ++z) {
+        if (x == 0 && y == 0 && z == 0)
+          continue;
+
+        covering[i++] = Location{loc[0] + x, loc[1] + y, loc[2] + z};
+      }
+    }
+  }
+
+  return covering;
+}
+
 void Region::compute_global_lighting(const Location& loc) {
   auto& chunk = chunks_.at(loc);
   std::queue<Int3D> lights;
@@ -121,17 +139,17 @@ void Region::compute_global_lighting(const Location& loc) {
       containing_chunk = &chunk;
     } else if (sum == 1) {
       if (x_diff == -1)
-        containing_chunk = adjacent_chunks[Direction::nx];
+        containing_chunk = adjacent_chunks[nx];
       else if (x_diff == 1)
-        containing_chunk = adjacent_chunks[Direction::px];
+        containing_chunk = adjacent_chunks[px];
       else if (y_diff == -1)
-        containing_chunk = adjacent_chunks[Direction::ny];
+        containing_chunk = adjacent_chunks[ny];
       else if (y_diff == 1)
-        containing_chunk = adjacent_chunks[Direction::py];
+        containing_chunk = adjacent_chunks[py];
       else if (z_diff == -1)
-        containing_chunk = adjacent_chunks[Direction::nz];
+        containing_chunk = adjacent_chunks[nz];
       else if (z_diff == 1)
-        containing_chunk = adjacent_chunks[Direction::pz];
+        containing_chunk = adjacent_chunks[pz];
     } else if (chunks_.contains(Location{x_loc, y_loc, z_loc})) {
       containing_chunk = &chunks_.at({Location{x_loc, y_loc, z_loc}});
     }
@@ -222,11 +240,12 @@ void Region::add_chunk(Chunk&& chunk) {
 
   chunks_.insert({loc, std::move(chunk)});
 
-  auto adjacent = get_adjacent_locations(loc);
+  // auto adjacent = get_adjacent_locations(loc);
+  auto adjacent = get_covering_locations(loc);
 
   for (auto& location : adjacent) {
     if (!adjacents_missing_.contains(location))
-      adjacents_missing_.insert({location, 5});
+      adjacents_missing_.insert({location, 25});
     else
       --adjacents_missing_[location];
 
@@ -240,7 +259,7 @@ void Region::add_chunk(Chunk&& chunk) {
   }
 
   if (!adjacents_missing_.contains(loc)) {
-    adjacents_missing_.insert({loc, 6});
+    adjacents_missing_.insert({loc, 26});
   } else if (
     adjacents_missing_[loc] == 0 &&
     chunks_.at(loc).check_flag(Chunk::Flags::NONEMPTY)) {
@@ -259,7 +278,8 @@ void Region::clear_diffs() {
       chunks_.erase(loc);
       sections_.erase(Location2D{loc[0], loc[2]});
 
-      auto adjacent = get_adjacent_locations(loc);
+      // auto adjacent = get_adjacent_locations(loc);
+      auto adjacent = get_covering_locations(loc);
       for (auto& location : adjacent) {
         ++adjacents_missing_[location];
       }
@@ -287,7 +307,8 @@ void Region::clear_diffs() {
       auto& location = loaded_locations[i];
       chunks_.erase(location);
       sections_.erase(Location2D{location[0], location[2]});
-      auto adjacent = get_adjacent_locations(loaded_locations[i]);
+      // auto adjacent = get_adjacent_locations(loaded_locations[i]);
+      auto adjacent = get_covering_locations(loaded_locations[i]);
       for (auto& location : adjacent) {
         ++adjacents_missing_[location];
       }

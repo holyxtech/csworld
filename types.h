@@ -60,6 +60,22 @@ public:
     coordinates[2] += other.coordinates[2];
     return *this;
   }
+
+  Location operator*(int i) const {
+    Location result;
+    result.coordinates[0] = coordinates[0] * i;
+    result.coordinates[1] = coordinates[1] * i;
+    result.coordinates[2] = coordinates[2] * i;
+    return result;
+  }
+
+  Location operator+(const Location& other) {
+    Location result;
+    result[0] = coordinates[0] + other.coordinates[0];
+    result[1] = coordinates[1] + other.coordinates[1];
+    result[2] = coordinates[2] + other.coordinates[2];
+    return result;
+  }
 };
 
 using Int3D = Location;
@@ -106,29 +122,38 @@ struct Vertex {
 
 class NewVertex {
 public:
-  std::uint32_t data;
-  glm::vec2 uvs;
+  std::uint32_t data_;
+  float lighting_;
 
   void set_position(int x, int y, int z) {
-    data |= (x & xpos_mask);
-    data |= (y & ypos_mask);
-    data |= (z & zpos_mask);
+    data_ |= (x & xpos_mask);
+    data_ |= (y & ypos_mask);
+    data_ |= (z & zpos_mask);
   }
 
-  void set_lighting(int lighting) {
-    data |= (lighting & lighting_mask);
+  void set_lighting(float lighting) {
+    lighting_ = lighting;
   }
 
   void set_texture(int texture) {
-    data |= (texture & texture_mask);
+    data_ |= (texture & texture_mask);
+  }
+
+  void set_uvs(int uvs) {
+    data_ |= (uvs & uvs_mask);
+  }
+
+  void set_normal(Direction dir) {
+    data_ |= (static_cast<int>(dir) & normal_mask);
   }
 
 private:
-  static constexpr unsigned int xpos_mask = create_bitmask(0, 5);
-  static constexpr unsigned int ypos_mask = create_bitmask(6, 11);
-  static constexpr unsigned int zpos_mask = create_bitmask(12, 17);
-  static constexpr unsigned int lighting_mask = create_bitmask(18, 21);
-  static constexpr unsigned int texture_mask = create_bitmask(22, 31);
+  static constexpr unsigned int xpos_mask = create_bitmask(0, 4);
+  static constexpr unsigned int ypos_mask = create_bitmask(5, 9);
+  static constexpr unsigned int zpos_mask = create_bitmask(10, 14);
+  static constexpr unsigned int normal_mask = create_bitmask(15,17);
+  static constexpr unsigned int uvs_mask = create_bitmask(18,19);
+  static constexpr unsigned int texture_mask = create_bitmask(20, 31);
 };
 
 namespace QuadCoord {
@@ -168,7 +193,7 @@ enum class Voxel {
   sandstone,
   stone,
 
-  voxel_enum_size
+  num_voxel_types
 };
 
 enum class VoxelTexture {

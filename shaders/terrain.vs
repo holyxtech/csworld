@@ -10,7 +10,7 @@ layout (location = 3) in float lighting;
 out vec2 fragUvs;
 out vec3 fragWorldPosition;
 flat out float fragLayer;
-flat out float fragLighting;
+out float fragLighting;
 
 
 void main() {

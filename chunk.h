@@ -49,8 +49,6 @@ public:
 
 private:
   std::array<Voxel, sz> voxels_;
-  static constexpr int water_voxels_reserve = sz / 10;
-  std::unordered_set<std::size_t> water_voxels_;
 
   std::array<unsigned char, sz> lighting_;
 
