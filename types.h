@@ -14,13 +14,25 @@
 
 namespace {
   constexpr unsigned int create_bitmask(int start, int end) {
-    unsigned int mask = 0;
-    for (int i = start; i <= end; ++i) {
-      mask |= (1 << i);
-    }
-    return mask;
+    return ((1 << (end - start + 1)) - 1) << start;
   }
 } // namespace
+
+enum Direction {
+  nx,
+  px,
+  ny,
+  py,
+  nz,
+  pz
+};
+
+enum QuadCorner {
+  bl,
+  br,
+  tl,
+  tr
+};
 
 using Location2D = std::array<int, 2>;
 
@@ -120,39 +132,27 @@ struct Vertex {
   float lighting;
 };
 
-class NewVertex {
+class CubeVertex {
 public:
-  std::uint32_t data_;
+  unsigned int data_ = 0;
   float lighting_;
 
-  void set_position(int x, int y, int z) {
+  CubeVertex(int x, int y, int z, Direction normal, QuadCorner uvs, int textureId, float lighting) {
     data_ |= (x & xpos_mask);
-    data_ |= (y & ypos_mask);
-    data_ |= (z & zpos_mask);
-  }
-
-  void set_lighting(float lighting) {
+    data_ |= ((y << 5) & ypos_mask);
+    data_ |= ((z << 10) & zpos_mask);
+    data_ |= ((normal << 15) & normal_mask);
+    data_ |= ((uvs << 18) & uvs_mask);
+    data_ |= ((textureId << 20) & texture_mask);
     lighting_ = lighting;
-  }
-
-  void set_texture(int texture) {
-    data_ |= (texture & texture_mask);
-  }
-
-  void set_uvs(int uvs) {
-    data_ |= (uvs & uvs_mask);
-  }
-
-  void set_normal(Direction dir) {
-    data_ |= (static_cast<int>(dir) & normal_mask);
   }
 
 private:
   static constexpr unsigned int xpos_mask = create_bitmask(0, 4);
   static constexpr unsigned int ypos_mask = create_bitmask(5, 9);
   static constexpr unsigned int zpos_mask = create_bitmask(10, 14);
-  static constexpr unsigned int normal_mask = create_bitmask(15,17);
-  static constexpr unsigned int uvs_mask = create_bitmask(18,19);
+  static constexpr unsigned int normal_mask = create_bitmask(15, 17);
+  static constexpr unsigned int uvs_mask = create_bitmask(18, 19);
   static constexpr unsigned int texture_mask = create_bitmask(20, 31);
 };
 
@@ -209,15 +209,6 @@ enum class VoxelTexture {
   standing_grass,
 
   num_voxel_textures
-};
-
-enum Direction {
-  nx,
-  px,
-  ny,
-  py,
-  nz,
-  pz
 };
 
 struct Action {

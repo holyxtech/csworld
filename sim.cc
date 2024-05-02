@@ -20,9 +20,9 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
 
   // std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-11-0-0", "37-59-03");
   // starting_pos[1] = 350;
-  std::array<double, 3> starting_pos{4230188,309,-1220666};
-  //std::array<double, 3> starting_pos{4230367,320,-1220630};
-  // std::array<double, 3> starting_pos{0,0,0};
+  std::array<double, 3> starting_pos{4230188, 309, -1220666};
+  // std::array<double, 3> starting_pos{4230367,320,-1220630};
+  //  std::array<double, 3> starting_pos{0,0,0};
 
   {
     std::unique_lock<std::mutex> lock(camera_mutex_);
@@ -169,6 +169,9 @@ void Sim::step() {
           ui_.action_bar_select(2);
         } else if (key_button_event.key == GLFW_KEY_P) {
           std::cout << "Player at (" << static_cast<long long>(pos[0]) << "," << static_cast<long long>(pos[1]) << "," << static_cast<long long>(pos[2]) << ")" << std::endl;
+          auto& origin = mesh_generator_.get_origin();
+          auto apos = glm::dvec3(pos[0] - origin[0] * Chunk::sz_x, pos[1] - origin[1] * Chunk::sz_y, pos[2] - origin[2] * Chunk::sz_z);
+          std::cout << "Adjusted at (" << static_cast<long long>(apos[0]) << "," << static_cast<long long>(apos[1]) << "," << static_cast<long long>(apos[2]) << ")" << std::endl;
         }
       }
       success = key_button_events.try_dequeue(key_button_event);

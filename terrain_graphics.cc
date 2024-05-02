@@ -1,5 +1,7 @@
 #include "terrain_graphics.h"
+#include <cstddef>
 #include "mesh_generator.h"
+#include "region.h"
 #include "render_utils.h"
 #include "renderer.h"
 #include "sky.h"
@@ -13,15 +15,11 @@ TerrainGraphics::TerrainGraphics() {
 
   glBindBuffer(GL_ARRAY_BUFFER, vbo_);
   glBindVertexArray(vao_);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvs));
-  glVertexAttribPointer(2, 1, GL_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, layer));
-  glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, lighting));
+  glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(CubeVertex), (void*)offsetof(CubeVertex, data_));
+  glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(CubeVertex), (void*)offsetof(CubeVertex, lighting_));
   glEnableVertexAttribArray(0);
   glEnableVertexAttribArray(1);
-  glEnableVertexAttribArray(2);
-  glEnableVertexAttribArray(3);
-  vbo_size_ = sizeof(Vertex) * MeshGenerator::defacto_vertices_per_mesh * Region::max_sz;
+  vbo_size_ = sizeof(CubeVertex) * MeshGenerator::defacto_vertices_per_mesh * Region::max_sz;
   glBufferData(GL_ARRAY_BUFFER, vbo_size_, nullptr, GL_STATIC_DRAW);
 
   for (int idx = 0; idx < commands_.size(); ++idx) {
@@ -31,12 +29,19 @@ TerrainGraphics::TerrainGraphics() {
     command.first = idx * MeshGenerator::defacto_vertices_per_mesh;
     command.base_instance = 0;
     auto& metadata = commands_metadata_[idx];
-    metadata.buffer_size = sizeof(Vertex) * MeshGenerator::defacto_vertices_per_mesh;
+    metadata.buffer_size = sizeof(CubeVertex) * MeshGenerator::defacto_vertices_per_mesh;
     metadata.occupied = false;
   }
   glGenBuffers(1, &ibo_);
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, ibo_);
   glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawArraysIndirectCommand) * commands_.size(), commands_.data(), GL_STATIC_DRAW);
+
+  glCreateBuffers(1, &cpx_ssbo_);
+  glNamedBufferStorage(cpx_ssbo_, sizeof(glm::vec3) * commands_.size(), nullptr, GL_DYNAMIC_STORAGE_BIT);
+  glCreateBuffers(1, &cpy_ssbo_);
+  glNamedBufferStorage(cpy_ssbo_, sizeof(glm::vec3) * commands_.size(), nullptr, GL_DYNAMIC_STORAGE_BIT);
+  glCreateBuffers(1, &cpz_ssbo_);
+  glNamedBufferStorage(cpz_ssbo_, sizeof(glm::vec3) * commands_.size(), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
   glGenTextures(1, &voxel_texture_array_);
   glActiveTexture(GL_TEXTURE0);
@@ -75,7 +80,8 @@ TerrainGraphics::TerrainGraphics() {
   glUniform1i(texture_loc, 0);
 }
 
-void TerrainGraphics::create(const Location& loc, const std::vector<Vertex>& mesh) {
+void TerrainGraphics::create(const Location& loc, const std::vector<CubeVertex>& mesh, const Location& offset) {
+
   std::size_t idx;
   if (loc_to_command_index_.contains(loc)) {
     idx = loc_to_command_index_[loc];
@@ -88,12 +94,24 @@ void TerrainGraphics::create(const Location& loc, const std::vector<Vertex>& mes
         break;
       }
     }
+
+    float chunk_pos_x = (loc[0] - offset[0]) * Chunk::sz_x;
+    float chunk_pos_y = (loc[1] - offset[1]) * Chunk::sz_y;
+    float chunk_pos_z = (loc[2] - offset[2]) * Chunk::sz_z;
+
+    int ssbo_float_offset = sizeof(float) * idx;
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, cpx_ssbo_);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, ssbo_float_offset, sizeof(float), &chunk_pos_x);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, cpy_ssbo_);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, ssbo_float_offset, sizeof(float), &chunk_pos_y);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, cpz_ssbo_);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, ssbo_float_offset, sizeof(float), &chunk_pos_z);
   }
 
   auto& command = commands_[idx];
   auto& metadata = commands_metadata_[idx];
 
-  GLuint mesh_size_bytes = sizeof(Vertex) * mesh.size();
+  GLuint mesh_size_bytes = sizeof(CubeVertex) * mesh.size();
   if (mesh_size_bytes > metadata.buffer_size) {
     std::cout << "Buffer too small for mesh with size " << mesh.size() << std::endl;
 
@@ -103,14 +121,14 @@ void TerrainGraphics::create(const Location& loc, const std::vector<Vertex>& mes
     glBindBuffer(GL_COPY_READ_BUFFER, vbo_);
     glBindBuffer(GL_COPY_WRITE_BUFFER, new_vbo);
 
-    // need to make sure added_size is a multiple of sizeof(Vertex)
+    // need to make sure added_size is a multiple of sizeof(CubeVertex)
     int added_size = (mesh_size_bytes - metadata.buffer_size) + (metadata.buffer_size * .05);
-    added_size /= sizeof(Vertex);
-    added_size *= sizeof(Vertex);
+    added_size /= sizeof(CubeVertex);
+    added_size *= sizeof(CubeVertex);
     glBufferData(GL_COPY_WRITE_BUFFER, vbo_size_ + added_size, nullptr, GL_STATIC_DRAW);
 
     // Copy beginning of old buffer
-    int pre_size = command.first * sizeof(Vertex);
+    int pre_size = command.first * sizeof(CubeVertex);
     glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, pre_size);
 
     // Copy this mesh
@@ -134,7 +152,7 @@ void TerrainGraphics::create(const Location& loc, const std::vector<Vertex>& mes
     // Shift the first index of every command following this one
     for (int i = idx + 1; i < commands_.size(); ++i) {
       auto& command = commands_[i];
-      command.first += (added_size / sizeof(Vertex));
+      command.first += (added_size / sizeof(CubeVertex));
     }
     command.count = mesh.size();
 
@@ -146,14 +164,12 @@ void TerrainGraphics::create(const Location& loc, const std::vector<Vertex>& mes
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
     glBindVertexArray(vao_);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvs));
-    glVertexAttribPointer(2, 1, GL_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, layer));
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, lighting));
+    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(CubeVertex), (void*)offsetof(CubeVertex, data_));
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(CubeVertex), (void*)offsetof(CubeVertex, lighting_));
 
   } else {
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-    glBufferSubData(GL_ARRAY_BUFFER, sizeof(Vertex) * command.first, mesh_size_bytes, mesh.data());
+    glBufferSubData(GL_ARRAY_BUFFER, sizeof(CubeVertex) * command.first, mesh_size_bytes, mesh.data());
 
     command.count = mesh.size();
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, ibo_);
@@ -195,6 +211,9 @@ void TerrainGraphics::render(const Renderer& renderer) const {
   glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
   glUniform1i(glGetUniformLocation(shader_, "skybox"), 1);
 
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, cpx_ssbo_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cpy_ssbo_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, cpz_ssbo_);
   glBindVertexArray(vao_);
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, ibo_);
   glMultiDrawArraysIndirect(GL_TRIANGLES, 0, commands_.size(), 0);

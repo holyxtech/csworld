@@ -15,7 +15,7 @@ class TerrainGraphics {
 public:
   TerrainGraphics();
   void render(const Renderer& renderer) const;
-  void create(const Location& loc, const std::vector<Vertex>& mesh);
+  void create(const Location& loc, const std::vector<CubeVertex>& mesh, const Location& offset);
   void destroy(const Location& loc);
 
 private:
@@ -36,6 +36,9 @@ private:
   GLuint vbo_;
   GLuint vao_;
   GLuint ibo_;
+  GLuint cpx_ssbo_;
+  GLuint cpy_ssbo_;
+  GLuint cpz_ssbo_;
   std::array<DrawArraysIndirectCommand, Region::max_sz> commands_;
   std::array<CommandMetadata, Region::max_sz> commands_metadata_;
   std::unordered_map<Location, std::size_t, LocationHash> loc_to_command_index_;
