@@ -129,7 +129,7 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
   for (auto& diff : diffs) {
     auto& loc = diff.location;
     if (diff.kind == MeshGenerator::Diff::creation) {
-      terrain_.create(loc, mesh_generator.get_meshes().at(loc), mesh_generator.get_origin());
+      terrain_.create(loc, mesh_generator);
     } else if (diff.kind == MeshGenerator::Diff::deletion) {
       terrain_.destroy(loc);
     } else if (diff.kind == MeshGenerator::Diff::origin) {

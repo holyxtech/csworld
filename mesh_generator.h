@@ -20,10 +20,13 @@ public:
   MeshGenerator();
   void consume_region(Region& region);
   const std::unordered_map<Location, std::vector<CubeVertex>, LocationHash>& get_meshes() const;
+  const std::vector<CubeVertex> get_mesh(const Location& loc) const;
+  const std::vector<Vertex> get_irregular_mesh(const Location& loc) const;
   const std::vector<Diff>& get_diffs() const;
   const Location& get_origin() const;
   void clear_diffs();
   static constexpr int defacto_vertices_per_mesh = 40000;
+  static constexpr int defacto_vertices_per_irregular_mesh = 1000;
 
 private:
   enum class Axis { x,
@@ -35,6 +38,7 @@ private:
   std::array<float, 4> get_lighting(Region& region, Int3D coord, Axis axis) const;
 
   std::unordered_map<Location, std::vector<CubeVertex>, LocationHash> meshes_;
+  std::unordered_map<Location, std::vector<Vertex>, LocationHash> irregular_meshes_;
   std::vector<Diff> diffs_;
   std::array<float, Chunk::max_lighting + 1> lighting_levels_;
 

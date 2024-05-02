@@ -5,7 +5,7 @@ uniform samplerCube skybox;
 uniform vec3 uCameraWorldPosition;
 
 in vec2 fragUvs;
-flat in int fragLayer;
+flat in uint fragLayer;
 in float fragLighting;
 in vec3 fragWorldPosition;
 
