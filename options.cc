@@ -3,11 +3,11 @@
 #include <iostream>
 
 
-Options * Options::instance(int argc, char * argv[])
+std::shared_ptr<Options>  Options::instance(int argc, char * argv[])
 {
     if (Options::options_ != nullptr) return Options::options_;
 
-    Options::options_ = new Options(argc, argv);
+    Options::options_ = std::shared_ptr<Options>(new Options(argc, argv));
 
     return Options::options_;
 }
@@ -50,6 +50,6 @@ bool Options::hasValidShaderPath()
 
 Options::~Options() {}
 
-Options * Options::options_ = nullptr;
+std::shared_ptr<Options> Options::options_ = nullptr;
 
 

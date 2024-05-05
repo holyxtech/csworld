@@ -7,10 +7,11 @@
 
 #include <filesystem>
 #include <optional>
+#include <memory>
 
 class Options final {
 public:
-  static Options * instance(int argc = 0, char * argv[] = nullptr);
+  static std::shared_ptr<Options> instance(int argc = 0, char * argv[] = nullptr);
 
   ~Options();
   Options(const Options& other) = delete;
@@ -20,7 +21,7 @@ public:
   std::string getImagePath(const std::string& name);
   bool hasValidShaderPath();
 private:
-  static Options * options_;
+  static std::shared_ptr<Options> options_;
 
   std::string getPath(const std::string& name, const std::string& type);
   Options(int argc = 0, char * argv[] = nullptr);
