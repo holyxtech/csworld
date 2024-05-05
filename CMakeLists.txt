@@ -22,19 +22,18 @@ set(projectSources
 )
 file(GLOB PROJECT_SOURCE_FILES_SERVER "server/*.cc")
 set(projectSourcesServer
-	#${projectSources}
 	${PROJECT_SOURCE_FILES_SERVER}
 )
 
 # Generate flatbuffer headers 
 add_custom_target(
 	delete_generated_fbs 
-    	ALL
+	ALL
 	COMMAND rm -f ${PROJECT_SOURCE_DIR}/fbs/*.h
 )
 add_custom_target(
 	generate_fbs 
-    	ALL
+	ALL
 	COMMAND flatc -o ${PROJECT_SOURCE_DIR}/fbs --cpp ${PROJECT_SOURCE_DIR}/fbs/*.fbs
 	DEPENDS delete_generated_fbs
 )

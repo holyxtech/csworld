@@ -16,6 +16,7 @@
 #include "sim.h"
 #include "sim_server.h"
 #include "tcp_client.h"
+#include "options.h"
 
 void error_callback(int errnum, const char* errmsg) {
   std::cerr << errnum << ": " << errmsg << std::endl;
@@ -33,7 +34,12 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
   Input::instance()->cursor_position_callback(window, xpos, ypos);
 }
 
-int main() {
+int main(int argc, char* argv []) {
+  if (!Options::instance(argc,argv)->hasValidShaderPath()) {
+    std::cerr << "Couldn't find App Path for Shaders, Images, etc..." << std::endl;
+    return -1;
+  }
+
   if (!glfwInit()) {
     std::cerr << "Failed to initialize GLFW" << std::endl;
     return -1;

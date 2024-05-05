@@ -8,6 +8,7 @@
 #include "sky.h"
 #include "stb_image.h"
 #include "types.h"
+#include "options.h"
 
 template <typename T>
 TerrainGraphics::MultiDrawHandle& TerrainGraphics::get_multi_draw_handle() {
@@ -43,10 +44,10 @@ void TerrainGraphics::set_up() {
   int defacto_vertices;
   if constexpr (std::is_same_v<T, CubeVertex>) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_mesh;
-    RenderUtils::create_shader(&mdh.shader, "shaders/terrain.vs", "shaders/terrain.fs");
+    RenderUtils::create_shader(&mdh.shader,  Options::instance()->getShaderPath("terrain.vs"),  Options::instance()->getShaderPath("terrain.fs"));
   } else if constexpr (std::is_same_v<T, Vertex>) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_irregular_mesh;
-    RenderUtils::create_shader(&mdh.shader, "shaders/irregular.vs", "shaders/terrain.fs");
+    RenderUtils::create_shader(&mdh.shader,  Options::instance()->getShaderPath("irregular.vs"),  Options::instance()->getShaderPath("terrain.fs"));
   }
 
   glGenBuffers(1, &mdh.vbo);
@@ -110,7 +111,7 @@ TerrainGraphics::TerrainGraphics() {
     std::make_pair("standing_grass", VoxelTexture::standing_grass),
   };
   for (auto [filename, texture] : textures) {
-    std::string path = "images/" + filename + ".png";
+    std::string path = Options::instance()->getImagePath(filename + ".png");
     auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
     glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(texture), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     stbi_image_free(image_data);

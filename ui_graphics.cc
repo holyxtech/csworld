@@ -4,10 +4,11 @@
 #include "renderer.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "options.h"
 
 UIGraphics::UIGraphics() {
 
-  RenderUtils::create_shader(&shader_, "shaders/ui.vs", "shaders/ui.fs");
+  RenderUtils::create_shader(&shader_,  Options::instance()->getShaderPath("ui.vs"),  Options::instance()->getShaderPath("ui.fs"));
 
   glGenVertexArrays(1, &vao_);
   glGenBuffers(1, &vbo_);
@@ -38,7 +39,7 @@ UIGraphics::UIGraphics() {
     std::make_pair("stone", UITexture::stone),
     std::make_pair("sandstone", UITexture::sandstone)};
   for (auto [filename, texture] : textures) {
-    std::string path = "images/" + filename + ".png";
+    std::string path = Options::instance()->getImagePath(filename + ".png");
     auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
     glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(texture), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     stbi_image_free(image_data);

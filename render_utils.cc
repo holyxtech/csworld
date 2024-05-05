@@ -8,7 +8,7 @@ namespace {
       std::cerr << "Could not read file " << path << ". File does not exist." << std::endl;
       return "";
     }
-    return std::string(std::istreambuf_iterator<char>(fs), std::istreambuf_iterator<char>());
+    return std::string((std::istreambuf_iterator<char>(fs)), (std::istreambuf_iterator<char>()));
   }
 
 } // namespace

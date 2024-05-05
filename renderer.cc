@@ -9,12 +9,13 @@
 #include "render_utils.h"
 #include "stb_image.h"
 #include "types.h"
+#include "options.h"
 
 Renderer::Renderer(World& world) : world_(world) {
-  RenderUtils::create_shader(&composite_shader_, "shaders/composite.vs", "shaders/composite.fs");
-  RenderUtils::create_shader(&voxel_highlight_shader_, "shaders/voxel_highlight.vs", "shaders/voxel_highlight.fs");
-  RenderUtils::create_shader(&blur_shader_, "shaders/blur.vs", "shaders/blur.fs");
-  RenderUtils::create_shader(&final_shader_, "shaders/final.vs", "shaders/final.fs");
+  RenderUtils::create_shader(&composite_shader_, Options::instance()->getShaderPath("composite.vs"), Options::instance()->getShaderPath("composite.fs"));
+  RenderUtils::create_shader(&voxel_highlight_shader_, Options::instance()->getShaderPath("voxel_highlight.vs"), Options::instance()->getShaderPath("voxel_highlight.fs"));
+  RenderUtils::create_shader(&blur_shader_,  Options::instance()->getShaderPath("blur.vs"),  Options::instance()->getShaderPath("blur.fs"));
+  RenderUtils::create_shader(&final_shader_,  Options::instance()->getShaderPath("final.vs"),  Options::instance()->getShaderPath("final.fs"));
 
   float voxel_highlight_vertices[] = {
     // Front face

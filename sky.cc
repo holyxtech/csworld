@@ -3,14 +3,15 @@
 #include "render_utils.h"
 #include "renderer.h"
 #include "stb_image.h"
+#include "options.h"
 
 glm::vec3 Sky::spherical_to_cartesian(float r, float theta, float phi) {
   return glm::vec3(r * sin(theta) * sin(phi), r * cos(theta), -r * sin(theta) * cos(phi));
 }
 
 Sky::Sky() {
-  RenderUtils::create_shader(&shader_, "shaders/sky.vs", "shaders/sky.fs");
-  RenderUtils::create_shader(&cb_shader_, "shaders/cb.vs", "shaders/cb.fs");
+  RenderUtils::create_shader(&shader_,  Options::instance()->getShaderPath("sky.vs"),  Options::instance()->getShaderPath("sky.fs"));
+  RenderUtils::create_shader(&cb_shader_,  Options::instance()->getShaderPath("cb.vs"),  Options::instance()->getShaderPath("cb.fs"));
 
   glGenTextures(1, &cube_texture_);
   glActiveTexture(GL_TEXTURE1);
@@ -19,16 +20,18 @@ Sky::Sky() {
   glUniform1i(glGetUniformLocation(shader_, "skybox"), 1);
 
   std::vector<std::string> textures_faces = {
-    "images/sky/pos_x.png",
-    "images/sky/neg_x.png",
-    "images/sky/pos_y.png",
-    "images/sky/neg_y.png",
-    "images/sky/pos_z.png",
-    "images/sky/neg_z.png"};
+    "sky/pos_x.png",
+    "sky/neg_x.png",
+    "sky/pos_y.png",
+    "sky/neg_y.png",
+    "sky/pos_z.png",
+    "sky/neg_z.png"};
   int width, height, channels;
   unsigned char* data;
   for (int i = 0; i < textures_faces.size(); ++i) {
-    data = stbi_load(textures_faces[i].c_str(), &width, &height, &channels, 0);
+    const std::string & texFile = Options::instance()->getImagePath(textures_faces[i]);
+
+    data = stbi_load(texFile.c_str(), &width, &height, &channels, 0);
     glTexImage2D(
       GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
       0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
