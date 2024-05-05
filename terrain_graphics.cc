@@ -1,6 +1,7 @@
 #include "terrain_graphics.h"
 #include <cstddef>
 #include <type_traits>
+#include <GLFW/glfw3.h>
 #include "mesh_generator.h"
 #include "region.h"
 #include "render_utils.h"
@@ -8,14 +9,20 @@
 #include "sky.h"
 #include "stb_image.h"
 #include "types.h"
+<<<<<<< HEAD
 #include "options.h"
+=======
+#include "voxel.h"
+>>>>>>> 98a5953 (x)
 
-template <typename T>
+template <MeshGenerator::MeshKind mesh_kind>
 TerrainGraphics::MultiDrawHandle& TerrainGraphics::get_multi_draw_handle() {
-  if constexpr (std::is_same_v<T, CubeVertex>)
+  if constexpr (mesh_kind == MeshGenerator::MeshKind::cubes)
     return cubes_draw_handle_;
-  else if constexpr (std::is_same_v<T, Vertex>)
+  else if constexpr (mesh_kind == MeshGenerator::MeshKind::irregular)
     return irregular_draw_handle_;
+  else if constexpr (mesh_kind == MeshGenerator::MeshKind::water)
+    return water_draw_handle_;
 }
 
 template <typename T>
@@ -26,10 +33,10 @@ void TerrainGraphics::set_up_vao() {
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
   } else if constexpr (std::is_same_v<T, Vertex>) {
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvs));
-    glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)offsetof(Vertex, layer));
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, lighting));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position_));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvs_));
+    glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)offsetof(Vertex, textureId_));
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, lighting_));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
@@ -37,17 +44,30 @@ void TerrainGraphics::set_up_vao() {
   }
 }
 
-template <typename T>
+template <MeshGenerator::MeshKind mesh_kind>
 void TerrainGraphics::set_up() {
-  auto& mdh = get_multi_draw_handle<T>();
+  using T = VertexKind::VertexKind<mesh_kind>::type;
+  auto& mdh = get_multi_draw_handle<mesh_kind>();
 
   int defacto_vertices;
-  if constexpr (std::is_same_v<T, CubeVertex>) {
+  if constexpr (mesh_kind == MeshGenerator::MeshKind::cubes) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_mesh;
+<<<<<<< HEAD
     RenderUtils::create_shader(&mdh.shader,  Options::instance()->getShaderPath("terrain.vs"),  Options::instance()->getShaderPath("terrain.fs"));
   } else if constexpr (std::is_same_v<T, Vertex>) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_irregular_mesh;
     RenderUtils::create_shader(&mdh.shader,  Options::instance()->getShaderPath("irregular.vs"),  Options::instance()->getShaderPath("terrain.fs"));
+=======
+    RenderUtils::create_shader(&mdh.shader, "shaders/terrain.vs", "shaders/terrain.fs");
+  } else if constexpr (mesh_kind == MeshGenerator::MeshKind::irregular) {
+    defacto_vertices = MeshGenerator::defacto_vertices_per_irregular_mesh;
+    RenderUtils::create_shader(&mdh.shader, "shaders/irregular.vs", "shaders/terrain.fs");
+  } else if constexpr (mesh_kind == MeshGenerator::MeshKind::water) {
+    defacto_vertices = MeshGenerator::defacto_vertices_per_water_mesh;
+
+    // ...
+    RenderUtils::create_shader(&mdh.shader, "shaders/water.vs", "shaders/water.fs");
+>>>>>>> 98a5953 (x)
   }
 
   glGenBuffers(1, &mdh.vbo);
@@ -78,7 +98,7 @@ void TerrainGraphics::set_up() {
 }
 
 TerrainGraphics::TerrainGraphics() {
-  set_up<CubeVertex>();
+  set_up<MeshGenerator::MeshKind::cubes>();
   glCreateBuffers(1, &cpx_ssbo_);
   glNamedBufferStorage(cpx_ssbo_, sizeof(glm::vec3) * cubes_draw_handle_.commands.size(), nullptr, GL_DYNAMIC_STORAGE_BIT);
   glCreateBuffers(1, &cpy_ssbo_);
@@ -86,17 +106,17 @@ TerrainGraphics::TerrainGraphics() {
   glCreateBuffers(1, &cpz_ssbo_);
   glNamedBufferStorage(cpz_ssbo_, sizeof(glm::vec3) * cubes_draw_handle_.commands.size(), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
-  set_up<Vertex>();
+  set_up<MeshGenerator::MeshKind::irregular>();
+  set_up<MeshGenerator::MeshKind::water>();
 
   glGenTextures(1, &voxel_texture_array_);
-  glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D_ARRAY, voxel_texture_array_);
-  GLint num_layers = static_cast<GLint>(VoxelTexture::num_voxel_textures);
+  GLint num_textures = static_cast<GLint>(VoxelTexture::num_voxel_textures);
   GLsizei width = 16;
   GLsizei height = 16;
   GLsizei channels;
   GLsizei num_mipmaps = 1;
-  glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_SRGB8_ALPHA8, width, height, num_layers);
+  glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_SRGB8_ALPHA8, width, height, num_textures);
   stbi_set_flip_vertically_on_load(1);
   std::vector<std::pair<std::string, VoxelTexture>> textures = {
     std::make_pair("dirt", VoxelTexture::dirt),
@@ -121,6 +141,21 @@ TerrainGraphics::TerrainGraphics() {
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
+  std::array<std::pair<std::string, GLuint>, 2> normal_maps = {
+    std::make_pair("waterNM1", normal_map1),
+    std::make_pair("waterNM2", normal_map2)};
+  for (auto [filename, texture] : normal_maps) {
+    std::string path = "images/" + filename + ".png";
+    unsigned char* image_data;
+    image_data = stbi_load(path.c_str(), &width, &height, &channels, 0);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB8, GL_UNSIGNED_BYTE, image_data);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    stbi_image_free(image_data);
+  }
+
   // uniforms
   glUseProgram(cubes_draw_handle_.shader);
   GLint texture_loc = glGetUniformLocation(cubes_draw_handle_.shader, "textureArray");
@@ -129,20 +164,23 @@ TerrainGraphics::TerrainGraphics() {
   glUseProgram(irregular_draw_handle_.shader);
   texture_loc = glGetUniformLocation(irregular_draw_handle_.shader, "textureArray");
   glUniform1i(texture_loc, 0);
+
+  // glUseProgram(water_draw_handle_.shader);
 }
 
 void TerrainGraphics::create(const Location& loc, const MeshGenerator& mesh_generator) {
-  upload(loc, mesh_generator.get_mesh(loc), mesh_generator.get_origin());
-  upload(loc, mesh_generator.get_irregular_mesh(loc), mesh_generator.get_origin());
+  upload<MeshGenerator::MeshKind::cubes>(loc, mesh_generator.get_mesh(loc), mesh_generator.get_origin());
+  upload<MeshGenerator::MeshKind::irregular>(loc, mesh_generator.get_irregular_mesh(loc), mesh_generator.get_origin());
+  upload<MeshGenerator::MeshKind::water>(loc, mesh_generator.get_water_mesh(loc), mesh_generator.get_origin());
 }
 
-template void TerrainGraphics::upload<CubeVertex>(const Location&, const std::vector<CubeVertex>&, const Location&);
-template void TerrainGraphics::upload<Vertex>(const Location&, const std::vector<Vertex>&, const Location&);
-
-template <typename T>
-void TerrainGraphics::upload(const Location& loc, const std::vector<T>& mesh, const Location& offset) {
-  MultiDrawHandle& mdh = get_multi_draw_handle<T>();
-
+template <MeshGenerator::MeshKind mesh_kind>
+void TerrainGraphics::upload(
+  const Location& loc,
+  const std::vector<typename VertexKind::VertexKind<mesh_kind>::type>& mesh,
+  const Location& offset) {
+  using T = VertexKind::VertexKind<mesh_kind>::type;
+  MultiDrawHandle& mdh = get_multi_draw_handle<mesh_kind>();
   std::size_t idx;
   if (mdh.loc_to_command_index.contains(loc)) {
     idx = mdh.loc_to_command_index[loc];
@@ -256,60 +294,82 @@ void TerrainGraphics::remove(const Location& loc, MultiDrawHandle& mdh) {
 void TerrainGraphics::destroy(const Location& loc) {
   remove(loc, cubes_draw_handle_);
   remove(loc, irregular_draw_handle_);
+  remove(loc, water_draw_handle_);
+}
+
+void TerrainGraphics::render(const Renderer& renderer, const MultiDrawHandle& mdh) const {
+  glUseProgram(mdh.shader);
+  auto transform_loc = glGetUniformLocation(mdh.shader, "uTransform");
+  auto& projection = renderer.get_projection_matrix();
+  auto& view = renderer.get_view_matrix();
+  auto transform = projection * view;
+  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
+  auto camera_world_position_loc = glGetUniformLocation(mdh.shader, "uCameraWorldPosition");
+  auto& camera_world_position = renderer.get_camera_world_position();
+  glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_world_position));
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D_ARRAY, voxel_texture_array_);
+  GLuint voxel_textures_loc = glGetUniformLocation(mdh.shader, "textureArray");
+  glUniform1i(voxel_textures_loc, 0);
+  const Sky& sky = renderer.get_sky();
+  GLuint texture = sky.get_texture();
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+  glUniform1i(glGetUniformLocation(mdh.shader, "skybox"), 1);
+
+  glBindVertexArray(mdh.vao);
+  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
+  glMultiDrawArraysIndirect(GL_TRIANGLES, 0, mdh.commands.size(), 0);
 }
 
 void TerrainGraphics::render(const Renderer& renderer) const {
-  {
-    auto& mdh = cubes_draw_handle_;
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, cpx_ssbo_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cpy_ssbo_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, cpz_ssbo_);
+  render(renderer, cubes_draw_handle_);
 
-    glUseProgram(mdh.shader);
-    auto transform_loc = glGetUniformLocation(mdh.shader, "uTransform");
-    auto& projection = renderer.get_projection_matrix();
-    auto& view = renderer.get_view_matrix();
-    auto transform = projection * view;
-    glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
-    auto camera_world_position_loc = glGetUniformLocation(mdh.shader, "uCameraWorldPosition");
-    auto& camera_world_position = renderer.get_camera_world_position();
-    glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_world_position));
+  render(renderer, irregular_draw_handle_);
+}
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, voxel_texture_array_);
-    GLuint voxel_textures_loc = glGetUniformLocation(mdh.shader, "textureArray");
-    glUniform1i(voxel_textures_loc, 0);
-    const Sky& sky = renderer.get_sky();
-    GLuint texture = sky.get_texture();
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
-    glUniform1i(glGetUniformLocation(mdh.shader, "skybox"), 1);
+void TerrainGraphics::render_water(const Renderer& renderer) const {
+  const MultiDrawHandle& mdh = water_draw_handle_;
+  glUseProgram(mdh.shader);
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, cpx_ssbo_);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cpy_ssbo_);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, cpz_ssbo_);
-    glBindVertexArray(mdh.vao);
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
-    glMultiDrawArraysIndirect(GL_TRIANGLES, 0, mdh.commands.size(), 0);
-  }
-  {
-    auto& mdh = irregular_draw_handle_;
+  auto transform_loc = glGetUniformLocation(mdh.shader, "uTransform");
+  auto& projection = renderer.get_projection_matrix();
+  auto& view = renderer.get_view_matrix();
+  auto transform = projection * view;
+  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
 
-    glUseProgram(mdh.shader);
-    auto transform_loc = glGetUniformLocation(mdh.shader, "uTransform");
-    auto& projection = renderer.get_projection_matrix();
-    auto& view = renderer.get_view_matrix();
-    auto transform = projection * view;
-    glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
-    auto camera_world_position_loc = glGetUniformLocation(mdh.shader, "uCameraWorldPosition");
-    auto& camera_world_position = renderer.get_camera_world_position();
-    glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_world_position));
+  auto camera_world_position_loc = glGetUniformLocation(mdh.shader, "cameraWorldPosition");
+  auto& camera_world_position = renderer.get_camera_world_position();
+  glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_world_position));
 
-    GLuint voxel_textures_loc = glGetUniformLocation(mdh.shader, "textureArray");
-    glUniform1i(voxel_textures_loc, 0);
-    const Sky& sky = renderer.get_sky();
-    GLuint texture = sky.get_texture();
-    glUniform1i(glGetUniformLocation(mdh.shader, "skybox"), 1);
+  const Sky& sky = renderer.get_sky();
+  GLuint texture = sky.get_texture();
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+  glUniform1i(glGetUniformLocation(mdh.shader, "skybox"), 0);
 
+<<<<<<< HEAD
     glBindVertexArray(mdh.vao);
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
     glMultiDrawArraysIndirect(GL_TRIANGLES, 0, mdh.commands.size(), 0);
   }
 }
+=======
+  // normal maps
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, normal_map1);
+  glUniform1i(glGetUniformLocation(mdh.shader, "normalMap1"), 1);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, normal_map2);
+  glUniform1i(glGetUniformLocation(mdh.shader, "normalMap2"), 2);
+
+
+  glBindVertexArray(mdh.vao);
+  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
+  glMultiDrawArraysIndirect(GL_TRIANGLES, 0, mdh.commands.size(), 0);
+}
+>>>>>>> 98a5953 (x)

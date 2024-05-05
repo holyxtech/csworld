@@ -126,10 +126,10 @@ struct Location2DHash {
 };
 
 struct Vertex {
-  glm::vec3 position;
-  glm::vec2 uvs;
-  int layer;
-  float lighting;
+  glm::vec3 position_;
+  glm::vec2 uvs_;
+  int textureId_;
+  float lighting_;
 };
 
 class CubeVertex {
@@ -170,45 +170,6 @@ enum class Item {
   dirt,
   stone,
   sandstone
-};
-
-enum class Voxel {
-  empty,
-  WATER_LOWER,
-  water_full,
-  WATER_UPPER,
-
-  grass,
-
-  CUBE_LOWER,
-  glass,
-
-  PARTIAL_OPAQUE_LOWER,
-  leaves,
-
-  OPAQUE_LOWER,
-  dirt,
-  sand,
-  tree_trunk,
-  sandstone,
-  stone,
-
-  num_voxel_types
-};
-
-enum class VoxelTexture {
-  dirt,
-  grass,
-  grass_side,
-  water,
-  sand,
-  tree_trunk,
-  leaves,
-  sandstone,
-  stone,
-  standing_grass,
-
-  num_voxel_textures
 };
 
 struct Action {

@@ -66,6 +66,60 @@ MeshGenerator::MeshGenerator() {
   };
 }
 
+std::array<Voxel, 6> MeshGenerator::get_adjacent_voxels(
+  Chunk& chunk, std::array<Chunk*, 6>& adjacent_chunks, int x, int y, int z) const {
+  auto& location = chunk.get_location();
+  std::array<Voxel, 6> adjacent{Voxel::empty};
+  if (x > 0) {
+    adjacent[nx] = chunk.get_voxel(x - 1, y, z);
+  } else {
+    adjacent[nx] = adjacent_chunks[nx]->get_voxel(Chunk::sz_x - 1, y, z);
+  }
+  if (x < Chunk::sz_x - 1) {
+    adjacent[px] = chunk.get_voxel(x + 1, y, z);
+  } else {
+    adjacent[px] = adjacent_chunks[px]->get_voxel(0, y, z);
+  }
+  if (y > 0) {
+    adjacent[ny] = chunk.get_voxel(x, y - 1, z);
+  } else {
+    adjacent[ny] = adjacent_chunks[ny]->get_voxel(x, Chunk::sz_y - 1, z);
+  }
+  if (y < Chunk::sz_y - 1) {
+    adjacent[py] = chunk.get_voxel(x, y + 1, z);
+  } else {
+    adjacent[py] = adjacent_chunks[py]->get_voxel(x, 0, z);
+  }
+  if (z > 0) {
+    adjacent[nz] = chunk.get_voxel(x, y, z - 1);
+  } else {
+    adjacent[nz] = adjacent_chunks[nz]->get_voxel(x, y, Chunk::sz_z - 1);
+  }
+  if (z < Chunk::sz_z - 1) {
+    adjacent[pz] = chunk.get_voxel(x, y, z + 1);
+  } else {
+    adjacent[pz] = adjacent_chunks[pz]->get_voxel(x, y, 0);
+  }
+  return adjacent;
+}
+
+std::array<float, 4> MeshGenerator::get_lighting(Region& region, Int3D coord, Axis axis) const {
+  std::array<float, 4> lighting;
+  std::array<float, 9> voxel_light_levels;
+  auto& offsets = three_by_three_grid_vectors_[static_cast<int>(axis)];
+  for (int i = 0; i < 9; ++i) {
+    auto& offset = offsets[i];
+    auto light_level = region.get_lighting(coord[0] + offset[0], coord[1] + offset[1], coord[2] + offset[2]);
+    voxel_light_levels[i] = lighting_levels_[static_cast<int>(light_level)];
+  }
+  lighting[0] = (voxel_light_levels[0] + voxel_light_levels[1] + voxel_light_levels[3] + voxel_light_levels[4]) / 4;
+  lighting[1] = (voxel_light_levels[1] + voxel_light_levels[2] + voxel_light_levels[4] + voxel_light_levels[5]) / 4;
+  lighting[2] = (voxel_light_levels[3] + voxel_light_levels[4] + voxel_light_levels[6] + voxel_light_levels[7]) / 4;
+  lighting[3] = (voxel_light_levels[4] + voxel_light_levels[5] + voxel_light_levels[7] + voxel_light_levels[8]) / 4;
+
+  return lighting;
+}
+
 void MeshGenerator::mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position, Voxel voxel, float lighting) {
   float i = position[0], j = position[1], k = position[2];
   std::uint32_t seed = 0;
@@ -109,21 +163,67 @@ void MeshGenerator::mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position,
   }
 }
 
-std::array<float, 4> MeshGenerator::get_lighting(Region& region, Int3D coord, Axis axis) const {
-  std::array<float, 4> lighting;
-  std::array<float, 9> voxel_light_levels;
-  auto& offsets = three_by_three_grid_vectors_[static_cast<int>(axis)];
-  for (int i = 0; i < 9; ++i) {
-    auto& offset = offsets[i];
-    auto light_level = region.get_lighting(coord[0] + offset[0], coord[1] + offset[1], coord[2] + offset[2]);
-    voxel_light_levels[i] = lighting_levels_[static_cast<int>(light_level)];
-  }
-  lighting[0] = (voxel_light_levels[0] + voxel_light_levels[1] + voxel_light_levels[3] + voxel_light_levels[4]) / 4;
-  lighting[1] = (voxel_light_levels[1] + voxel_light_levels[2] + voxel_light_levels[4] + voxel_light_levels[5]) / 4;
-  lighting[2] = (voxel_light_levels[3] + voxel_light_levels[4] + voxel_light_levels[6] + voxel_light_levels[7]) / 4;
-  lighting[3] = (voxel_light_levels[4] + voxel_light_levels[5] + voxel_light_levels[7] + voxel_light_levels[8]) / 4;
+void MeshGenerator::mesh_water(std::vector<Vertex>& mesh, glm::vec3& position, Voxel voxel, std::array<Voxel, 6>& adjacent) {
+  // presume the voxel is water_full for now
+  float i = position[0], j = position[1], k = position[2];
+  float delta = 0.06;
 
-  return lighting;
+  // if there's water above you, then you need to be a full cube (subject to culling)
+  // if no water above you, short water block
+  float height = 1;
+  if (!vops::is_water(adjacent[py]))
+    height -= delta;
+
+  int textureId = static_cast<int>(VoxelTexture::water);
+
+  if (!vops::is_opaque(adjacent[nx]) && !vops::is_water(adjacent[nx])) {
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + height, k + 1), QuadCoord::tl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + height, k), QuadCoord::tr, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::bl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + height, k + 1), QuadCoord::tl, textureId, 1.f});
+  }
+  if (!vops::is_opaque(adjacent[px]) && !vops::is_water(adjacent[px])) {
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::bl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k), QuadCoord::tl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k + 1), QuadCoord::tr, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::bl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k + 1), QuadCoord::tr, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::br, textureId, 1.f});
+  }
+  if (!vops::is_opaque(adjacent[ny]) && !vops::is_water(adjacent[ny])) {
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::tr, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::tl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::tl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::bl, textureId, 1.f});
+  }
+  if (!vops::is_opaque(adjacent[py]) && !vops::is_water(adjacent[py])) {
+    mesh.emplace_back(Vertex{glm::vec3(i, j + height, k), QuadCoord::br, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k + 1), QuadCoord::tl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k), QuadCoord::tr, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + height, k), QuadCoord::br, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + height, k + 1), QuadCoord::bl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k + 1), QuadCoord::tl, textureId, 1.f});
+  }
+  if (!vops::is_opaque(adjacent[nz]) && !vops::is_water(adjacent[nz])) {
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::bl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + height, k), QuadCoord::tl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k), QuadCoord::tr, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::bl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k), QuadCoord::tr, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::br, textureId, 1.f});
+  }
+  if (!vops::is_opaque(adjacent[pz]) && !vops::is_water(adjacent[pz])) {
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::br, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k + 1), QuadCoord::tl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j + height, k + 1), QuadCoord::tr, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::br, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::bl, textureId, 1.f});
+    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k + 1), QuadCoord::tl, textureId, 1.f});
+  }
 }
 
 void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
@@ -131,6 +231,7 @@ void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
   auto adjacent_chunks = region.get_adjacent_chunks(location);
   auto& mesh = meshes_[location];
   auto& irregular_mesh = irregular_meshes_[location];
+  auto& water_mesh = water_meshes_[location];
   mesh.reserve(defacto_vertices_per_mesh);
   glm::vec3 chunk_position(
     (location[0] - origin_[0]) * Chunk::sz_x, (location[1] - origin_[1]) * Chunk::sz_y, (location[2] - origin_[2]) * Chunk::sz_z);
@@ -139,47 +240,22 @@ void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
     for (int y = 0; y < Chunk::sz_y; ++y) {
       for (int x = 0; x < Chunk::sz_x; ++x) {
         auto voxel = chunk.get_voxel(x, y, z);
-        if (voxel < Voxel::WATER_UPPER)
+        if (voxel < Voxel::WATER_LOWER)
           continue;
 
         auto position = chunk_position + glm::vec3(x, y, z);
+        auto adjacent = get_adjacent_voxels(chunk, adjacent_chunks, x, y, z);
+
+        if (voxel < Voxel::WATER_UPPER) {
+          mesh_water(water_mesh, position, voxel, adjacent);
+          continue;
+        }
+
         if (voxel < Voxel::CUBE_LOWER) {
           auto level = chunk.get_lighting(x, y, z);
           auto lighting = lighting_levels_[level];
           mesh_noncube(irregular_mesh, position, voxel, lighting);
           continue;
-        }
-
-        std::array<Voxel, 6> adjacent;
-        if (x > 0) {
-          adjacent[nx] = chunk.get_voxel(x - 1, y, z);
-        } else {
-          adjacent[nx] = adjacent_chunks[nx]->get_voxel(Chunk::sz_x - 1, y, z);
-        }
-        if (x < Chunk::sz_x - 1) {
-          adjacent[px] = chunk.get_voxel(x + 1, y, z);
-        } else {
-          adjacent[px] = adjacent_chunks[px]->get_voxel(0, y, z);
-        }
-        if (y > 0) {
-          adjacent[ny] = chunk.get_voxel(x, y - 1, z);
-        } else {
-          adjacent[ny] = adjacent_chunks[ny]->get_voxel(x, Chunk::sz_y - 1, z);
-        }
-        if (y < Chunk::sz_y - 1) {
-          adjacent[py] = chunk.get_voxel(x, y + 1, z);
-        } else {
-          adjacent[py] = adjacent_chunks[py]->get_voxel(x, 0, z);
-        }
-        if (z > 0) {
-          adjacent[nz] = chunk.get_voxel(x, y, z - 1);
-        } else {
-          adjacent[nz] = adjacent_chunks[nz]->get_voxel(x, y, Chunk::sz_z - 1);
-        }
-        if (z < Chunk::sz_z - 1) {
-          adjacent[pz] = chunk.get_voxel(x, y, z + 1);
-        } else {
-          adjacent[pz] = adjacent_chunks[pz]->get_voxel(x, y, 0);
         }
 
         std::array<VoxelTexture, 6> layers;
@@ -220,7 +296,7 @@ void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
           break;
         }
 
-        auto TYPE_UPPER_BOUND = Voxel::num_voxel_types;
+        auto TYPE_UPPER_BOUND = Voxel::voxel_enum_size;
         if (voxel > Voxel::OPAQUE_LOWER)
           TYPE_UPPER_BOUND = Voxel::OPAQUE_LOWER;
 
@@ -330,6 +406,7 @@ const std::vector<MeshGenerator::Diff>& MeshGenerator::get_diffs() const {
 void MeshGenerator::clear_diffs() {
   meshes_.clear();
   irregular_meshes_.clear();
+  water_meshes_.clear();
   diffs_.clear();
 }
 
@@ -346,4 +423,8 @@ const std::vector<CubeVertex> MeshGenerator::get_mesh(const Location& loc) const
 }
 const std::vector<Vertex> MeshGenerator::get_irregular_mesh(const Location& loc) const {
   return irregular_meshes_.at(loc);
+}
+
+const std::vector<Vertex> MeshGenerator::get_water_mesh(const Location& loc) const {
+  return water_meshes_.at(loc);
 }

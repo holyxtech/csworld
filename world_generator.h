@@ -7,6 +7,7 @@
 #include "open-simplex-noise.h"
 #include "section.h"
 #include "types.h"
+#include "voxel.h"
 
 class WorldGenerator {
 public:

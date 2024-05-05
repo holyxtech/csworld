@@ -12,12 +12,34 @@
 
 class Renderer;
 
+namespace VertexKind {
+  template <MeshGenerator::MeshKind mesh_kind>
+  struct VertexKind {
+    using type = Vertex;
+  };
+
+  template <>
+  struct VertexKind<MeshGenerator::MeshKind::cubes> {
+    using type = CubeVertex;
+  };
+
+  template <>
+  struct VertexKind<MeshGenerator::MeshKind::irregular> {
+    using type = Vertex;
+  };
+
+  template <>
+  struct VertexKind<MeshGenerator::MeshKind::water> {
+    using type = Vertex;
+  };
+} // namespace VertexKind
+
 class TerrainGraphics {
 public:
   TerrainGraphics();
   void render(const Renderer& renderer) const;
+  void render_water(const Renderer& renderer) const;
   void create(const Location& loc, const MeshGenerator& mesh_generator);
-
   void destroy(const Location& loc);
 
 private:
@@ -44,18 +66,21 @@ private:
     std::unordered_map<Location, std::size_t, LocationHash> loc_to_command_index;
   };
 
-  template <typename T>
-  void upload(const Location& loc, const std::vector<T>& mesh, const Location& offset);
-  
+  template <MeshGenerator::MeshKind mesh_kind>
+  void upload(const Location& loc,
+              const std::vector<typename VertexKind::VertexKind<mesh_kind>::type>& mesh,
+              const Location& offset);
   void remove(const Location& loc, MultiDrawHandle& mdh);
 
-  template <typename T>
+  void render(const Renderer& renderer, const MultiDrawHandle& mdh) const;
+
+  template <MeshGenerator::MeshKind mesh_kind>
   MultiDrawHandle& get_multi_draw_handle();
 
   template <typename T>
   void set_up_vao();
 
-  template <typename T>
+  template <MeshGenerator::MeshKind mesh_kind>
   void set_up();
 
   // specific for cubes
@@ -66,6 +91,11 @@ private:
 
   // specific for irregular
   MultiDrawHandle irregular_draw_handle_;
+
+  // specific for water
+  MultiDrawHandle water_draw_handle_;
+  GLuint normal_map1;
+  GLuint normal_map2;
 
   // universal
   GLuint voxel_texture_array_;

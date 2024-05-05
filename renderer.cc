@@ -6,16 +6,16 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
 #include <glm/gtc/random.hpp>
+#include "options.h"
 #include "render_utils.h"
 #include "stb_image.h"
 #include "types.h"
-#include "options.h"
 
 Renderer::Renderer(World& world) : world_(world) {
   RenderUtils::create_shader(&composite_shader_, Options::instance()->getShaderPath("composite.vs"), Options::instance()->getShaderPath("composite.fs"));
   RenderUtils::create_shader(&voxel_highlight_shader_, Options::instance()->getShaderPath("voxel_highlight.vs"), Options::instance()->getShaderPath("voxel_highlight.fs"));
-  RenderUtils::create_shader(&blur_shader_,  Options::instance()->getShaderPath("blur.vs"),  Options::instance()->getShaderPath("blur.fs"));
-  RenderUtils::create_shader(&final_shader_,  Options::instance()->getShaderPath("final.vs"),  Options::instance()->getShaderPath("final.fs"));
+  RenderUtils::create_shader(&blur_shader_, Options::instance()->getShaderPath("blur.vs"), Options::instance()->getShaderPath("blur.fs"));
+  RenderUtils::create_shader(&final_shader_, Options::instance()->getShaderPath("final.vs"), Options::instance()->getShaderPath("final.fs"));
 
   float voxel_highlight_vertices[] = {
     // Front face
@@ -85,6 +85,7 @@ Renderer::Renderer(World& world) : world_(world) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, dbo, 0);
   };
   set_up_framebuffers(main_framebuffer_, main_cbo_, main_dbo_);
+  set_up_framebuffers(water_framebuffer_, water_cbo_, water_dbo_);
   // set_up_framebuffers(water_framebuffer_, water_cbo_, water_dbo_);
   glGenFramebuffers(1, &composite_framebuffer_);
   glBindFramebuffer(GL_FRAMEBUFFER, composite_framebuffer_);
@@ -151,12 +152,16 @@ void Renderer::consume_camera(const Camera& camera) {
 void Renderer::render() const {
 
   glEnable(GL_DEPTH_TEST);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, water_framebuffer_);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  terrain_.render_water(*this);
+
   glBindFramebuffer(GL_FRAMEBUFFER, main_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   terrain_.render(*this);
-
-  sky_.render(*this);
 
   glUseProgram(voxel_highlight_shader_);
   auto transform_loc = glGetUniformLocation(voxel_highlight_shader_, "uTransform");
@@ -165,16 +170,24 @@ void Renderer::render() const {
   glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
   glBindVertexArray(voxel_highlight_vao_);
   glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
-  glDisable(GL_DEPTH_TEST);
 
+  sky_.render(*this);
+
+  glDisable(GL_DEPTH_TEST);
   glBindFramebuffer(GL_FRAMEBUFFER, composite_framebuffer_);
   glUseProgram(composite_shader_);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, main_cbo_);
   glUniform1i(glGetUniformLocation(composite_shader_, "mainColor"), 0);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, water_cbo_);
+  glUniform1i(glGetUniformLocation(composite_shader_, "waterColor"), 1);
   glActiveTexture(GL_TEXTURE2);
   glBindTexture(GL_TEXTURE_2D, main_dbo_);
   glUniform1i(glGetUniformLocation(composite_shader_, "mainDepth"), 2);
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, water_dbo_);
+  glUniform1i(glGetUniformLocation(composite_shader_, "waterDepth"), 3);
   glBindVertexArray(quad_vao_);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 

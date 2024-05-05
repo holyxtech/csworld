@@ -5,7 +5,7 @@ uniform samplerCube skybox;
 uniform vec3 uCameraWorldPosition;
 
 in vec2 fragUvs;
-flat in uint fragLayer;
+flat in uint fragTextureId;
 in float fragLighting;
 in vec3 fragWorldPosition;
 
@@ -25,7 +25,7 @@ float LinearFog() {
 void main() {
   vec3 direction_to_sky = fragWorldPosition - uCameraWorldPosition;
   vec4 skyboxColor = texture(skybox, direction_to_sky);
-  vec4 textureColor = texture(textureArray, vec3(fragUvs, fragLayer));
+  vec4 textureColor = texture(textureArray, vec3(fragUvs, fragTextureId));
   vec4 lightedColor = vec4(textureColor.rgb * fragLighting, textureColor.a);
 
   if (textureColor.a == 0.0)

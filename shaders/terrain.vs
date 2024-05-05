@@ -16,7 +16,7 @@ uniform mat4 uTransform;
 
 out vec2 fragUvs;
 out vec3 fragWorldPosition;
-flat out uint fragLayer;
+flat out uint fragTextureId;
 out float fragLighting;
 
 const uint xpos_mask = 0x0000001F;
@@ -46,7 +46,7 @@ void main() {
 
     uint textureId = uint((data & texture_mask) >> 20);
 
-    fragLayer = textureId;
+    fragTextureId = textureId;
     fragUvs = uvs[uvsId];
     fragLighting = lighting;
     fragWorldPosition = pos;

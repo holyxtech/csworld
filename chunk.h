@@ -7,6 +7,7 @@
 #include "common.h"
 #include "section.h"
 #include "types.h"
+#include "voxel.h"
 
 class Chunk {
 public:
