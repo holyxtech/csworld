@@ -3,17 +3,14 @@
 #include <type_traits>
 #include <GLFW/glfw3.h>
 #include "mesh_generator.h"
+#include "options.h"
 #include "region.h"
 #include "render_utils.h"
 #include "renderer.h"
 #include "sky.h"
 #include "stb_image.h"
 #include "types.h"
-<<<<<<< HEAD
-#include "options.h"
-=======
 #include "voxel.h"
->>>>>>> 98a5953 (x)
 
 template <MeshGenerator::MeshKind mesh_kind>
 TerrainGraphics::MultiDrawHandle& TerrainGraphics::get_multi_draw_handle() {
@@ -52,22 +49,13 @@ void TerrainGraphics::set_up() {
   int defacto_vertices;
   if constexpr (mesh_kind == MeshGenerator::MeshKind::cubes) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_mesh;
-<<<<<<< HEAD
-    RenderUtils::create_shader(&mdh.shader,  Options::instance()->getShaderPath("terrain.vs"),  Options::instance()->getShaderPath("terrain.fs"));
-  } else if constexpr (std::is_same_v<T, Vertex>) {
-    defacto_vertices = MeshGenerator::defacto_vertices_per_irregular_mesh;
-    RenderUtils::create_shader(&mdh.shader,  Options::instance()->getShaderPath("irregular.vs"),  Options::instance()->getShaderPath("terrain.fs"));
-=======
-    RenderUtils::create_shader(&mdh.shader, "shaders/terrain.vs", "shaders/terrain.fs");
+    RenderUtils::create_shader(&mdh.shader, Options::instance()->getShaderPath("terrain.vs"), Options::instance()->getShaderPath("terrain.fs"));
   } else if constexpr (mesh_kind == MeshGenerator::MeshKind::irregular) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_irregular_mesh;
-    RenderUtils::create_shader(&mdh.shader, "shaders/irregular.vs", "shaders/terrain.fs");
+    RenderUtils::create_shader(&mdh.shader, Options::instance()->getShaderPath("irregular.vs"), Options::instance()->getShaderPath("terrain.fs"));
   } else if constexpr (mesh_kind == MeshGenerator::MeshKind::water) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_water_mesh;
-
-    // ...
-    RenderUtils::create_shader(&mdh.shader, "shaders/water.vs", "shaders/water.fs");
->>>>>>> 98a5953 (x)
+    RenderUtils::create_shader(&mdh.shader, Options::instance()->getShaderPath("water.vs"), Options::instance()->getShaderPath("water.fs"));
   }
 
   glGenBuffers(1, &mdh.vbo);
@@ -333,7 +321,7 @@ void TerrainGraphics::render(const Renderer& renderer) const {
 }
 
 void TerrainGraphics::render_water(const Renderer& renderer) const {
-  const MultiDrawHandle& mdh = water_draw_handle_;
+/*   const MultiDrawHandle& mdh = water_draw_handle_;
   glUseProgram(mdh.shader);
 
   auto transform_loc = glGetUniformLocation(mdh.shader, "uTransform");
@@ -352,13 +340,6 @@ void TerrainGraphics::render_water(const Renderer& renderer) const {
   glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
   glUniform1i(glGetUniformLocation(mdh.shader, "skybox"), 0);
 
-<<<<<<< HEAD
-    glBindVertexArray(mdh.vao);
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
-    glMultiDrawArraysIndirect(GL_TRIANGLES, 0, mdh.commands.size(), 0);
-  }
-}
-=======
   // normal maps
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, normal_map1);
@@ -367,9 +348,7 @@ void TerrainGraphics::render_water(const Renderer& renderer) const {
   glBindTexture(GL_TEXTURE_2D, normal_map2);
   glUniform1i(glGetUniformLocation(mdh.shader, "normalMap2"), 2);
 
-
   glBindVertexArray(mdh.vao);
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
-  glMultiDrawArraysIndirect(GL_TRIANGLES, 0, mdh.commands.size(), 0);
+  glMultiDrawArraysIndirect(GL_TRIANGLES, 0, mdh.commands.size(), 0); */
 }
->>>>>>> 98a5953 (x)

@@ -9,14 +9,16 @@ set(CMAKE_CXX_STANDARD 23)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glfw3 REQUIRED)
-find_package(glm REQUIRED)
+#find_package(glm REQUIRED)
 find_package(flatbuffers REQUIRED)
-find_package(tsl-robin-map REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread system)
 
 # Sources
-file(GLOB PROJECT_SOURCE_FILES "*.cc")
+file(GLOB PROJECT_SOURCE_FILES
+	 "*.cc"
+	 "*.c"
+)
 set(projectSources
 	${PROJECT_SOURCE_FILES}
 )
@@ -24,6 +26,9 @@ file(GLOB PROJECT_SOURCE_FILES_SERVER "server/*.cc")
 set(projectSourcesServer
 	${PROJECT_SOURCE_FILES_SERVER}
 )
+
+file(GLOB_RECURSE CFILES "${CMAKE_SOURCE_DIR}/*.c")
+SET_SOURCE_FILES_PROPERTIES(${CFILES} PROPERTIES LANGUAGE CXX )
 
 # Generate flatbuffer headers 
 add_custom_target(
