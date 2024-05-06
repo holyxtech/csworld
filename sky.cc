@@ -1,17 +1,17 @@
 #include "sky.h"
 #include <string>
+#include "options.h"
 #include "render_utils.h"
 #include "renderer.h"
 #include "stb_image.h"
-#include "options.h"
 
 glm::vec3 Sky::spherical_to_cartesian(float r, float theta, float phi) {
   return glm::vec3(r * sin(theta) * sin(phi), r * cos(theta), -r * sin(theta) * cos(phi));
 }
 
 Sky::Sky() {
-  RenderUtils::create_shader(&shader_,  Options::instance()->getShaderPath("sky.vs"),  Options::instance()->getShaderPath("sky.fs"));
-  RenderUtils::create_shader(&cb_shader_,  Options::instance()->getShaderPath("cb.vs"),  Options::instance()->getShaderPath("cb.fs"));
+  RenderUtils::create_shader(&shader_, Options::instance()->getShaderPath("sky.vs"), Options::instance()->getShaderPath("sky.fs"));
+  RenderUtils::create_shader(&cb_shader_, Options::instance()->getShaderPath("cb.vs"), Options::instance()->getShaderPath("cb.fs"));
 
   glGenTextures(1, &cube_texture_);
   glBindTexture(GL_TEXTURE_CUBE_MAP, cube_texture_);
@@ -28,7 +28,7 @@ Sky::Sky() {
   int width, height, channels;
   unsigned char* data;
   for (int i = 0; i < textures_faces.size(); ++i) {
-    const std::string & texFile = Options::instance()->getImagePath(textures_faces[i]);
+    const std::string& texFile = Options::instance()->getImagePath(textures_faces[i]);
 
     data = stbi_load(texFile.c_str(), &width, &height, &channels, 0);
     glTexImage2D(
@@ -121,7 +121,8 @@ Sky::Sky() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, sun_texture_);
     int width, height, channels;
-    auto* image_data = stbi_load("images/sun.png", &width, &height, &channels, STBI_rgb_alpha);
+    const std::string& path = Options::instance()->getImagePath("sun.png");
+    auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     stbi_image_free(image_data);
 
