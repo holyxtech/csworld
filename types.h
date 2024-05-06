@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 #include <glm/glm.hpp>
+#include "item.h"
 
 namespace {
   constexpr unsigned int create_bitmask(int start, int end) {
@@ -164,13 +165,6 @@ namespace QuadCoord {
 } // namespace QuadCoord
 
 using Message = std::vector<uint8_t>;
-
-enum class Item {
-  empty,
-  dirt,
-  stone,
-  sandstone
-};
 
 struct Action {
   struct NewActiveItemData {

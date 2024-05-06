@@ -14,12 +14,13 @@
 #include "input.h"
 #include "readerwriterqueue.h"
 #include "section.h"
+#include "item.h"
 
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window), tcp_client_(tcp_client), renderer_(world_) {
 
   // std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-11-0-0", "37-59-03");
-  // starting_pos[1] = 350;
+  //  starting_pos[1] = 350;
   std::array<double, 3> starting_pos{4230188, 309, -1220666};
   // std::array<double, 3> starting_pos{4230367,320,-1220630};
   //  std::array<double, 3> starting_pos{0,0,0};
@@ -151,6 +152,8 @@ void Sim::step() {
             region_.raycast_place(camera_, Voxel::stone);
           } else if (item == Item::sandstone) {
             region_.raycast_place(camera_, Voxel::sandstone);
+          } else if (item == Item::water) {
+            region_.raycast_place(camera_, Voxel::water_full);
           }
         }
       }
@@ -167,6 +170,8 @@ void Sim::step() {
           ui_.action_bar_select(1);
         } else if (key_button_event.key == GLFW_KEY_3) {
           ui_.action_bar_select(2);
+        } else if (key_button_event.key == GLFW_KEY_4) {
+          ui_.action_bar_select(3);
         } else if (key_button_event.key == GLFW_KEY_P) {
           std::cout << "Player at (" << static_cast<long long>(pos[0]) << "," << static_cast<long long>(pos[1]) << "," << static_cast<long long>(pos[2]) << ")" << std::endl;
           auto& origin = mesh_generator_.get_origin();

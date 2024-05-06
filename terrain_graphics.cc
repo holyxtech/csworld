@@ -129,18 +129,20 @@ TerrainGraphics::TerrainGraphics() {
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-  std::array<std::pair<std::string, GLuint>, 2> normal_maps = {
-    std::make_pair("waterNM1", normal_map1),
-    std::make_pair("waterNM2", normal_map2)};
+  std::array<std::pair<std::string, GLuint&>, 2> normal_maps = {
+    std::make_pair("waterNM1", std::ref(normal_map1)),
+    std::make_pair("waterNM2", std::ref(normal_map2))};
   for (auto [filename, texture] : normal_maps) {
-    std::string path = "images/" + filename + ".png";
+    std::string path = Options::instance()->getImagePath(filename + ".png");
     unsigned char* image_data;
-    image_data = stbi_load(path.c_str(), &width, &height, &channels, 0);
+    image_data = stbi_load(path.c_str(), &width, &height, &channels, 3);
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB8, GL_UNSIGNED_BYTE, image_data);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     stbi_image_free(image_data);
   }
 
@@ -321,7 +323,7 @@ void TerrainGraphics::render(const Renderer& renderer) const {
 }
 
 void TerrainGraphics::render_water(const Renderer& renderer) const {
-/*   const MultiDrawHandle& mdh = water_draw_handle_;
+  const MultiDrawHandle& mdh = water_draw_handle_;
   glUseProgram(mdh.shader);
 
   auto transform_loc = glGetUniformLocation(mdh.shader, "uTransform");
@@ -332,6 +334,7 @@ void TerrainGraphics::render_water(const Renderer& renderer) const {
 
   auto camera_world_position_loc = glGetUniformLocation(mdh.shader, "cameraWorldPosition");
   auto& camera_world_position = renderer.get_camera_world_position();
+
   glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_world_position));
 
   const Sky& sky = renderer.get_sky();
@@ -348,7 +351,10 @@ void TerrainGraphics::render_water(const Renderer& renderer) const {
   glBindTexture(GL_TEXTURE_2D, normal_map2);
   glUniform1i(glGetUniformLocation(mdh.shader, "normalMap2"), 2);
 
+  float time = glfwGetTime();
+  glUniform1f(glGetUniformLocation(mdh.shader, "time"), time);
+
   glBindVertexArray(mdh.vao);
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
-  glMultiDrawArraysIndirect(GL_TRIANGLES, 0, mdh.commands.size(), 0); */
+  glMultiDrawArraysIndirect(GL_TRIANGLES, 0, mdh.commands.size(), 0);
 }

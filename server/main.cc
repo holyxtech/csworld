@@ -20,6 +20,7 @@ int main() {
   std::filesystem::create_directory(std::string(APPLICATION_DATA_DIR) + "/images/");
   std::filesystem::create_directory(std::string(APPLICATION_DATA_DIR) + "/images/landcover/");
   std::filesystem::create_directory(std::string(APPLICATION_DATA_DIR) + "/images/elevation/");
+  
 
   asio::io_context io_context;
   TCPServer tcp_server(io_context);

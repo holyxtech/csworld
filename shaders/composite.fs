@@ -16,7 +16,7 @@ void main() {
   if (main_depth.r <= water_depth.r) 
     color = texelFetch(mainColor, texcoord, 0);
   else 
-    color = mix(texelFetch(mainColor, texcoord, 0), texelFetch(waterColor, texcoord, 0), 0.8); 
+    color = mix(texelFetch(mainColor, texcoord, 0), texelFetch(waterColor, texcoord, 0), 0.4); 
 
   float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
   if (brightness > 1.0)

@@ -43,7 +43,7 @@ public:
   void raycast_remove(Camera& camera);
   static Location location_from_global_coords(int x, int y, int z);
 
-  static constexpr int max_sz = 2048;
+  static constexpr int max_sz = 1024;
 
 private:
   template <typename Func, typename... Args>

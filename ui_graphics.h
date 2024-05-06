@@ -29,6 +29,7 @@ private:
     dirt,
     stone,
     sandstone,
+    water,
 
     num_ui_textures
   };
@@ -38,8 +39,7 @@ private:
   GLuint vbo_;
   GLuint icon_texture_array_;
   std::vector<Vertex> mesh_;
-  static constexpr int num_icons = 3;
-  std::array<glm::vec2, num_icons> icon_positions_;
+  std::vector<glm::vec2> icon_positions_;
   glm::vec2 border_box_offset_;
 };
 

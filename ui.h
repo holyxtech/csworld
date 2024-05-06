@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 #include "types.h"
+#include "item.h"
 #define GLM_FORCE_LEFT_HANDED
 #include <GL/glew.h>
 #define GLM_ENABLE_EXPERIMENTAL

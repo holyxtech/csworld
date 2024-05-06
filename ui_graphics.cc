@@ -3,12 +3,12 @@
 #include "render_utils.h"
 #include "renderer.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 #include "options.h"
+#include "stb_image.h"
 
 UIGraphics::UIGraphics() {
 
-  RenderUtils::create_shader(&shader_,  Options::instance()->getShaderPath("ui.vs"),  Options::instance()->getShaderPath("ui.fs"));
+  RenderUtils::create_shader(&shader_, Options::instance()->getShaderPath("ui.vs"), Options::instance()->getShaderPath("ui.fs"));
 
   glGenVertexArrays(1, &vao_);
   glGenBuffers(1, &vbo_);
@@ -37,7 +37,8 @@ UIGraphics::UIGraphics() {
     std::make_pair("black", UITexture::black),
     std::make_pair("dirt", UITexture::dirt),
     std::make_pair("stone", UITexture::stone),
-    std::make_pair("sandstone", UITexture::sandstone)};
+    std::make_pair("sandstone", UITexture::sandstone),
+    std::make_pair("water", UITexture::water)};
   for (auto [filename, texture] : textures) {
     std::string path = Options::instance()->getImagePath(filename + ".png");
     auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
@@ -67,17 +68,18 @@ UIGraphics::UIGraphics() {
   auto ht = [h](float nh) { return 2 * h * nh; };
 
   // create triangles for icons
-  std::array<UITexture, num_icons> layers = {UITexture::dirt, UITexture::stone, UITexture::sandstone};
+  std::vector<UITexture> layers =
+    {UITexture::dirt, UITexture::stone, UITexture::sandstone, UITexture::water};
 
   w = 0.02; // horizontal spacing... change later
   h = 0.8;  // proportion of vertical height the icon takes up, range [0,1]
   float hs = wt(w);
   float rh = ht(1) * h;
   float rw = rh * (Renderer::window_height / static_cast<float>(Renderer::window_width));
-  for (int i = 0; i < num_icons; ++i) {
+  for (int i = 0; i < layers.size(); ++i) {
     auto layer_as_ui_texture = layers[i];
     auto icon_left = top_left + glm::vec2(hs, (h - 1) / 2 * ht(1));
-    icon_positions_[i] = icon_left;
+    icon_positions_.push_back(icon_left);
     layer = static_cast<int>(layer_as_ui_texture);
     mesh_.emplace_back(Vertex{icon_left, QuadCoord::tl, layer});
     mesh_.emplace_back(Vertex{icon_left + glm::vec2(rw, 0), QuadCoord::tr, layer});

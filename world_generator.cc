@@ -141,22 +141,21 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
         voxel = Voxel::water_full;
       } else {
         voxel = Voxel::dirt;
-        
       }
 
       int y = y_global;
       for (; y < (y_global + Chunk::sz_y) && y <= height; ++y) {
         chunk.set_voxel(x, y - y_global, z, voxel);
       }
-      
+
       auto n = noise(x + location[0] * Chunk::sz_x, z + location[2] * Chunk::sz_z);
 
-      /* if (n > 0.65 && y < (y_global + Chunk::sz_y)) {
+      if (n > 0.65 && y < (y_global + Chunk::sz_y)) {
         chunk.set_voxel(x, y - y_global, z, Voxel::grass);
-      } */
-      if (n > 0.5 && y < (y_global + Chunk::sz_y)) {
-        chunk.set_voxel(x, y - y_global - 1, z, Voxel::water_full);
       }
+      // if (n > 0.6 && y < (y_global + Chunk::sz_y)) {
+      // chunk.set_voxel(x, y - y_global - 1, z, Voxel::water_full);
+      //}
     }
   }
   if (empty_subsections < Chunk::sz_x * Chunk::sz_z)
