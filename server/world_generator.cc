@@ -7,6 +7,7 @@
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../common.h"
+#include "../config.h" // Include the configured constants
 #include "stb_image_write.h"
 
 WorldGenerator::Image WorldGenerator::get_image(
@@ -52,7 +53,7 @@ Section WorldGenerator::get_section(Location2D loc) {
 
   {
     auto image = get_image(
-      tile, "./images/elevation/", elevation_images_,
+      tile, std::string(APPLICATION_DATA_DIR) + "/images/elevation/", elevation_images_,
       "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + std::to_string(zoom_level) +
         "/" + std::to_string(tile.first) + "/" + std::to_string(tile.second) + ".png");
 
@@ -71,7 +72,7 @@ Section WorldGenerator::get_section(Location2D loc) {
       "https://services.terrascope.be/wmts/v2?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0"
       "&LAYER=WORLDCOVER_2021_MAP&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG%3A3857&TILEMATRIX=EPSG:3857:" +
       std::to_string(zoom_level) + "&TILECOL=" + std::to_string(tile.first) + "&TILEROW=" + std::to_string(tile.second);
-    auto image = get_image(tile, "./images/landcover/", landcover_images_, img_url);
+    auto image = get_image(tile, std::string(APPLICATION_DATA_DIR) + "/images/landcover/", landcover_images_, img_url);
 
     for (int row = 0; row < num_rows; ++row) {
       for (int col = 0; col < num_cols; ++col) {
@@ -84,7 +85,7 @@ Section WorldGenerator::get_section(Location2D loc) {
         if (x < 0 || x > tile_max_x || y < 0 || y > tile_max_y) {
           tile = lat_lng_to_web_mercator(lat, lng, zoom_level);
           std::tie(x, y) = pixel_of_coord(tile.first, tile.second, zoom_level, lng, lat);
-          image = get_image(tile, "./images/landcover/", landcover_images_, img_url);
+          image = get_image(tile, std::string(APPLICATION_DATA_DIR) + "/images/landcover/", landcover_images_, img_url);
         }
 
         auto [data, width, height, channels] = image;

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20.5)
 
-project(CsWorld CXX)
+project(csworld CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 #set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -13,6 +13,15 @@ find_package(glfw3 REQUIRED)
 find_package(flatbuffers REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread system)
+
+# Define constants for directory paths
+if(WIN32)
+    set(APPLICATION_DATA_DIR "$ENV{APPDATA}/csworld")
+elseif(APPLE)
+    set(APPLICATION_DATA_DIR "$ENV{HOME}/Library/Application Support/csworld")
+else()
+    set(APPLICATION_DATA_DIR "$ENV{HOME}/.config/csworld")
+endif()
 
 # Sources
 file(GLOB PROJECT_SOURCE_FILES
@@ -49,22 +58,27 @@ set(projectIncludeDirs
 )
 include_directories(${projectIncludeDirs})
 
-add_executable(CsWorldClient ${projectSources})
-add_dependencies(CsWorldClient generate_fbs)
+# Configure a header file to pass some of the CMake settings
+configure_file(config.h.in "${CMAKE_SOURCE_DIR}/config.h")
+
+add_executable(client ${projectSources})
+add_dependencies(client generate_fbs)
 target_link_libraries(
-	CsWorldClient PRIVATE
+	client PRIVATE
 	glfw
 	${GLEW_LIBRARIES}
 	${OPENGL_LIBRARIES}
 )
 
-
-add_executable(CsWorldServer ${projectSourcesServer})
-add_dependencies(CsWorldServer generate_fbs)
+add_executable(server ${projectSourcesServer})
+add_dependencies(server generate_fbs)
 target_link_libraries(
-	CsWorldServer PRIVATE
+	server PRIVATE
 	${CURL_LIBRARIES}
 	#glfw
 	#${GLEW_LIBRARIES}
 	#${OPENGL_LIBRARIES}
 )
+
+file(MAKE_DIRECTORY ${APPLICATION_DATA_DIR})
+

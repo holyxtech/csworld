@@ -1,0 +1,2 @@
+// Define constants for directory paths
+#define APPLICATION_DATA_DIR "@APPLICATION_DATA_DIR@"
