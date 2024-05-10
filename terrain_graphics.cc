@@ -326,11 +326,10 @@ void TerrainGraphics::render_water(const Renderer& renderer) const {
   const MultiDrawHandle& mdh = water_draw_handle_;
   glUseProgram(mdh.shader);
 
-  auto transform_loc = glGetUniformLocation(mdh.shader, "uTransform");
   auto& projection = renderer.get_projection_matrix();
   auto& view = renderer.get_view_matrix();
-  auto transform = projection * view;
-  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
+  glUniformMatrix4fv(glGetUniformLocation(mdh.shader, "uProjection"), 1, GL_FALSE, glm::value_ptr(projection));
+  glUniformMatrix4fv(glGetUniformLocation(mdh.shader, "uView"), 1, GL_FALSE, glm::value_ptr(view));
 
   auto camera_world_position_loc = glGetUniformLocation(mdh.shader, "cameraWorldPosition");
   auto& camera_world_position = renderer.get_camera_world_position();

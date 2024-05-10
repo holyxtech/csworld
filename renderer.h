@@ -38,6 +38,8 @@ private:
   GLuint main_dbo_;
   GLuint water_cbo_;
   GLuint water_dbo_;
+  GLuint g_water_position_;
+  GLuint g_water_normal_;
   GLuint quad_vao_;
   GLuint quad_vbo_;
   GLuint voxel_highlight_vbo_;

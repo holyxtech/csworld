@@ -176,7 +176,7 @@ void Sim::step() {
           std::cout << "Player at (" << static_cast<long long>(pos[0]) << "," << static_cast<long long>(pos[1]) << "," << static_cast<long long>(pos[2]) << ")" << std::endl;
           auto& origin = mesh_generator_.get_origin();
           auto apos = glm::dvec3(pos[0] - origin[0] * Chunk::sz_x, pos[1] - origin[1] * Chunk::sz_y, pos[2] - origin[2] * Chunk::sz_z);
-          std::cout << "Adjusted at (" << static_cast<long long>(apos[0]) << "," << static_cast<long long>(apos[1]) << "," << static_cast<long long>(apos[2]) << ")" << std::endl;
+          std::cout << "Adjusted at (" << apos[0] << "," << apos[1] << "," << apos[2] << ")" << std::endl;
         }
       }
       success = key_button_events.try_dequeue(key_button_event);
@@ -234,7 +234,7 @@ void Sim::draw(int64_t ms) {
     if (glfwGetKey(window_, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
       camera_.set_base_translation_speed(3);
     } else {
-      camera_.set_base_translation_speed(0.2);
+      camera_.set_base_translation_speed(0.1);
     }
 
     int frame_rate_target = 60;

@@ -12,6 +12,8 @@
 #include "types.h"
 
 Renderer::Renderer(World& world) : world_(world) {
+  projection_ = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 4000.l);
+
   RenderUtils::create_shader(&composite_shader_, Options::instance()->getShaderPath("composite.vs"), Options::instance()->getShaderPath("composite.fs"));
   RenderUtils::create_shader(&voxel_highlight_shader_, Options::instance()->getShaderPath("voxel_highlight.vs"), Options::instance()->getShaderPath("voxel_highlight.fs"));
   RenderUtils::create_shader(&blur_shader_, Options::instance()->getShaderPath("blur.vs"), Options::instance()->getShaderPath("blur.fs"));
@@ -68,8 +70,6 @@ Renderer::Renderer(World& world) : world_(world) {
 
     glGenTextures(1, &cbo);
     glBindTexture(GL_TEXTURE_2D, cbo);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_width, window_width, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -77,16 +77,29 @@ Renderer::Renderer(World& world) : world_(world) {
 
     glGenTextures(1, &dbo);
     glBindTexture(GL_TEXTURE_2D, dbo);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, window_width, window_height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, dbo, 0);
   };
   set_up_framebuffers(main_framebuffer_, main_cbo_, main_dbo_);
   set_up_framebuffers(water_framebuffer_, water_cbo_, water_dbo_);
-  // set_up_framebuffers(water_framebuffer_, water_cbo_, water_dbo_);
+  glBindFramebuffer(GL_FRAMEBUFFER, water_framebuffer_);
+  std::array<std::reference_wrapper<GLuint>, 2> g_bufs = {std::ref(g_water_position_), std::ref(g_water_normal_)};
+  for (size_t i = 0; i < 2; ++i) {
+    auto& g_buf = g_bufs[i].get();
+    glGenTextures(1, &g_buf);
+    glBindTexture(GL_TEXTURE_2D, g_buf);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_width, window_height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 + i, GL_TEXTURE_2D, g_buf, 0);
+  }
+  {
+    std::array<GLuint, 3> attachments = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
+    glDrawBuffers(3, attachments.data());
+  }
+
   glGenFramebuffers(1, &composite_framebuffer_);
   glBindFramebuffer(GL_FRAMEBUFFER, composite_framebuffer_);
   glGenTextures(2, composite_cbos_.data());
@@ -99,8 +112,10 @@ Renderer::Renderer(World& world) : world_(world) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, composite_cbos_[i], 0);
   }
-  std::array<GLuint, 2> attachments = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-  glDrawBuffers(2, attachments.data());
+  {
+    std::array<GLuint, 2> attachments = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    glDrawBuffers(2, attachments.data());
+  }
 
   glGenFramebuffers(2, pingpong_framebuffers_.data());
   glGenTextures(2, pingpong_textures_.data());
@@ -115,15 +130,24 @@ Renderer::Renderer(World& world) : world_(world) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpong_textures_[i], 0);
   }
 
+  float sx = float(window_width) / 2.0;
+  float sy = float(window_height) / 2.0;
+  auto warp_to_screen_space = glm::mat4(1.0);
+  warp_to_screen_space[0] = glm::vec4(sx, 0, 0, sx);
+  warp_to_screen_space[1] = glm::vec4(0, sy, 0, sy);
+  warp_to_screen_space = glm::transpose(warp_to_screen_space);
+  glm::mat4 pixel_projection = warp_to_screen_space * projection_;
+  glUseProgram(composite_shader_);
+  auto pixel_projection_loc = glGetUniformLocation(composite_shader_, "uPixelProjection");
+  glUniformMatrix4fv(pixel_projection_loc, 1, GL_FALSE, glm::value_ptr(pixel_projection));
+
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
   glLineWidth(4.f);
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
   glFrontFace(GL_CW);
-  glClearColor(0.702f, 0.266f, 1.f, 1.0f);
-
-  projection_ = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 4000.l);
+  glClearColor(0.f, 0.f, 0.f, 1.0f);
 }
 
 void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
@@ -163,14 +187,6 @@ void Renderer::render() const {
 
   terrain_.render(*this);
 
-  glUseProgram(voxel_highlight_shader_);
-  auto transform_loc = glGetUniformLocation(voxel_highlight_shader_, "uTransform");
-  auto transform = projection_ * view_;
-  transform = projection_ * view_ * glm::translate(voxel_highlight_position_) * glm::scale(glm::vec3(1.001));
-  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
-  glBindVertexArray(voxel_highlight_vao_);
-  glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
-
   sky_.render(*this);
 
   glDisable(GL_DEPTH_TEST);
@@ -180,22 +196,39 @@ void Renderer::render() const {
   glBindTexture(GL_TEXTURE_2D, main_cbo_);
   glUniform1i(glGetUniformLocation(composite_shader_, "mainColor"), 0);
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, water_cbo_);
-  glUniform1i(glGetUniformLocation(composite_shader_, "waterColor"), 1);
-  glActiveTexture(GL_TEXTURE2);
   glBindTexture(GL_TEXTURE_2D, main_dbo_);
-  glUniform1i(glGetUniformLocation(composite_shader_, "mainDepth"), 2);
+  glUniform1i(glGetUniformLocation(composite_shader_, "mainDepth"), 1);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, water_cbo_);
+  glUniform1i(glGetUniformLocation(composite_shader_, "waterColor"), 2);
   glActiveTexture(GL_TEXTURE3);
   glBindTexture(GL_TEXTURE_2D, water_dbo_);
   glUniform1i(glGetUniformLocation(composite_shader_, "waterDepth"), 3);
+  glActiveTexture(GL_TEXTURE4);
+  glBindTexture(GL_TEXTURE_2D, g_water_position_);
+  glUniform1i(glGetUniformLocation(composite_shader_, "waterPosition"), 4);
+  glActiveTexture(GL_TEXTURE5);
+  glBindTexture(GL_TEXTURE_2D, g_water_normal_);
+  glUniform1i(glGetUniformLocation(composite_shader_, "waterNormal"), 5);
   glBindVertexArray(quad_vao_);
   glDrawArrays(GL_TRIANGLES, 0, 6);
+
+  glUseProgram(voxel_highlight_shader_);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, main_dbo_);
+  glUniform1i(glGetUniformLocation(voxel_highlight_shader_, "depth"), 0);
+  auto transform_loc = glGetUniformLocation(voxel_highlight_shader_, "uTransform");
+  auto transform = projection_ * view_;
+  transform = projection_ * view_ * glm::translate(voxel_highlight_position_) * glm::scale(glm::vec3(1.001));
+  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
+  glBindVertexArray(voxel_highlight_vao_);
+  glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
 
   // apply bloom...
   glUseProgram(blur_shader_);
   glViewport(0, 0, blur_texture_width_, blur_texture_height_);
-  glActiveTexture(GL_TEXTURE4);
-  glUniform1i(glGetUniformLocation(blur_shader_, "image"), 4);
+  glActiveTexture(GL_TEXTURE6);
+  glUniform1i(glGetUniformLocation(blur_shader_, "image"), 6);
   bool horizontal = true, first_iteration = true;
   int amount = 3;
   for (size_t i = 0; i < amount; ++i) {
@@ -211,15 +244,17 @@ void Renderer::render() const {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glUseProgram(final_shader_);
   glBindVertexArray(quad_vao_);
-  glActiveTexture(GL_TEXTURE5);
+  glActiveTexture(GL_TEXTURE7);
   glBindTexture(GL_TEXTURE_2D, composite_cbos_[0]);
-  glUniform1i(glGetUniformLocation(final_shader_, "scene"), 5);
-  glActiveTexture(GL_TEXTURE6);
+  glUniform1i(glGetUniformLocation(final_shader_, "scene"), 7);
+  glActiveTexture(GL_TEXTURE8);
   glBindTexture(GL_TEXTURE_2D, pingpong_textures_[!horizontal]);
-  glUniform1i(glGetUniformLocation(final_shader_, "bloom"), 6);
+  glUniform1i(glGetUniformLocation(final_shader_, "bloom"), 8);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 
   ui_.render(*this);
+
+  glUseProgram(0);
 }
 
 const glm::mat4& Renderer::get_projection_matrix() const {

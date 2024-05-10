@@ -178,7 +178,8 @@ void Region::compute_global_lighting(const Location& loc) {
       if (containing_chunk_opt.has_value()) {
         Chunk& containing_chunk = *containing_chunk_opt.value();
         auto local = Chunk::to_local(global);
-        if (containing_chunk.get_voxel(local[0], local[1], local[2]) < Voxel::OPAQUE_LOWER) {
+        auto v = containing_chunk.get_voxel(local[0], local[1], local[2]);
+        if (!vops::is_opaque(v) && !vops::is_water(v)) {
           auto adj_lighting = containing_chunk.get_lighting(local[0], local[1], local[2]);
           if (lighting + 1 < adj_lighting) {
             origin_chunk.set_lighting(local_origin[0], local_origin[1], local_origin[2], adj_lighting - 1);
@@ -199,7 +200,7 @@ void Region::compute_global_lighting(const Location& loc) {
       Chunk& containing_chunk = *containing_chunk_opt.value();
       auto local = Chunk::to_local(global);
       auto v = containing_chunk.get_voxel(local[0], local[1], local[2]);
-      if (v < Voxel::OPAQUE_LOWER) {
+      if (!vops::is_opaque(v) && !vops::is_water(v)) {
         auto adj_lighting = containing_chunk.get_lighting(local[0], local[1], local[2]);
         if (lighting + 1 < adj_lighting) {
           origin_chunk.set_lighting(local_origin[0], local_origin[1], local_origin[2], adj_lighting - 1);
