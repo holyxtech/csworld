@@ -12,7 +12,8 @@
 #include "types.h"
 
 namespace RenderUtils {
-  void create_shader(GLuint* shader, std::string vertex_shader_path, std::string fragment_shader_path);
+  void preload_include(const std::string& path, const std::string& name);
+  void create_shader(GLuint* shader, const std::string& vertex_shader_path, const std::string& fragment_shader_path);
 } // namespace RenderUtils
 
 #endif

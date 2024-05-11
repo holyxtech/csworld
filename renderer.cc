@@ -14,6 +14,8 @@
 Renderer::Renderer(World& world) : world_(world) {
   projection_ = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 4000.l);
 
+  RenderUtils::preload_include(Options::instance()->getShaderPath("ssr.glsl"), "/ssr.glsl");
+
   RenderUtils::create_shader(&composite_shader_, Options::instance()->getShaderPath("composite.vs"), Options::instance()->getShaderPath("composite.fs"));
   RenderUtils::create_shader(&voxel_highlight_shader_, Options::instance()->getShaderPath("voxel_highlight.vs"), Options::instance()->getShaderPath("voxel_highlight.fs"));
   RenderUtils::create_shader(&blur_shader_, Options::instance()->getShaderPath("blur.vs"), Options::instance()->getShaderPath("blur.fs"));
