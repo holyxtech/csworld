@@ -22,23 +22,17 @@ Renderer::Renderer(World& world) : world_(world) {
   RenderUtils::create_shader(&final_shader_, Options::instance()->getShaderPath("final.vs"), Options::instance()->getShaderPath("final.fs"));
 
   float voxel_highlight_vertices[] = {
-    // Front face
-    0.0f, 0.0f, 1.0f, // Bottom-left
-    1.0f, 0.0f, 1.0f, // Bottom-right
-    1.0f, 1.0f, 1.0f, // Top-right
-    0.0f, 1.0f, 1.0f, // Top-left
-    // Back face
-    0.0f, 0.0f, 0.0f, // Bottom-left
-    1.0f, 0.0f, 0.0f, // Bottom-right
-    1.0f, 1.0f, 0.0f, // Top-right
-    0.0f, 1.0f, 0.0f  // Top-left
-  };
+    0.0f, 0.0f, 1.0f,
+    1.0f, 0.0f, 1.0f,
+    1.0f, 1.0f, 1.0f,
+    0.0f, 1.0f, 1.0f,
+    0.0f, 0.0f, 0.0f,
+    1.0f, 0.0f, 0.0f,
+    1.0f, 1.0f, 0.0f,
+    0.0f, 1.0f, 0.0f};
   unsigned int indices[] = {
-    // Front face
     0, 1, 1, 2, 2, 3, 3, 0,
-    // Back face
     4, 5, 5, 6, 6, 7, 7, 4,
-    // Connecting lines
     0, 4, 1, 5, 2, 6, 3, 7};
   GLuint voxel_highlight_ebo;
   glGenVertexArrays(1, &voxel_highlight_vao_);
@@ -215,17 +209,6 @@ void Renderer::render() const {
   glBindVertexArray(quad_vao_);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 
-  glUseProgram(voxel_highlight_shader_);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, main_dbo_);
-  glUniform1i(glGetUniformLocation(voxel_highlight_shader_, "depth"), 0);
-  auto transform_loc = glGetUniformLocation(voxel_highlight_shader_, "uTransform");
-  auto transform = projection_ * view_;
-  transform = projection_ * view_ * glm::translate(voxel_highlight_position_) * glm::scale(glm::vec3(1.001));
-  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
-  glBindVertexArray(voxel_highlight_vao_);
-  glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
-
   // apply bloom...
   glUseProgram(blur_shader_);
   glViewport(0, 0, blur_texture_width_, blur_texture_height_);
@@ -254,9 +237,19 @@ void Renderer::render() const {
   glUniform1i(glGetUniformLocation(final_shader_, "bloom"), 8);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 
-  ui_.render(*this);
+  // UI
+  glUseProgram(voxel_highlight_shader_);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, main_dbo_);
+  glUniform1i(glGetUniformLocation(voxel_highlight_shader_, "depth"), 0);
+  auto transform_loc = glGetUniformLocation(voxel_highlight_shader_, "uTransform");
+  auto transform = projection_ * view_;
+  transform = projection_ * view_ * glm::translate(voxel_highlight_position_) * glm::scale(glm::vec3(1.001));
+  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
+  glBindVertexArray(voxel_highlight_vao_);
+  glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
 
-  glUseProgram(0);
+  ui_.render(*this);
 }
 
 const glm::mat4& Renderer::get_projection_matrix() const {
