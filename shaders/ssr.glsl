@@ -191,9 +191,9 @@ bool traceScreenSpaceRay (
 
   // We only advance the z field of Q in the inner loop, since
   // Q.xy is never used until after the loop terminates.
-
+  Point2 P = P0;
   for (
-    Point2 P = P0;
+    ;
     ((P.x * stepDirection) <= end) && 
     (stepCount < maxSteps) &&
     ((rayZMax < sceneZMax - csZThickness) ||
@@ -222,5 +222,5 @@ bool traceScreenSpaceRay (
   csHitPoint = Q * (1.0 / k);
 
   // Matches the new loop condition:
-  return (rayZMax >= sceneZMax - csZThickness) && (rayZMin <= sceneZMax);
+  return (rayZMax >= sceneZMax - csZThickness) && (rayZMin <= sceneZMax) && ((P.x * stepDirection) <= end);
 }
