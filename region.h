@@ -60,6 +60,7 @@ private:
   std::unordered_map<Location, Chunk, LocationHash> chunks_;
   std::unordered_set<Location, LocationHash> chunks_sent_;
   std::unordered_map<Location, int, LocationHash> adjacents_missing_;
+  std::unordered_map<Location2D, int, Location2DHash> chunks_supported_;
   std::vector<Diff> diffs_;
   std::vector<SimObject> live_objects_;
   Player player_;

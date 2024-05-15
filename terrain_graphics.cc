@@ -117,6 +117,9 @@ TerrainGraphics::TerrainGraphics() {
     std::make_pair("sandstone", VoxelTexture::sandstone),
     std::make_pair("stone", VoxelTexture::stone),
     std::make_pair("standing_grass", VoxelTexture::standing_grass),
+    std::make_pair("roses", VoxelTexture::roses),
+    std::make_pair("sunflower", VoxelTexture::sunflower),
+
   };
   for (auto [filename, texture] : textures) {
     std::string path = Options::instance()->getImagePath(filename + ".png");

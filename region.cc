@@ -30,31 +30,6 @@ bool Region::has_chunk(Location loc) const {
   return chunks_.contains(loc);
 }
 
-void Region::delete_furthest_chunk(const Location& loc) {
-  if (chunks_sent_.size() >= max_sz) {
-    int max_difference = 0;
-    Chunk* chunk_to_delete = nullptr;
-    const Location* to_delete;
-    for (auto& location : chunks_sent_) {
-      auto& chunk = chunks_.at(location);
-      if (chunk.check_flag(Chunk::Flags::DELETED)) {
-        continue;
-      }
-
-      int difference = LocationMath::distance(loc, location);
-      if (difference > max_difference) {
-        max_difference = difference;
-        chunk_to_delete = &chunk;
-        to_delete = &location;
-      }
-    }
-
-    chunk_to_delete->set_flag(Chunk::Flags::DELETED);
-    diffs_.emplace_back(Diff{*to_delete, Diff::deletion});
-    chunks_sent_.erase(*to_delete);
-  }
-}
-
 std::array<Chunk*, 6> Region::get_adjacent_chunks(const Location& loc) {
   return std::array<Chunk*, 6>{
     &chunks_.at(Location{loc[0] - 1, loc[1], loc[2]}),
@@ -219,11 +194,36 @@ void Region::compute_global_lighting(const Location& loc) {
 
     lights.pop();
   }
-  for (auto& location : dirty) {
+  /* for (auto& location : dirty) {
     if (adjacents_missing_[location] == 0 && location != loc &&
         chunks_sent_.contains(location)) {
       diffs_.emplace_back(Diff{location, Diff::creation});
     }
+  } */
+}
+
+void Region::delete_furthest_chunk(const Location& loc) {
+  if (chunks_sent_.size() >= max_sz) {
+    int max_difference = 0;
+    Chunk* chunk_to_delete = nullptr;
+    const Location* to_delete;
+    for (auto& location : chunks_sent_) {
+      auto& chunk = chunks_.at(location);
+      if (chunk.check_flag(Chunk::Flags::DELETED)) {
+        continue;
+      }
+
+      int difference = LocationMath::distance(loc, location);
+      if (difference > max_difference) {
+        max_difference = difference;
+        chunk_to_delete = &chunk;
+        to_delete = &location;
+      }
+    }
+
+    chunk_to_delete->set_flag(Chunk::Flags::DELETED);
+    diffs_.emplace_back(Diff{*to_delete, Diff::deletion});
+    chunks_sent_.erase(*to_delete);
   }
 }
 
@@ -236,10 +236,14 @@ void Region::chunk_to_mesh_generator(const Location& loc) {
 
 void Region::add_chunk(Chunk&& chunk) {
   auto loc = chunk.get_location();
-
-  chunk.compute_lighting(sections_.at(Location2D{loc[0], loc[2]}));
+  auto section_loc = Location2D{loc[0], loc[2]};
+  chunk.compute_lighting(sections_.at(section_loc));
 
   chunks_.insert({loc, std::move(chunk)});
+  if (chunks_supported_.contains(section_loc))
+    ++chunks_supported_[section_loc];
+  else
+    chunks_supported_[section_loc] = 1;
 
   // auto adjacent = get_adjacent_locations(loc);
   auto adjacent = get_covering_locations(loc);
@@ -277,7 +281,10 @@ void Region::clear_diffs() {
     auto& loc = diff.location;
     if (diff.kind == Region::Diff::deletion) {
       chunks_.erase(loc);
-      sections_.erase(Location2D{loc[0], loc[2]});
+      auto section_loc = Location2D{loc[0], loc[2]};
+      --chunks_supported_[section_loc];
+      if (chunks_supported_[section_loc] == 0)
+        sections_.erase(section_loc);
 
       // auto adjacent = get_adjacent_locations(loc);
       auto adjacent = get_covering_locations(loc);
@@ -307,7 +314,10 @@ void Region::clear_diffs() {
     for (int i = 0; i < to_remove; ++i) {
       auto& location = loaded_locations[i];
       chunks_.erase(location);
-      sections_.erase(Location2D{location[0], location[2]});
+      auto section_loc = Location2D{location[0], location[2]};
+      --chunks_supported_[section_loc];
+      if (chunks_supported_[section_loc] == 0)
+        sections_.erase(section_loc);
       // auto adjacent = get_adjacent_locations(loaded_locations[i]);
       auto adjacent = get_covering_locations(loaded_locations[i]);
       for (auto& location : adjacent) {
@@ -498,17 +508,22 @@ void Region::raycast_place(Camera& camera, Voxel voxel) {
 
         auto coord = visited[i - 1];
         auto loc = location_from_global_coords(coord[0], coord[1], coord[2]);
-        if (chunks_.contains(loc) && adjacents_missing_[loc] == 0) {
+        if (chunks_.contains(loc) && adjacents_missing_[loc] == 0 &&
+            !chunks_.at(loc).check_flag(Chunk::Flags::DELETED)) {
           auto& chunk = chunks_.at(loc);
           auto local = Chunk::to_local(coord);
           chunk.set_voxel(local[0], local[1], local[2], voxel);
           auto& section = sections_.at(Location2D{loc[0], loc[2]});
-          if (section.get_subsection_obstructing_height(local[0], local[2]) < coord[1]) {
+          if (section.get_subsection_obstructing_height(local[0], local[2]) < coord[1])
             section.set_subsection_obstructing_height(local[0], local[2], coord[1]);
-          }
 
           chunks_.at(loc).compute_lighting(section);
           compute_global_lighting(loc);
+
+          if (!chunks_sent_.contains(loc)) {
+            delete_furthest_chunk(loc);
+            chunks_sent_.insert(loc);
+          }
           diffs_.emplace_back(Diff{loc, Diff::creation});
 
           update_adjacent_chunks(coord);
@@ -525,7 +540,7 @@ void Region::raycast_remove(Camera& camera) {
   for (int i = 0; i < visited.size(); ++i) {
     auto coord = visited[i];
     auto loc = location_from_global_coords(coord[0], coord[1], coord[2]);
-    if (chunks_.contains(loc) && adjacents_missing_[loc] == 0) {
+    if (chunks_sent_.contains(loc) && adjacents_missing_[loc] == 0) {
       auto& chunk = chunks_.at(loc);
       auto local = Chunk::to_local(coord);
       auto voxel = chunk.get_voxel(local[0], local[1], local[2]);

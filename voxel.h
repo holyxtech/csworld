@@ -8,6 +8,8 @@ enum class Voxel {
   WATER_UPPER,
 
   grass,
+  roses,
+  sunflower,
 
   CUBE_LOWER,
   glass,
@@ -43,6 +45,8 @@ enum class VoxelTexture {
   sandstone,
   stone,
   standing_grass,
+  roses,
+  sunflower,
 
   num_voxel_textures
 };

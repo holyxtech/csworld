@@ -43,7 +43,7 @@
 #define float3 vec3
 #define int2 ivec2
 
-void swap(in out float a, in out float b) {
+void swap(inout float a, inout float b) {
   float temp = a;
   a = b;
   b = temp;

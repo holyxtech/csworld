@@ -5,6 +5,11 @@ project(csworld CXX)
 set(CMAKE_CXX_STANDARD 23)
 #set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+endif()
+
+
 # Dependencies
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)

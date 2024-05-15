@@ -33,12 +33,12 @@ void WorldGenerator::build_tree(int x, int y, int z) {
   int i, j, k;
 
   // the randomness needs to be seeded by x,y,z, so the results don't depend on when this is called
-  int tree_height = Common::random_int(5, 10);
+  int tree_height = Common::random_int(5, 8);
   int height_without_leaves;
   if (tree_height >= 7) {
-    height_without_leaves = Common::random_int(tree_height / 2, 5);
+    height_without_leaves = Common::random_int(3,4);
   } else {
-    height_without_leaves = Common::random_int(1, 3);
+    height_without_leaves = Common::random_int(2, 3);
   }
 
   i = x, j = y, k = z;
@@ -148,14 +148,21 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
         chunk.set_voxel(x, y - y_global, z, voxel);
       }
 
-      auto n = noise(x + location[0] * Chunk::sz_x, z + location[2] * Chunk::sz_z);
-
-      if (n > 0.65 && y < (y_global + Chunk::sz_y)) {
-        chunk.set_voxel(x, y - y_global, z, Voxel::grass);
+      {
+        auto n = noise(x + location[0] * Chunk::sz_x, z + location[2] * Chunk::sz_z);
+        if (n > 0.65 && y < (y_global + Chunk::sz_y))
+          chunk.set_voxel(x, y - y_global, z, Voxel::grass);
       }
-      // if (n > 0.6 && y < (y_global + Chunk::sz_y)) {
-      // chunk.set_voxel(x, y - y_global - 1, z, Voxel::water_full);
-      //}
+      {
+        auto n = noise(x + location[0] * Chunk::sz_x * 2, z + location[2] * Chunk::sz_z * 2);
+        if (n > 0.75 && y < (y_global + Chunk::sz_y))
+          chunk.set_voxel(x, y - y_global, z, Voxel::roses);
+      }
+      {
+        auto n = noise(x + location[0] * Chunk::sz_x * 3, z + location[2] * Chunk::sz_z * 3);
+        if (n > 0.75 && y < (y_global + Chunk::sz_y))
+          chunk.set_voxel(x, y - y_global, z, Voxel::sunflower);
+      }
     }
   }
   if (empty_subsections < Chunk::sz_x * Chunk::sz_z)
