@@ -41,13 +41,15 @@ class Location {
 public:
   std::array<int, 3> coordinates;
 
-  Location() {}
+  // Default constructor
+  constexpr Location() : coordinates{0, 0, 0} {}
 
-  Location(std::initializer_list<int> values) {
+  // Constructor with initializer list
+  constexpr Location(std::initializer_list<int> values) {
     auto it = values.begin();
-    coordinates[0] = *it++;
-    coordinates[1] = *it++;
-    coordinates[2] = *it;
+    coordinates[0] = (it != values.end()) ? *it++ : 0;
+    coordinates[1] = (it != values.end()) ? *it++ : 0;
+    coordinates[2] = (it != values.end()) ? *it : 0;
   }
 
   int& operator[](std::size_t index) {
@@ -93,7 +95,7 @@ public:
 
 using Int3D = Location;
 
-struct LocationMath {
+namespace LocationMath {
   static double distance(Location l1, Location l2) {
     int x_squared = (l1[0] - l2[0]) * (l1[0] - l2[0]);
     int y_squared = (l1[1] - l2[1]) * (l1[1] - l2[1]);
@@ -103,7 +105,17 @@ struct LocationMath {
   static int difference(Location l1, Location l2) {
     return std::abs(l1[0] - l2[0]) + std::abs(l1[1] - l2[1]) + std::abs(l1[2] - l2[2]);
   }
-};
+  static std::array<Location, 6> get_adjacent_locations(const Location& loc) {
+    return std::array<Location, 6>{
+      Location{loc[0] - 1, loc[1], loc[2]},
+      Location{loc[0] + 1, loc[1], loc[2]},
+      Location{loc[0], loc[1] - 1, loc[2]},
+      Location{loc[0], loc[1] + 1, loc[2]},
+      Location{loc[0], loc[1], loc[2] - 1},
+      Location{loc[0], loc[1], loc[2] + 1},
+    };
+  }
+}; // namespace LocationMath
 
 struct LocationHash {
   std::size_t operator()(const Location& l) const {
@@ -131,6 +143,27 @@ struct Vertex {
   glm::vec2 uvs_;
   int textureId_;
   float lighting_;
+};
+
+class LodVertex {
+public:
+  unsigned int data_ = 0;
+  LodVertex(int x, int y, int z, Direction normal, QuadCorner uvs, int textureId) {
+    data_ |= (x & xpos_mask);
+    data_ |= ((y << 4) & ypos_mask);
+    data_ |= ((z << 8) & zpos_mask);
+    data_ |= ((normal << 12) & normal_mask);
+    data_ |= ((uvs << 15) & uvs_mask);
+    data_ |= ((textureId << 17) & texture_mask);
+  }
+
+private:
+  static constexpr unsigned int xpos_mask = create_bitmask(0, 3);
+  static constexpr unsigned int ypos_mask = create_bitmask(4, 7);
+  static constexpr unsigned int zpos_mask = create_bitmask(8, 11);
+  static constexpr unsigned int normal_mask = create_bitmask(12, 14);
+  static constexpr unsigned int uvs_mask = create_bitmask(15, 16);
+  static constexpr unsigned int texture_mask = create_bitmask(17, 31);
 };
 
 class CubeVertex {

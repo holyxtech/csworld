@@ -3,8 +3,7 @@
 #include <queue>
 
 Chunk::Chunk(int x, int y, int z)
-    : location_{x, y, z} {
-  voxels_.fill(Voxel::empty);
+    : location_{x, y, z}, voxels_(sz, Voxel::empty) {
 
   flags_ = 0;
 }
@@ -69,7 +68,9 @@ Location Chunk::pos_to_loc(const std::array<double, 3>& position) {
 }
 
 void Chunk::compute_lighting(Section& section) {
-  lighting_.fill(0);
+  lighting_.reserve(sz);
+  for (int i = 0; i < sz; ++i)
+    lighting_[i] = 0;
   std::queue<Int3D> lights;
 
   int top_y = sz_y - 1 + location_[1] * sz_y;
@@ -154,4 +155,8 @@ Int3D Chunk::to_local(Int3D coord) {
   int y = ((coord[1] % sz_y) + sz_y) % sz_y;
   int z = ((coord[2] % sz_z) + sz_z) % sz_z;
   return Int3D{x, y, z};
+}
+
+const std::vector<Voxel> Chunk::get_voxels() const {
+  return voxels_;
 }

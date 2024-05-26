@@ -156,12 +156,25 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
       terrain_.destroy(loc);
     } else if (diff.kind == MeshGenerator::Diff::origin) {
       camera_offset_ = glm::dvec3(loc[0] * Chunk::sz_x, loc[1] * Chunk::sz_y, loc[2] * Chunk::sz_z);
+      terrain_.new_origin(loc);
     }
   }
 
   mesh_generator.clear_diffs();
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void Renderer::consume_lod_mesh_generator(LodMeshGenerator& lod_mesh_generator) {
+  auto& diffs = lod_mesh_generator.get_diffs();
+  for (auto& diff : diffs) {
+    auto& loc = diff.location;
+    if (diff.kind == LodMeshGenerator::Diff::creation) {
+      auto level = std::any_cast<const LodMeshGenerator::Diff::CreationData&>(diff.data).level;
+      terrain_.create(loc, level, lod_mesh_generator);
+    }
+  }
+  lod_mesh_generator.clear_diffs();
 }
 
 void Renderer::consume_camera(const Camera& camera) {

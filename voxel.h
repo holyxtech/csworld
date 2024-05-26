@@ -1,6 +1,8 @@
 #ifndef VOXEL_H
 #define VOXEL_H
 
+#include <cstdint>
+
 enum class Voxel {
   empty,
   WATER_LOWER,
@@ -34,7 +36,7 @@ namespace vops {
   bool is_cube(Voxel v);
 } // namespace vops
 
-enum class VoxelTexture {
+enum class CubeTexture {
   dirt,
   grass,
   grass_side,
@@ -44,11 +46,30 @@ enum class VoxelTexture {
   leaves,
   sandstone,
   stone,
-  standing_grass,
+
+  num_cube_textures,
+};
+
+enum class IrregularTexture {
+  standing_grass = static_cast<std::uint32_t>(CubeTexture::num_cube_textures),
   roses,
   sunflower,
 
   num_voxel_textures
+};
+
+namespace VoxelTextures {
+  constexpr int num_cube_textures = static_cast<int>(CubeTexture::num_cube_textures);
+  constexpr int num_voxel_textures = static_cast<int>(IrregularTexture::num_voxel_textures);
+  constexpr int num_irregular_textures = num_voxel_textures - static_cast<int>(CubeTexture::num_cube_textures);
+} // namespace VoxelTextures
+
+struct VT {
+  std::uint32_t v_;
+  std::uint32_t get() { return v_; };
+  constexpr VT(std::uint32_t v = 1) : v_{v} {}
+  constexpr VT(CubeTexture t) : v_{static_cast<std::uint32_t>(t)} {}
+  constexpr VT(IrregularTexture t) : v_{static_cast<std::uint32_t>(t)} {}
 };
 
 #endif

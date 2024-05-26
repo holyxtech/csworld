@@ -24,6 +24,7 @@ public:
   Voxel get_voxel(int i) const;
   static int get_index(int x, int y, int z);
   static int get_index(const Int3D& coord);
+  const std::vector<Voxel> get_voxels() const;
 
   void set_voxel(int i, Voxel voxel);
   void set_voxel(int x, int y, int z, Voxel voxel);
@@ -49,12 +50,9 @@ public:
   static constexpr unsigned char max_lighting = 0xF;
 
 private:
-  std::array<Voxel, sz> voxels_;
-
-  std::array<unsigned char, sz> lighting_;
-
+  std::vector<Voxel> voxels_;
+  std::vector<unsigned char> lighting_;
   Location location_;
-
   uint32_t flags_;
 };
 

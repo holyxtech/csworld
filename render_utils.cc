@@ -60,4 +60,5 @@ namespace RenderUtils {
     glDeleteShader(fragment_shader);
   }
 
+
 } // namespace RenderUtils

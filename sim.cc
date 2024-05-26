@@ -12,16 +12,16 @@
 #include "chunk.h"
 #include "common.h"
 #include "input.h"
+#include "item.h"
 #include "readerwriterqueue.h"
 #include "section.h"
-#include "item.h"
 
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
-    : window_(window), tcp_client_(tcp_client), renderer_(world_) {
+    : window_(window), tcp_client_(tcp_client), renderer_(world_), region_(sections_) {
 
   // std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-11-0-0", "37-59-03");
   //  starting_pos[1] = 350;
-  std::array<double, 3> starting_pos{4230188, 309, -1220666};
+  std::array<double, 3> starting_pos{4230249,316,-1220386};
   // std::array<double, 3> starting_pos{4230367,320,-1220630};
   //  std::array<double, 3> starting_pos{0,0,0};
 
@@ -35,16 +35,40 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
 
   auto loc = Chunk::pos_to_loc(starting_pos);
   std::vector<Location2D> locs;
-  for (int x = -min_section_distance; x <= min_section_distance; ++x) {
-    for (int z = -min_section_distance; z <= min_section_distance; ++z) {
+  for (int x = -section_distance; x <= section_distance; ++x) {
+    for (int z = -section_distance; z <= section_distance; ++z) {
       auto location = Location2D{loc[0] + x, loc[2] + z};
       locs.emplace_back(location);
     }
   }
+  for (int x = -render_distance; x <= render_distance; ++x) {
+    for (int y = render_min_y_offset; y <= render_max_y_offset; ++y) {
+      for (int z = -render_distance; z <= render_distance; ++z) {
+        chunks_to_build_.emplace(Location{loc[0] + x, loc[1] + y, loc[2] + z});
+      }
+    }
+  }
+
   if (locs.size() > 0)
     request_sections(locs);
   player.set_last_location(loc);
 }
+
+/*
+-request sections?
+  -for now, just do a big request at init
+
+-when received, -store in sim.h
+-check how close they are to player
+-if past the region render distance,...
+
+-keep a map of what "hasn't been rendered but needs to be", update with each new player loc
+-just two set differences: delete the stuff that moved out of the render box(es), add the new stuff
+-only add something to the map if it hasn't already been rendered (possible to have rendered things outside the box)
+-if new sections, or new loc, go through the map and render if all sections are available
+-if chunk in region distance, add to region
+-always create lod
+*/
 
 void Sim::step() {
   bool new_sections = false;
@@ -63,9 +87,9 @@ void Sim::step() {
         auto* loc = section_update->location();
         auto x = loc->x(), z = loc->y();
         auto location = Location2D{x, z};
-        if (!region_.has_section(location)) {
+        if (!sections_.contains(location)) {
           auto section = Section(section_update);
-          region_.add_section(section);
+          sections_.insert({location, std::move(section)});
           requested_sections_.erase(location);
         }
       }
@@ -95,26 +119,40 @@ void Sim::step() {
   auto loc = Chunk::pos_to_loc(pos);
   auto& last_location = player.get_last_location();
   if (loc != last_location || new_sections) {
-    auto& sections = region_.get_sections();
-    for (int x = -min_render_distance; x <= min_render_distance; ++x) {
-      for (int y = 1; y > -3; --y) {
-        for (int z = -min_render_distance; z <= min_render_distance; ++z) {
+    for (int x = -render_distance; x <= render_distance; ++x) {
+      for (int y = render_max_y_offset; y >= render_min_y_offset; --y) {
+        for (int z = -render_distance; z <= render_distance; ++z) {
           auto location = Location{loc[0] + x, loc[1] + y, loc[2] + z};
-          if (!region_.has_chunk(location) && world_generator_.ready_to_fill(location, sections)) {
+
+          if (region_distance < std::abs(x) || region_distance < (std::abs(z))) {
+            if (lod_loader_.has_lods(location))
+              continue;
+            else if (world_generator_.ready_to_fill(location, sections_)) {
+              Chunk chunk(location[0], location[1], location[2]);
+              world_generator_.fill_chunk(chunk, sections_);
+              lod_loader_.create_lods(chunk);
+            }
+          } else if (!region_.has_chunk(location) && world_generator_.ready_to_fill(location, sections_)) {
             Chunk chunk(location[0], location[1], location[2]);
-            world_generator_.fill_chunk(chunk, sections);
+            world_generator_.fill_chunk(chunk, sections_);
+            if (!lod_loader_.has_lods(location))
+              lod_loader_.create_lods(chunk);
             region_.add_chunk(std::move(chunk));
           }
         }
       }
     }
   }
+
   if (loc != last_location) {
     std::vector<Location2D> locs;
-    for (int x = -min_section_distance; x <= min_section_distance; ++x) {
-      for (int z = -min_section_distance; z <= min_section_distance; ++z) {
+    // compute difference
+    // ...
+
+    for (int x = -section_distance; x <= section_distance; ++x) {
+      for (int z = -section_distance; z <= section_distance; ++z) {
         auto location = Location2D{loc[0] + x, loc[2] + z};
-        if (!(region_.has_section(location) || requested_sections_.contains(location))) {
+        if (!(sections_.contains(location) || requested_sections_.contains(location))) {
           locs.emplace_back(location);
           requested_sections_.insert(location);
         }
@@ -190,8 +228,8 @@ void Sim::step() {
       }
     }
     ui_.clear_actions();
-
     mesh_generator_.consume_region(region_);
+    lod_mesh_generator_.consume_lod_loader(lod_loader_);
     ready_to_mesh_ = false;
   }
 }
@@ -266,6 +304,7 @@ void Sim::draw(int64_t ms) {
     bool suc = mesh_mutex_.try_lock();
     if (suc) {
       renderer_.consume_mesh_generator(mesh_generator_);
+      renderer_.consume_lod_mesh_generator(lod_mesh_generator_);
       renderer_.consume_ui(ui_);
       ready_to_mesh_ = true;
       mesh_mutex_.unlock();

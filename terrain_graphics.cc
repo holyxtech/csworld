@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <type_traits>
 #include <GLFW/glfw3.h>
+#include "lod_loader.h"
 #include "mesh_generator.h"
 #include "options.h"
 #include "region.h"
@@ -12,14 +13,18 @@
 #include "types.h"
 #include "voxel.h"
 
-template <MeshGenerator::MeshKind mesh_kind>
+template <MeshKind mesh_kind>
 TerrainGraphics::MultiDrawHandle& TerrainGraphics::get_multi_draw_handle() {
-  if constexpr (mesh_kind == MeshGenerator::MeshKind::cubes)
+  if constexpr (mesh_kind == MeshKind::cubes)
     return cubes_draw_handle_;
-  else if constexpr (mesh_kind == MeshGenerator::MeshKind::irregular)
+  else if constexpr (mesh_kind == MeshKind::irregular)
     return irregular_draw_handle_;
-  else if constexpr (mesh_kind == MeshGenerator::MeshKind::water)
+  else if constexpr (mesh_kind == MeshKind::water)
     return water_draw_handle_;
+  else if constexpr (mesh_kind == MeshKind::lod1)
+    return lod1_draw_handle_;
+  else
+    return cubes_draw_handle_;
 }
 
 template <typename T>
@@ -38,25 +43,35 @@ void TerrainGraphics::set_up_vao() {
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
+  } else if constexpr (std::is_same_v<T, LodVertex>) {
+    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(LodVertex), (void*)offsetof(LodVertex, data_));
+    glEnableVertexAttribArray(0);
   }
 }
 
-template <MeshGenerator::MeshKind mesh_kind>
+template <MeshKind mesh_kind>
 void TerrainGraphics::set_up() {
   using T = VertexKind::VertexKind<mesh_kind>::type;
   auto& mdh = get_multi_draw_handle<mesh_kind>();
 
   int defacto_vertices;
-  if constexpr (mesh_kind == MeshGenerator::MeshKind::cubes) {
+  std::size_t buckets = Region::max_sz;
+  if constexpr (mesh_kind == MeshKind::cubes) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_mesh;
     RenderUtils::create_shader(&mdh.shader, Options::instance()->getShaderPath("terrain.vs"), Options::instance()->getShaderPath("terrain.fs"));
-  } else if constexpr (mesh_kind == MeshGenerator::MeshKind::irregular) {
+  } else if constexpr (mesh_kind == MeshKind::irregular) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_irregular_mesh;
     RenderUtils::create_shader(&mdh.shader, Options::instance()->getShaderPath("irregular.vs"), Options::instance()->getShaderPath("terrain.fs"));
-  } else if constexpr (mesh_kind == MeshGenerator::MeshKind::water) {
+  } else if constexpr (mesh_kind == MeshKind::water) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_water_mesh;
     RenderUtils::create_shader(&mdh.shader, Options::instance()->getShaderPath("water.vs"), Options::instance()->getShaderPath("water.fs"));
+  } else if constexpr (mesh_kind == MeshKind::water) {
+    defacto_vertices = LodMeshGenerator::defacto_vertices_per_lod1_mesh;
+    RenderUtils::create_shader(&mdh.shader, Options::instance()->getShaderPath("lod.vs"), Options::instance()->getShaderPath("lod.fs"));
+    buckets = LodLoader::lod1_sz;
   }
+  mdh.commands.reserve(buckets);
+  mdh.commands_metadata.reserve(buckets);
 
   glGenBuffers(1, &mdh.vbo);
   glGenVertexArrays(1, &mdh.vao);
@@ -66,13 +81,13 @@ void TerrainGraphics::set_up() {
 
   set_up_vao<T>();
 
-  mdh.vbo_size = sizeof(T) * defacto_vertices * Region::max_sz;
+  mdh.vbo_size = sizeof(T) * defacto_vertices * buckets;
 
   glBufferData(GL_ARRAY_BUFFER, mdh.vbo_size, nullptr, GL_STATIC_DRAW);
 
-  for (int idx = 0; idx < mdh.commands.size(); ++idx) {
-    auto& command = mdh.commands[idx];
-    auto& metadata = mdh.commands_metadata[idx];
+  for (int idx = 0; idx < buckets; ++idx) {
+    auto& command = mdh.commands.emplace_back(DrawArraysIndirectCommand{});
+    auto& metadata = mdh.commands_metadata.emplace_back(CommandMetadata{});
     command.count = 0;
     command.instance_count = 1;
     command.base_instance = 0;
@@ -83,48 +98,35 @@ void TerrainGraphics::set_up() {
   glGenBuffers(1, &mdh.ibo);
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
   glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawArraysIndirectCommand) * mdh.commands.size(), mdh.commands.data(), GL_STATIC_DRAW);
+
+  glCreateBuffers(1, &mdh.x_ssbo_);
+  glNamedBufferStorage(mdh.x_ssbo_, sizeof(float) * mdh.commands.size(), nullptr, GL_DYNAMIC_STORAGE_BIT);
+  glCreateBuffers(1, &mdh.y_ssbo_);
+  glNamedBufferStorage(mdh.y_ssbo_, sizeof(float) * mdh.commands.size(), nullptr, GL_DYNAMIC_STORAGE_BIT);
+  glCreateBuffers(1, &mdh.z_ssbo_);
+  glNamedBufferStorage(mdh.z_ssbo_, sizeof(float) * mdh.commands.size(), nullptr, GL_DYNAMIC_STORAGE_BIT);
 }
 
 TerrainGraphics::TerrainGraphics() {
-  set_up<MeshGenerator::MeshKind::cubes>();
-  glCreateBuffers(1, &cpx_ssbo_);
-  glNamedBufferStorage(cpx_ssbo_, sizeof(glm::vec3) * cubes_draw_handle_.commands.size(), nullptr, GL_DYNAMIC_STORAGE_BIT);
-  glCreateBuffers(1, &cpy_ssbo_);
-  glNamedBufferStorage(cpy_ssbo_, sizeof(glm::vec3) * cubes_draw_handle_.commands.size(), nullptr, GL_DYNAMIC_STORAGE_BIT);
-  glCreateBuffers(1, &cpz_ssbo_);
-  glNamedBufferStorage(cpz_ssbo_, sizeof(glm::vec3) * cubes_draw_handle_.commands.size(), nullptr, GL_DYNAMIC_STORAGE_BIT);
+  set_up<MeshKind::cubes>();
 
-  set_up<MeshGenerator::MeshKind::irregular>();
-  set_up<MeshGenerator::MeshKind::water>();
+  set_up<MeshKind::irregular>();
+  set_up<MeshKind::water>();
 
   glGenTextures(1, &voxel_texture_array_);
   glBindTexture(GL_TEXTURE_2D_ARRAY, voxel_texture_array_);
-  GLint num_textures = static_cast<GLint>(VoxelTexture::num_voxel_textures);
+  GLint num_textures = VoxelTextures::num_voxel_textures;
   GLsizei width = 16;
   GLsizei height = 16;
   GLsizei channels;
   GLsizei num_mipmaps = 1;
   glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_SRGB8_ALPHA8, width, height, num_textures);
   stbi_set_flip_vertically_on_load(1);
-  std::vector<std::pair<std::string, VoxelTexture>> textures = {
-    std::make_pair("dirt", VoxelTexture::dirt),
-    std::make_pair("grass", VoxelTexture::grass),
-    std::make_pair("grass_side", VoxelTexture::grass_side),
-    std::make_pair("water", VoxelTexture::water),
-    std::make_pair("sand", VoxelTexture::sand),
-    std::make_pair("tree_trunk", VoxelTexture::tree_trunk),
-    std::make_pair("leaves", VoxelTexture::leaves),
-    std::make_pair("sandstone", VoxelTexture::sandstone),
-    std::make_pair("stone", VoxelTexture::stone),
-    std::make_pair("standing_grass", VoxelTexture::standing_grass),
-    std::make_pair("roses", VoxelTexture::roses),
-    std::make_pair("sunflower", VoxelTexture::sunflower),
 
-  };
-  for (auto [filename, texture] : textures) {
-    std::string path = Options::instance()->getImagePath(filename + ".png");
+  for (auto [filename, texture] : RenderUtils::named_textures) {
+    std::string path = Options::instance()->getImagePath(filename + std::string(".png"));
     auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(texture), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texture.get(), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     stbi_image_free(image_data);
   }
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -149,6 +151,27 @@ TerrainGraphics::TerrainGraphics() {
     stbi_image_free(image_data);
   }
 
+  // lods
+  set_up<MeshKind::lod1>();
+
+  glGenTextures(1, &lod_texture_array_);
+  glBindTexture(GL_TEXTURE_2D_ARRAY, lod_texture_array_);
+  num_textures = VoxelTextures::num_cube_textures;
+  glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_SRGB8_ALPHA8, width, height, num_textures);
+  for (auto [filename, texture] : RenderUtils::named_cube_textures) {
+    std::string path = Options::instance()->getImagePath(filename + std::string(".png"));
+    auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+    // maybe do something smart
+
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texture.get(), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    stbi_image_free(image_data);
+  }
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
   // uniforms
   glUseProgram(cubes_draw_handle_.shader);
   GLint texture_loc = glGetUniformLocation(cubes_draw_handle_.shader, "textureArray");
@@ -158,48 +181,52 @@ TerrainGraphics::TerrainGraphics() {
   texture_loc = glGetUniformLocation(irregular_draw_handle_.shader, "textureArray");
   glUniform1i(texture_loc, 0);
 
+  glUseProgram(lod1_draw_handle_.shader);
+  texture_loc = glGetUniformLocation(lod1_draw_handle_.shader, "textureArray");
+  glUniform1i(texture_loc, 0);
+
   // glUseProgram(water_draw_handle_.shader);
 }
 
 void TerrainGraphics::create(const Location& loc, const MeshGenerator& mesh_generator) {
-  upload<MeshGenerator::MeshKind::cubes>(loc, mesh_generator.get_mesh(loc), mesh_generator.get_origin());
-  upload<MeshGenerator::MeshKind::irregular>(loc, mesh_generator.get_irregular_mesh(loc), mesh_generator.get_origin());
-  upload<MeshGenerator::MeshKind::water>(loc, mesh_generator.get_water_mesh(loc), mesh_generator.get_origin());
+  upload<MeshKind::cubes>(loc, mesh_generator.get_mesh(loc));
+  upload<MeshKind::irregular>(loc, mesh_generator.get_irregular_mesh(loc));
+  upload<MeshKind::water>(loc, mesh_generator.get_water_mesh(loc));
 }
 
-template <MeshGenerator::MeshKind mesh_kind>
+void TerrainGraphics::create(const Location& loc, LodLevel level, const LodMeshGenerator& lod_mesh_generator) {
+  switch (level) {
+  case LodLevel::lod1:
+    upload<MeshKind::lod1>(loc, lod_mesh_generator.get_mesh<LodLevel::lod1>(loc));
+    break;
+  }
+}
+
+template <MeshKind mesh_kind>
 void TerrainGraphics::upload(
   const Location& loc,
-  const std::vector<typename VertexKind::VertexKind<mesh_kind>::type>& mesh,
-  const Location& offset) {
+  const std::vector<typename VertexKind::VertexKind<mesh_kind>::type>& mesh) {
   using T = VertexKind::VertexKind<mesh_kind>::type;
   MultiDrawHandle& mdh = get_multi_draw_handle<mesh_kind>();
   std::size_t idx;
   if (mdh.loc_to_command_index.contains(loc)) {
     idx = mdh.loc_to_command_index[loc];
   } else {
-    for (int i = 0; i < mdh.commands.size(); ++i) {
-      auto& metadata = mdh.commands_metadata[i];
-      if (!metadata.occupied) {
-        idx = i;
-        metadata.occupied = true;
-        break;
-      }
-    }
+    idx = mdh.first_unoccupied++;
+    auto& metadata = mdh.commands_metadata[idx];
+    metadata.occupied = true;
 
-    if constexpr (std::is_same_v<T, CubeVertex>) {
-      float chunk_pos_x = (loc[0] - offset[0]) * Chunk::sz_x;
-      float chunk_pos_y = (loc[1] - offset[1]) * Chunk::sz_y;
-      float chunk_pos_z = (loc[2] - offset[2]) * Chunk::sz_z;
+    float loc_x = (loc[0] - origin_[0]) * Chunk::sz_x;
+    float loc_y = (loc[1] - origin_[1]) * Chunk::sz_y;
+    float loc_z = (loc[2] - origin_[2]) * Chunk::sz_z;
 
-      int ssbo_float_offset = sizeof(float) * idx;
-      glBindBuffer(GL_SHADER_STORAGE_BUFFER, cpx_ssbo_);
-      glBufferSubData(GL_SHADER_STORAGE_BUFFER, ssbo_float_offset, sizeof(float), &chunk_pos_x);
-      glBindBuffer(GL_SHADER_STORAGE_BUFFER, cpy_ssbo_);
-      glBufferSubData(GL_SHADER_STORAGE_BUFFER, ssbo_float_offset, sizeof(float), &chunk_pos_y);
-      glBindBuffer(GL_SHADER_STORAGE_BUFFER, cpz_ssbo_);
-      glBufferSubData(GL_SHADER_STORAGE_BUFFER, ssbo_float_offset, sizeof(float), &chunk_pos_z);
-    }
+    int ssbo_float_offset = sizeof(float) * idx;
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, mdh.x_ssbo_);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, ssbo_float_offset, sizeof(float), &loc_x);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, mdh.y_ssbo_);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, ssbo_float_offset, sizeof(float), &loc_y);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, mdh.z_ssbo_);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, ssbo_float_offset, sizeof(float), &loc_z);
   }
 
   auto& command = mdh.commands[idx];
@@ -282,6 +309,7 @@ void TerrainGraphics::remove(const Location& loc, MultiDrawHandle& mdh) {
   glBufferSubData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawArraysIndirectCommand) * idx, sizeof(DrawArraysIndirectCommand), &command);
   mdh.loc_to_command_index.erase(loc);
   metadata.occupied = false;
+  mdh.first_unoccupied = idx;
 }
 
 void TerrainGraphics::destroy(const Location& loc) {
@@ -317,9 +345,9 @@ void TerrainGraphics::render(const Renderer& renderer, const MultiDrawHandle& md
 }
 
 void TerrainGraphics::render(const Renderer& renderer) const {
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, cpx_ssbo_);
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cpy_ssbo_);
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, cpz_ssbo_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, cubes_draw_handle_.x_ssbo_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubes_draw_handle_.y_ssbo_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, cubes_draw_handle_.z_ssbo_);
   render(renderer, cubes_draw_handle_);
 
   render(renderer, irregular_draw_handle_);
@@ -359,4 +387,8 @@ void TerrainGraphics::render_water(const Renderer& renderer) const {
   glBindVertexArray(mdh.vao);
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
   glMultiDrawArraysIndirect(GL_TRIANGLES, 0, mdh.commands.size(), 0);
+}
+
+void TerrainGraphics::new_origin(const Location& loc) {
+  origin_ = loc;
 }

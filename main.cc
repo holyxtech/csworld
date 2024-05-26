@@ -14,7 +14,6 @@
 #include "readerwriterqueue.h"
 #include "renderer.h"
 #include "sim.h"
-#include "sim_server.h"
 #include "tcp_client.h"
 #include "options.h"
 

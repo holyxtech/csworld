@@ -22,6 +22,7 @@ public:
     Kind kind;
   };
 
+  Region(std::unordered_map<Location2D, Section, Location2DHash>& sections);
   void add_section(Section section);
   bool has_section(Location2D loc) const;
   std::unordered_map<Location2D, Section, Location2DHash>& get_sections();
@@ -43,7 +44,7 @@ public:
   void raycast_remove(Camera& camera);
   static Location location_from_global_coords(int x, int y, int z);
 
-  static constexpr int max_sz = 1024;
+  static constexpr int max_sz = 256;
 
 private:
   template <typename Func, typename... Args>
@@ -51,12 +52,11 @@ private:
   void chunk_to_mesh_generator(const Location& loc);
   void compute_global_lighting(const Location& loc);
   void delete_furthest_chunk(const Location& loc);
-  std::array<Location, 6> get_adjacent_locations(const Location& loc) const;
   std::array<Location, 26> get_covering_locations(const Location& loc) const;
   int find_obstructing_height(Int3D root) const;
   void update_adjacent_chunks(Int3D coord);
 
-  std::unordered_map<Location2D, Section, Location2DHash> sections_;
+  std::unordered_map<Location2D, Section, Location2DHash>& sections_;
   std::unordered_map<Location, Chunk, LocationHash> chunks_;
   std::unordered_set<Location, LocationHash> chunks_sent_;
   std::unordered_map<Location, int, LocationHash> adjacents_missing_;

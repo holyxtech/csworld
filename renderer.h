@@ -12,11 +12,13 @@
 #include "ui.h"
 #include "ui_graphics.h"
 #include "world.h"
+#include "lod_mesh_generator.h"
 
 class Renderer {
 public:
   Renderer(World& world);
   void consume_mesh_generator(MeshGenerator& mesh_generator);
+  void consume_lod_mesh_generator(LodMeshGenerator& lod_mesh_generator);
   void consume_camera(const Camera& camera);
   void consume_ui(UI& ui);
   void set_highlight(Int3D& highlight);

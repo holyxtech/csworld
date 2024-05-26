@@ -6,11 +6,13 @@
 #include <optional>
 #include <queue>
 
+Region::Region(std::unordered_map<Location2D, Section, Location2DHash>& sections) : sections_{sections} {}
+
 std::unordered_map<Location, Chunk, LocationHash>& Region::get_chunks() {
   return chunks_;
 }
 
-void Region::add_section(Section section) {
+/* void Region::add_section(Section section) {
   sections_.insert({section.get_location(), section});
 }
 
@@ -20,7 +22,7 @@ bool Region::has_section(Location2D loc) const {
 
 std::unordered_map<Location2D, Section, Location2DHash>& Region::get_sections() {
   return sections_;
-}
+} */
 
 Chunk& Region::get_chunk(Location loc) {
   return chunks_.at(loc);
@@ -38,17 +40,6 @@ std::array<Chunk*, 6> Region::get_adjacent_chunks(const Location& loc) {
     &chunks_.at(Location{loc[0], loc[1] + 1, loc[2]}),
     &chunks_.at(Location{loc[0], loc[1], loc[2] - 1}),
     &chunks_.at(Location{loc[0], loc[1], loc[2] + 1})};
-}
-
-std::array<Location, 6> Region::get_adjacent_locations(const Location& loc) const {
-  return std::array<Location, 6>{
-    Location{loc[0] - 1, loc[1], loc[2]},
-    Location{loc[0] + 1, loc[1], loc[2]},
-    Location{loc[0], loc[1] - 1, loc[2]},
-    Location{loc[0], loc[1] + 1, loc[2]},
-    Location{loc[0], loc[1], loc[2] - 1},
-    Location{loc[0], loc[1], loc[2] + 1},
-  };
 }
 
 std::array<Location, 26> Region::get_covering_locations(const Location& loc) const {
@@ -240,6 +231,8 @@ void Region::add_chunk(Chunk&& chunk) {
   chunk.compute_lighting(sections_.at(section_loc));
 
   chunks_.insert({loc, std::move(chunk)});
+
+  // if section never supports a chunk, will never unload...
   if (chunks_supported_.contains(section_loc))
     ++chunks_supported_[section_loc];
   else
@@ -283,10 +276,9 @@ void Region::clear_diffs() {
       chunks_.erase(loc);
       auto section_loc = Location2D{loc[0], loc[2]};
       --chunks_supported_[section_loc];
-      if (chunks_supported_[section_loc] == 0)
-        sections_.erase(section_loc);
+      /* if (chunks_supported_[section_loc] == 0)
+        sections_.erase(section_loc); */
 
-      // auto adjacent = get_adjacent_locations(loc);
       auto adjacent = get_covering_locations(loc);
       for (auto& location : adjacent) {
         ++adjacents_missing_[location];
@@ -316,9 +308,9 @@ void Region::clear_diffs() {
       chunks_.erase(location);
       auto section_loc = Location2D{location[0], location[2]};
       --chunks_supported_[section_loc];
-      if (chunks_supported_[section_loc] == 0)
-        sections_.erase(section_loc);
-      // auto adjacent = get_adjacent_locations(loaded_locations[i]);
+      /* if (chunks_supported_[section_loc] == 0)
+        sections_.erase(section_loc); */
+
       auto adjacent = get_covering_locations(loaded_locations[i]);
       for (auto& location : adjacent) {
         ++adjacents_missing_[location];
