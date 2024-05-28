@@ -21,7 +21,7 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
 
   // std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-11-0-0", "37-59-03");
   //  starting_pos[1] = 350;
-  std::array<double, 3> starting_pos{4230249,316,-1220386};
+  std::array<double, 3> starting_pos{4230249, 316, -1220386};
   // std::array<double, 3> starting_pos{4230367,320,-1220630};
   //  std::array<double, 3> starting_pos{0,0,0};
 
@@ -76,6 +76,7 @@ void Sim::step() {
   auto& q = tcp_client_.get_queue();
   bool success = q.try_dequeue(message);
   while (success) {
+
     auto* update = fbs_update::GetUpdate(message.data());
     switch (update->kind_type()) {
     case fbs_update::UpdateKind_Region:
@@ -83,6 +84,7 @@ void Sim::step() {
       auto* region = update->kind_as_Region();
       auto* sections = region->sections();
       for (int i = 0; i < sections->size(); ++i) {
+
         auto* section_update = sections->Get(i);
         auto* loc = section_update->location();
         auto x = loc->x(), z = loc->y();
@@ -235,7 +237,7 @@ void Sim::step() {
 }
 
 void Sim::request_sections(std::vector<Location2D>& locs) {
-  flatbuffers::FlatBufferBuilder builder(1048576);
+  flatbuffers::FlatBufferBuilder builder(Common::max_msg_buffer_size);
 
   std::vector<fbs_common::Location2D> locations;
 

@@ -5,17 +5,20 @@
 #include <thread>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#ifdef _WIN32
+#include <SDKDDKVer.h>
+#endif
 #include <asio.hpp>
 #include <boost/bind/bind.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "input.h"
+#include "options.h"
 #include "readerwriterqueue.h"
 #include "renderer.h"
 #include "sim.h"
 #include "tcp_client.h"
-#include "options.h"
 
 void error_callback(int errnum, const char* errmsg) {
   std::cerr << errnum << ": " << errmsg << std::endl;
@@ -33,8 +36,8 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
   Input::instance()->cursor_position_callback(window, xpos, ypos);
 }
 
-int main(int argc, char* argv []) {
-  if (!Options::instance(argc,argv)->hasValidShaderPath()) {
+int main(int argc, char* argv[]) {
+  if (!Options::instance(argc, argv)->hasValidShaderPath()) {
     std::cerr << "Couldn't find App Path for Shaders, Images, etc..." << std::endl;
     return -1;
   }
@@ -75,15 +78,22 @@ int main(int argc, char* argv []) {
   Input::instance()->set_cursor_pos(Renderer::window_width / 2, Renderer::window_height / 2);
 
   asio::io_context io_context;
+
   TCPClient tcp_client(io_context);
+
   asio::thread t(boost::bind(&asio::io_context::run, &io_context));
 
   Sim sim(window, tcp_client);
 
   std::thread build_thread([&sim, window]() {
+    auto start = std::chrono::high_resolution_clock::now();
     while (!glfwWindowShouldClose(window)) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60));
-      sim.step();
+      auto end = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+      if (duration.count() > 16) {
+        sim.step();
+        start = std::chrono::high_resolution_clock::now();
+      }
     }
   });
 
@@ -108,11 +118,15 @@ int main(int argc, char* argv []) {
       else
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
+
+    //    auto time_now = std::chrono::high_resolution_clock::now();
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    sim.draw(duration.count());
-    start = std::chrono::high_resolution_clock::now();
-    glfwSwapBuffers(window);
+    if (duration.count() > 16) {
+      sim.draw(duration.count());
+      glfwSwapBuffers(window);
+      start = std::chrono::high_resolution_clock::now();
+    }
   }
   build_thread.join();
 

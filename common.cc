@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <iostream>
 #include <random>
+#include <sstream>
 
 namespace {
   std::random_device rd;

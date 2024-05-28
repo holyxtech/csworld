@@ -1,18 +1,12 @@
 #include "tcp_client.h"
-#include <iostream>
 
 TCPClient::TCPClient(asio::io_context& io_context)
-    : io_context_(io_context), socket_(io_context) {
-  tcp::resolver resolver(io_context_);
-  auto* host = "localhost";
-  auto endpoints = resolver.resolve(host, "7331");
-
-  asio::async_connect(
-    socket_,
-    endpoints,
-    boost::bind(
-      &TCPClient::handle_connect, this,
-      asio::placeholders::error));
+    : io_context_{io_context}, socket_{io_context} {
+   tcp::resolver resolver(io_context_);
+  auto* host = "127.0.0.1";
+  auto endpoints = resolver.resolve(host,  "7331");
+  asio::connect(socket_, endpoints);
+  handle_connect(asio::error_code());
 }
 
 void TCPClient::write(Message&& message) {
@@ -43,7 +37,7 @@ moodycamel::ReaderWriterQueue<Message>& TCPClient::get_queue() {
 
 void TCPClient::handle_read_header(const asio::error_code& error) {
   uint32_t body_length;
-  std::memcpy(&body_length, read_buffer_, sizeof(body_length));
+  std::memcpy(&body_length, read_buffer_.data(), sizeof(body_length));
 
   asio::async_read(
     socket_,
@@ -56,7 +50,7 @@ void TCPClient::handle_read_header(const asio::error_code& error) {
 void TCPClient::handle_read_body(const asio::error_code& error, uint32_t body_length) {
 
   Message message(body_length);
-  std::memcpy(message.data(), read_buffer_, body_length);
+  std::memcpy(message.data(), read_buffer_.data(), body_length);
   q_.enqueue(std::move(message));
 
   asio::async_read(

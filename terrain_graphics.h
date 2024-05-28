@@ -71,15 +71,15 @@ public:
 
 private:
   struct DrawArraysIndirectCommand {
-    uint count;
-    uint instance_count;
-    uint first;
-    uint base_instance;
+    unsigned int count;
+    unsigned int instance_count;
+    unsigned int first;
+    unsigned int base_instance;
   };
 
   struct CommandMetadata {
     bool occupied;
-    uint buffer_size;
+    unsigned int buffer_size;
   };
 
   struct MultiDrawHandle {

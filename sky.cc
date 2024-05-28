@@ -1,5 +1,6 @@
 #include "sky.h"
 #include <string>
+#include <numbers>
 #include "options.h"
 #include "render_utils.h"
 #include "renderer.h"
@@ -95,17 +96,17 @@ Sky::Sky() {
 
   {
     std::vector<CBVertex> mesh;
-    float theta = M_PI / 2 - 0.0043633;
-    float phi = M_PI / 2 - 0.0043633;
-    /* float theta = M_PI / 2 - 0.01;
-    float phi = M_PI / 2 - 0.01; */
+    float theta = std::numbers::pi / 2 - 0.0043633;
+    float phi = std::numbers::pi / 2 - 0.0043633;
+    /* float theta = std::numbers::pi / 2 - 0.01;
+    float phi = std::numbers::pi / 2 - 0.01; */
 
-    mesh.emplace_back(CBVertex{spherical_to_cartesian(1, theta, M_PI - phi), QuadCoord::tl});
+    mesh.emplace_back(CBVertex{spherical_to_cartesian(1, theta, std::numbers::pi - phi), QuadCoord::tl});
     mesh.emplace_back(CBVertex{spherical_to_cartesian(1, theta, phi), QuadCoord::tr});
-    mesh.emplace_back(CBVertex{spherical_to_cartesian(1, M_PI - theta, phi), QuadCoord::br});
-    mesh.emplace_back(CBVertex{spherical_to_cartesian(1, theta, M_PI - phi), QuadCoord::tl});
-    mesh.emplace_back(CBVertex{spherical_to_cartesian(1, M_PI - theta, phi), QuadCoord::br});
-    mesh.emplace_back(CBVertex{spherical_to_cartesian(1, M_PI - theta, M_PI - phi), QuadCoord::bl});
+    mesh.emplace_back(CBVertex{spherical_to_cartesian(1, std::numbers::pi - theta, phi), QuadCoord::br});
+    mesh.emplace_back(CBVertex{spherical_to_cartesian(1, theta, std::numbers::pi - phi), QuadCoord::tl});
+    mesh.emplace_back(CBVertex{spherical_to_cartesian(1, std::numbers::pi - theta, phi), QuadCoord::br});
+    mesh.emplace_back(CBVertex{spherical_to_cartesian(1, std::numbers::pi - theta, std::numbers::pi - phi), QuadCoord::bl});
 
     glGenVertexArrays(1, &cb_vao_);
     glGenBuffers(1, &cb_vbo_);

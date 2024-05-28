@@ -54,7 +54,7 @@ void TerrainGraphics::set_up() {
   using T = VertexKind::VertexKind<mesh_kind>::type;
   auto& mdh = get_multi_draw_handle<mesh_kind>();
 
-  int defacto_vertices;
+  int defacto_vertices = 1;
   std::size_t buckets = Region::max_sz;
   if constexpr (mesh_kind == MeshKind::cubes) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_mesh;
@@ -108,6 +108,7 @@ void TerrainGraphics::set_up() {
 }
 
 TerrainGraphics::TerrainGraphics() {
+  
   set_up<MeshKind::cubes>();
 
   set_up<MeshKind::irregular>();
@@ -152,7 +153,7 @@ TerrainGraphics::TerrainGraphics() {
   }
 
   // lods
-  set_up<MeshKind::lod1>();
+  //set_up<MeshKind::lod1>();
 
   glGenTextures(1, &lod_texture_array_);
   glBindTexture(GL_TEXTURE_2D_ARRAY, lod_texture_array_);
@@ -172,6 +173,8 @@ TerrainGraphics::TerrainGraphics() {
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
+  
+
   // uniforms
   glUseProgram(cubes_draw_handle_.shader);
   GLint texture_loc = glGetUniformLocation(cubes_draw_handle_.shader, "textureArray");
@@ -181,10 +184,12 @@ TerrainGraphics::TerrainGraphics() {
   texture_loc = glGetUniformLocation(irregular_draw_handle_.shader, "textureArray");
   glUniform1i(texture_loc, 0);
 
-  glUseProgram(lod1_draw_handle_.shader);
-  texture_loc = glGetUniformLocation(lod1_draw_handle_.shader, "textureArray");
-  glUniform1i(texture_loc, 0);
 
+/*   glUseProgram(lod1_draw_handle_.shader);
+  texture_loc = glGetUniformLocation(lod1_draw_handle_.shader, "textureArray");
+  glUniform1i(texture_loc, 0); */
+
+  
   // glUseProgram(water_draw_handle_.shader);
 }
 
@@ -195,11 +200,11 @@ void TerrainGraphics::create(const Location& loc, const MeshGenerator& mesh_gene
 }
 
 void TerrainGraphics::create(const Location& loc, LodLevel level, const LodMeshGenerator& lod_mesh_generator) {
-  switch (level) {
+/*   switch (level) {
   case LodLevel::lod1:
     upload<MeshKind::lod1>(loc, lod_mesh_generator.get_mesh<LodLevel::lod1>(loc));
     break;
-  }
+  } */
 }
 
 template <MeshKind mesh_kind>
@@ -366,6 +371,7 @@ void TerrainGraphics::render_water(const Renderer& renderer) const {
   auto& camera_world_position = renderer.get_camera_world_position();
 
   glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_world_position));
+
 
   const Sky& sky = renderer.get_sky();
   GLuint texture = sky.get_texture();

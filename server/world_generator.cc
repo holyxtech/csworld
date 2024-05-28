@@ -1,4 +1,5 @@
 #include "world_generator.h"
+#include <numbers>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -148,11 +149,11 @@ WorldGenerator::~WorldGenerator() {
 }
 
 std::pair<int, int> WorldGenerator::lat_lng_to_web_mercator(double latitude, double longitude, int zoom) {
-  double longitude_in_radians = longitude * M_PI / 180;
-  double latitude_in_radians = latitude * M_PI / 180;
+  double longitude_in_radians = longitude * std::numbers::pi / 180;
+  double latitude_in_radians = latitude * std::numbers::pi / 180;
 
-  double x = pow(2, zoom) * (M_PI + longitude_in_radians) / (2 * M_PI);
-  double y = pow(2, zoom) * (M_PI - log(tan((M_PI / 4) + (latitude_in_radians / 2)))) / (2 * M_PI);
+  double x = pow(2, zoom) * (std::numbers::pi + longitude_in_radians) / (2 * std::numbers::pi);
+  double y = pow(2, zoom) * (std::numbers::pi - log(tan((std::numbers::pi / 4) + (latitude_in_radians / 2)))) / (2 * std::numbers::pi);
   int xTile = static_cast<int>(x);
   int yTile = static_cast<int>(y);
 
@@ -162,8 +163,8 @@ std::pair<int, int> WorldGenerator::lat_lng_to_web_mercator(double latitude, dou
 void WorldGenerator::calculate_bounding_box(int xtile, int ytile, int zoom, double& lng_deg, double& lat_deg) {
   double n = std::pow(2.0, zoom);
   lng_deg = xtile / n * 360.0 - 180.0;
-  double lat_rad = std::atan(std::sinh(M_PI * (1 - 2.0 * ytile / n)));
-  lat_deg = lat_rad * 180.0 / M_PI;
+  double lat_rad = std::atan(std::sinh(std::numbers::pi * (1 - 2.0 * ytile / n)));
+  lat_deg = lat_rad * 180.0 / std::numbers::pi;
 }
 
 std::pair<int, int> WorldGenerator::pixel_of_coord(int x, int y, int z, double lng, double lat) {

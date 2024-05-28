@@ -27,21 +27,21 @@ void TCPConnection::write(Message message) {
 
 void TCPConnection::handle_read_header(const ::asio::error_code& error) {
   if (!error) {
-
     uint32_t body_length;
-    std::memcpy(&body_length, read_buffer_, sizeof(body_length));
+    std::memcpy(&body_length, read_buffer_.data(), sizeof(body_length));
 
     asio::async_read(
       socket_,
       asio::buffer(read_buffer_, body_length),
       boost::bind(&TCPConnection::handle_read_body, this, asio::placeholders::error, body_length));
+
   }
 }
 
 void TCPConnection::handle_read_body(const asio::error_code& error, uint32_t body_length) {
   if (!error) {
     MessageWithId msg_with_id = {Message(body_length), id_};
-    std::memcpy(msg_with_id.message.data(), read_buffer_, body_length);
+    std::memcpy(msg_with_id.message.data(), read_buffer_.data(), body_length);
     q_.enqueue(std::move(msg_with_id));
 
     asio::async_read(

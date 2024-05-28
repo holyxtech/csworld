@@ -5,6 +5,8 @@
 #include <asio.hpp>
 #include "../readerwriterqueue.h"
 #include "types.h"
+#include <array>
+#include "../common.h"
 
 using asio::ip::tcp;
 
@@ -29,8 +31,7 @@ private:
   int id_;
   tcp::socket socket_;
   static constexpr int header_length = 4;
-  static constexpr int buffer_size = 1048576;
-  uint8_t read_buffer_[buffer_size];
+  std::array<std::uint8_t,Common::max_msg_buffer_size> read_buffer_;
   moodycamel::ReaderWriterQueue<MessageWithId>& q_;
 };
 

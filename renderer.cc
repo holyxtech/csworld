@@ -3,7 +3,6 @@
 #include <fstream>
 #include <iostream>
 #include <utility>
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
 #include <glm/gtc/random.hpp>
 #include "options.h"
@@ -12,6 +11,7 @@
 #include "types.h"
 
 Renderer::Renderer(World& world) : world_(world) {
+
   projection_ = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 4000.l);
 
   RenderUtils::preload_include(Options::instance()->getShaderPath("ssr.glsl"), "/ssr.glsl");

@@ -1,9 +1,12 @@
 #ifndef TCP_CLIENT_H
 #define TCP_CLIENT_H
-
-#include <boost/bind/bind.hpp>
-#define ASIO_HAS_BOOST_BIND
+#ifdef _WIN32
+#include <SDKDDKVer.h>
+#endif
+#include "common.h"
+#include <array>
 #include <asio.hpp>
+#include <boost/bind/bind.hpp>
 #include "readerwriterqueue.h"
 #include "types.h"
 
@@ -24,8 +27,7 @@ private:
 
   asio::io_context& io_context_;
   tcp::socket socket_;
-  static constexpr int buffer_size_ = 1048576;
-  uint8_t read_buffer_[buffer_size_];
+  std::array<std::uint8_t, Common::max_msg_buffer_size> read_buffer_;
   static constexpr int header_length_ = 4;
   moodycamel::ReaderWriterQueue<Message> q_;
 };

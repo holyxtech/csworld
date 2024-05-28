@@ -5,9 +5,7 @@
 #include <string>
 #include <vector>
 #include <boost/bind/bind.hpp>
-
 #define ASIO_HAS_BOOST_BIND
-
 #include <asio.hpp>
 #include "../config.h"
 #include "../readerwriterqueue.h"
@@ -20,7 +18,6 @@ int main() {
   std::filesystem::create_directory(std::string(APPLICATION_DATA_DIR) + "/images/");
   std::filesystem::create_directory(std::string(APPLICATION_DATA_DIR) + "/images/landcover/");
   std::filesystem::create_directory(std::string(APPLICATION_DATA_DIR) + "/images/elevation/");
-  
 
   asio::io_context io_context;
   TCPServer tcp_server(io_context);

@@ -6,6 +6,7 @@
 SimServer::SimServer(TCPServer& tcp_server) : tcp_server_(tcp_server) {}
 
 void SimServer::step() {
+  
   MessageWithId msg_with_id;
   auto& q = tcp_server_.get_queue();
   bool success = q.try_dequeue(msg_with_id);
@@ -18,7 +19,7 @@ void SimServer::step() {
     auto* sections = request->sections();
 
     // construct new update
-    flatbuffers::FlatBufferBuilder builder(1048576);
+    flatbuffers::FlatBufferBuilder builder(Common::max_msg_buffer_size);
     std::vector<flatbuffers::Offset<fbs_update::Section>> returning_sections;
 
     for (int i = 0; i < sections->size(); ++i) {

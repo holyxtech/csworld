@@ -4,7 +4,6 @@
 #include <chrono>
 #include <cmath>
 #include <iostream>
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
 
 MeshGenerator::MeshGenerator() {}

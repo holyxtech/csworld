@@ -4,7 +4,6 @@
 #define GLM_FORCE_LEFT_HANDED
 #include <vector>
 #include <GL/glew.h>
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
 #include <glm/gtc/random.hpp>
 
