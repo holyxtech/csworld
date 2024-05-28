@@ -15,7 +15,6 @@ find_package(CURL REQUIRED)
 find_package(Boost CONFIG REQUIRED COMPONENTS bind)
 find_package(asio CONFIG REQUIRED)
 
-# Helper function to escape backslashes in Windows paths
 function(escape_backslashes input_path output_path)
     string(REPLACE "\\" "\\\\" escaped_path "${input_path}")
     set(${output_path} "${escaped_path}" PARENT_SCOPE)
@@ -76,14 +75,14 @@ include_directories(${projectIncludeDirs})
 configure_file(config.h.in "${CMAKE_SOURCE_DIR}/config.h")
 
 add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
+add_definitions(-D GLM_FORCE_LEFT_HANDED)
+add_definitions(-D ASIO_HAS_BOOST_BIND)
 
 add_executable(client ${projectSources})
 target_link_libraries(
     client PRIVATE
     glfw            
     ${GLEW_LIBRARIES}
-    glm::glm         
-    flatbuffers::flatbuffers      
     ${OPENGL_LIBRARIES}
 )
 
@@ -91,7 +90,6 @@ add_executable(server ${projectSourcesServer})
 target_link_libraries(
     server PRIVATE
     CURL::libcurl
-    flatbuffers::flatbuffers
 )
 
 file(MAKE_DIRECTORY ${APPLICATION_DATA_DIR})

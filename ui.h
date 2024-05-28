@@ -9,7 +9,6 @@
 #include <vector>
 #include "types.h"
 #include "item.h"
-#define GLM_FORCE_LEFT_HANDED
 #include <GL/glew.h>
 #include <glm/ext.hpp>
 #include <glm/gtc/random.hpp>

@@ -1,7 +1,6 @@
 #ifndef SKY_H
 #define SKY_H
 
-#define GLM_FORCE_LEFT_HANDED
 #include <vector>
 #include <GL/glew.h>
 #include <glm/ext.hpp>

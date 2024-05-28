@@ -2,14 +2,8 @@
 
 layout (location = 0) in uint data;
 layout (location = 1) in float lighting;
-layout (binding = 2, std430) readonly buffer ssbo1 {
-    float chunkPosX[];
-};
-layout (binding = 3, std430) readonly buffer ssbo2 {
-    float chunkPosY[];
-};
-layout (binding = 4, std430) readonly buffer ssbo3 {
-    float chunkPosZ[];
+layout (binding = 2, std430) readonly buffer ssbo {
+    vec3 chunkPos[];
 };
 
 uniform mat4 uTransform;
@@ -34,9 +28,10 @@ const vec2 uvs[4] = {
 
 void main() {
     vec3 pos;
-    pos.x = (data & xpos_mask) + chunkPosX[gl_DrawID];
-    pos.y = ((data & ypos_mask) >> 5) + chunkPosY[gl_DrawID];
-    pos.z = ((data & zpos_mask) >> 10) + chunkPosZ[gl_DrawID];
+    vec3 loc = chunkPos[gl_DrawID];
+    pos.x = (data & xpos_mask) + loc.x;
+    pos.y = ((data & ypos_mask) >> 5) + loc.y;
+    pos.z = ((data & zpos_mask) >> 10) + loc.z;
 
     gl_Position = uTransform * vec4(pos,1.f);    
     

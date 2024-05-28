@@ -276,8 +276,8 @@ void Region::clear_diffs() {
       chunks_.erase(loc);
       auto section_loc = Location2D{loc[0], loc[2]};
       --chunks_supported_[section_loc];
-      /* if (chunks_supported_[section_loc] == 0)
-        sections_.erase(section_loc); */
+      if (chunks_supported_[section_loc] == 0)
+        sections_.erase(section_loc);
 
       auto adjacent = get_covering_locations(loc);
       for (auto& location : adjacent) {
@@ -308,8 +308,8 @@ void Region::clear_diffs() {
       chunks_.erase(location);
       auto section_loc = Location2D{location[0], location[2]};
       --chunks_supported_[section_loc];
-      /* if (chunks_supported_[section_loc] == 0)
-        sections_.erase(section_loc); */
+      if (chunks_supported_[section_loc] == 0)
+        sections_.erase(section_loc);
 
       auto adjacent = get_covering_locations(loaded_locations[i]);
       for (auto& location : adjacent) {

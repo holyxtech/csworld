@@ -11,8 +11,7 @@
 #include "types.h"
 
 Renderer::Renderer(World& world) : world_(world) {
-
-  projection_ = glm::perspective(glm::radians(45.l), 16 / 9.l, 0.1l, 4000.l);
+  projection_ = glm::perspective(glm::radians(45.), 16 / 9., 0.1, region_far_plane);
 
   RenderUtils::preload_include(Options::instance()->getShaderPath("ssr.glsl"), "/ssr.glsl");
 
@@ -194,9 +193,10 @@ void Renderer::render() const {
   glBindFramebuffer(GL_FRAMEBUFFER, main_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  terrain_.render(*this);
-
+  terrain_.render_lods(*this);
   sky_.render(*this);
+  glClear(GL_DEPTH_BUFFER_BIT);
+  terrain_.render(*this);
 
   glDisable(GL_DEPTH_TEST);
   glBindFramebuffer(GL_FRAMEBUFFER, composite_framebuffer_);
@@ -257,7 +257,7 @@ void Renderer::render() const {
   glUniform1i(glGetUniformLocation(voxel_highlight_shader_, "depth"), 0);
   auto transform_loc = glGetUniformLocation(voxel_highlight_shader_, "uTransform");
   auto transform = projection_ * view_;
-  transform = projection_ * view_ * glm::translate(voxel_highlight_position_) * glm::scale(glm::vec3(1.001));
+  transform = projection_ * view_ * glm::translate(glm::mat4(1.f), voxel_highlight_position_) * glm::scale(glm::mat4(1.f), glm::vec3(1.001));
   glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
   glBindVertexArray(voxel_highlight_vao_);
   glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);

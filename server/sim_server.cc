@@ -1,3 +1,6 @@
+#ifdef _WIN32
+#include <SDKDDKVer.h>
+#endif
 #include "sim_server.h"
 #include "../fbs/common_generated.h"
 #include "../fbs/request_generated.h"

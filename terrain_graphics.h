@@ -9,7 +9,6 @@
 #include "mesh_utils.h"
 #include "region.h"
 #include "types.h"
-#define GLM_FORCE_LEFT_HANDED
 #include <GL/glew.h>
 
 class Renderer;
@@ -64,12 +63,15 @@ public:
   TerrainGraphics();
   void render(const Renderer& renderer) const;
   void render_water(const Renderer& renderer) const;
+  void render_lods(const Renderer& renderer) const;
   void create(const Location& loc, const MeshGenerator& mesh_generator);
   void create(const Location& loc, LodLevel level, const LodMeshGenerator& lod_mesh_generator);
   void destroy(const Location& loc);
   void new_origin(const Location& loc);
 
 private:
+  static constexpr double lod_far_plane = 1000.;
+
   struct DrawArraysIndirectCommand {
     unsigned int count;
     unsigned int instance_count;
@@ -92,11 +94,7 @@ private:
     int vbo_size = 0;
     std::unordered_map<Location, std::size_t, LocationHash> loc_to_command_index;
     std::size_t first_unoccupied = 0;
-
-    // eventually everything will use chunk offsets to calc position (easy re-base w.r.t origin)
-    GLuint x_ssbo_;
-    GLuint y_ssbo_;
-    GLuint z_ssbo_;
+    GLuint loc_ssbo_;
   };
 
   template <MeshKind mesh_kind>
@@ -129,6 +127,8 @@ private:
 
   // LODS
   MultiDrawHandle lod1_draw_handle_;
+  glm::mat4 lod_projection_;
+
 
   GLuint voxel_texture_array_;
   GLuint lod_texture_array_;

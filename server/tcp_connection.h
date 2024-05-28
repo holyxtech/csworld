@@ -1,7 +1,9 @@
 #ifndef TCP_CONNECTION_H
 #define TCP_CONNECTION_H
+#ifdef _WIN32
+#include <SDKDDKVer.h>
+#endif
 #include <boost/bind/bind.hpp>
-#define ASIO_HAS_BOOST_BIND
 #include <asio.hpp>
 #include "../readerwriterqueue.h"
 #include "types.h"

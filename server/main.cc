@@ -1,12 +1,14 @@
+#ifdef _WIN32
+#include <SDKDDKVer.h>
+#endif
 #include <array>
 #include <ctime>
 #include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <boost/bind/bind.hpp>
-#define ASIO_HAS_BOOST_BIND
 #include <asio.hpp>
+#include <boost/bind/bind.hpp>
 #include "../config.h"
 #include "../readerwriterqueue.h"
 #include "chunk.h"

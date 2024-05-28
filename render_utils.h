@@ -4,7 +4,6 @@
 #include <iostream>
 #include <string>
 #include <utility>
-#define GLM_FORCE_LEFT_HANDED
 #include <GL/glew.h>
 #include <glm/ext.hpp>
 #include <glm/gtc/random.hpp>

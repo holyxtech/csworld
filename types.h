@@ -13,11 +13,9 @@
 #include <glm/glm.hpp>
 #include "item.h"
 
-namespace {
-  constexpr unsigned int create_bitmask(int start, int end) {
-    return ((1 << (end - start + 1)) - 1) << start;
-  }
-} // namespace
+constexpr unsigned int create_bitmask(int start, int end) {
+  return ((1 << (end - start + 1)) - 1) << start;
+}
 
 enum Direction {
   nx,
@@ -151,19 +149,19 @@ public:
   LodVertex(int x, int y, int z, Direction normal, QuadCorner uvs, int textureId) {
     data_ |= (x & xpos_mask);
     data_ |= ((y << 4) & ypos_mask);
-    data_ |= ((z << 8) & zpos_mask);
-    data_ |= ((normal << 12) & normal_mask);
-    data_ |= ((uvs << 15) & uvs_mask);
-    data_ |= ((textureId << 17) & texture_mask);
+    data_ |= ((z << 9) & zpos_mask);
+    data_ |= ((normal << 13) & normal_mask);
+    data_ |= ((uvs << 16) & uvs_mask);
+    data_ |= ((textureId << 18) & texture_mask);
   }
 
 private:
   static constexpr unsigned int xpos_mask = create_bitmask(0, 3);
-  static constexpr unsigned int ypos_mask = create_bitmask(4, 7);
-  static constexpr unsigned int zpos_mask = create_bitmask(8, 11);
-  static constexpr unsigned int normal_mask = create_bitmask(12, 14);
-  static constexpr unsigned int uvs_mask = create_bitmask(15, 16);
-  static constexpr unsigned int texture_mask = create_bitmask(17, 31);
+  static constexpr unsigned int ypos_mask = create_bitmask(4, 8);
+  static constexpr unsigned int zpos_mask = create_bitmask(9, 12);
+  static constexpr unsigned int normal_mask = create_bitmask(13, 15);
+  static constexpr unsigned int uvs_mask = create_bitmask(16, 17);
+  static constexpr unsigned int texture_mask = create_bitmask(18, 31);
 };
 
 class CubeVertex {

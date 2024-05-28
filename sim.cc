@@ -19,12 +19,7 @@
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window), tcp_client_(tcp_client), renderer_(world_), region_(sections_) {
 
-  // std::array<double, 3> starting_pos = Common::lat_lng_to_world_pos("-11-0-0", "37-59-03");
-  //  starting_pos[1] = 350;
   std::array<double, 3> starting_pos{4230249, 316, -1220386};
-  // std::array<double, 3> starting_pos{4230367,320,-1220630};
-  //  std::array<double, 3> starting_pos{0,0,0};
-
   {
     std::unique_lock<std::mutex> lock(camera_mutex_);
     camera_.set_position(glm::dvec3{starting_pos[0], starting_pos[1], starting_pos[2]});

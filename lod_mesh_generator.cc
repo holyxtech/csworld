@@ -35,7 +35,6 @@ std::array<Voxel, 6> LodMeshGenerator::get_adjacent_voxels(
 template <LodLevel level>
 void LodMeshGenerator::mesh_chunk(LodLoader& lod_loader, const Location& location) {
   auto& lod = lod_loader.get_lod<level>(location);
-  auto& voxs = lod.get_voxels();
 
   auto adjacent_lods = lod_loader.get_adjacent_lods<level>(location);
   auto& mesh = meshes_[location].get<level>();

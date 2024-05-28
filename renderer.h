@@ -1,10 +1,10 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
-#define GLM_FORCE_LEFT_HANDED
 #include <array>
 #include <GL/glew.h>
 #include "camera.h"
+#include "lod_mesh_generator.h"
 #include "mesh_generator.h"
 #include "region.h"
 #include "sky.h"
@@ -12,7 +12,6 @@
 #include "ui.h"
 #include "ui_graphics.h"
 #include "world.h"
-#include "lod_mesh_generator.h"
 
 class Renderer {
 public:
@@ -31,8 +30,12 @@ public:
 
   static constexpr GLuint window_width = 2560;
   static constexpr GLuint window_height = 1440;
+  static constexpr double region_far_plane = 20.;
 
 private:
+  static constexpr GLuint blur_texture_width_ = window_width / 8;
+  static constexpr GLuint blur_texture_height_ = window_height / 8;
+
   GLuint main_framebuffer_;
   GLuint water_framebuffer_;
   GLuint composite_framebuffer_;
@@ -55,9 +58,6 @@ private:
   GLuint voxel_highlight_shader_;
   GLuint blur_shader_;
   GLuint final_shader_;
-
-  static constexpr GLuint blur_texture_width_ = window_width / 8;
-  static constexpr GLuint blur_texture_height_ = window_height / 8;
 
   glm::vec3 voxel_highlight_position_;
   glm::dvec3 camera_offset_;

@@ -2,7 +2,6 @@
 #define CAMERA_H
 
 #include <array>
-#define GLM_FORCE_LEFT_HANDED
 #include <glm/glm.hpp>
 
 class Camera {

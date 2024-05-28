@@ -68,9 +68,15 @@ Location Chunk::pos_to_loc(const std::array<double, 3>& position) {
 }
 
 void Chunk::compute_lighting(Section& section) {
-  lighting_.reserve(sz);
-  for (int i = 0; i < sz; ++i)
-    lighting_.emplace_back(0);
+  if (lighting_.size() == 0) {
+    lighting_.reserve(sz);
+    for (int i = 0; i < sz; ++i)
+      lighting_.emplace_back(0);
+  } else {
+    for (int i = 0; i < sz; ++i)
+      lighting_[i] = 0;
+  }
+
   std::queue<Int3D> lights;
 
   int top_y = sz_y - 1 + location_[1] * sz_y;

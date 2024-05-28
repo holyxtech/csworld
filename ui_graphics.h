@@ -2,7 +2,6 @@
 #define UIGRAPHICS_H
 
 #include "ui.h"
-#define GLM_FORCE_LEFT_HANDED
 #include <GL/glew.h>
 #include <glm/ext.hpp>
 #include <glm/gtc/random.hpp>

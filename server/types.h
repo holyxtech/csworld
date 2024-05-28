@@ -28,12 +28,12 @@ struct LocationMath {
 
 struct LocationHash {
   std::size_t operator()(const Location& l) const {
-    std::hash<int> h;
-    int ret = 3;
-    ret ^= h(l[0]) | l[0];
-    ret ^= h(l[1]) | l[1];
-    ret ^= h(l[2]) | l[2];
-    return ret;
+    std::hash<int> hasher;
+    std::size_t hashValue = 0;
+    hashValue ^= hasher(l[0]) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+    hashValue ^= hasher(l[1]) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+    hashValue ^= hasher(l[2]) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+    return hashValue;
   }
 };
 

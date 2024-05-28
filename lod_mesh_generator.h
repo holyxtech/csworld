@@ -29,7 +29,7 @@ public:
   template <LodLevel level>
   const std::vector<LodVertex>& get_mesh(const Location& loc) const;
 
-  static constexpr int defacto_vertices_per_lod1_mesh = 1000;
+  static constexpr int defacto_vertices_per_lod1_mesh = 10000;
   
 private:
   struct MeshPack {
