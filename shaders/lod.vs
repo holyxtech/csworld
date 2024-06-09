@@ -6,9 +6,9 @@ layout (binding = 1, std430) readonly buffer ssbo {
 };
 
 uniform mat4 uTransform;
+uniform float uHorizontalScale;
 
 out vec2 fragUvs;
-out vec3 fragWorldPosition;
 flat out uint fragTextureId;
 
 const uint xpos_mask = 0x0000000F;
@@ -27,9 +27,9 @@ const vec2 uvs[4] = {
 void main() {
     vec3 pos;
     vec3 loc = chunkPos[gl_DrawID];
-    pos.x = 2*(data & xpos_mask) + loc.x;
+    pos.x = uHorizontalScale*(data & xpos_mask) + loc.x;
     pos.y = ((data & ypos_mask) >> 4) + loc.y;
-    pos.z = 2*((data & zpos_mask) >> 9) + loc.z;
+    pos.z = uHorizontalScale*((data & zpos_mask) >> 9) + loc.z;
     gl_Position = uTransform * vec4(pos,1.f);    
 
     int normal = int((data & normal_mask) >> 13);
@@ -38,7 +38,5 @@ void main() {
 
     fragTextureId = textureId;
     vec2 texcoords = uvs[uvsId];
-    texcoords.x /= 32;
-    texcoords.y /= 32;
     fragUvs = vec2(texcoords);
 }

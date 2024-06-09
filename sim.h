@@ -24,7 +24,7 @@ class Sim {
 public:
   Sim(GLFWwindow* window, TCPClient& tcp_client);
   void step();
-  void draw(int64_t ms);
+  void draw(std::int64_t ms);
 
 private:
   void request_sections(std::vector<Location2D>& locs);
@@ -54,9 +54,9 @@ private:
 
   static constexpr int render_min_y_offset = -2;
   static constexpr int render_max_y_offset = 1;
-  // if region_distance = 2 this breaks
-  static constexpr int region_distance = 4;
-  static constexpr int render_distance = 4;
+  // if region_distance = 2 it breaks (placement/removal)
+  static constexpr int region_distance = Region::fill_distance;
+  static constexpr int render_distance = region_distance;
 
   static constexpr int section_distance = render_distance + 2;
 };

@@ -30,7 +30,7 @@ public:
 
   static constexpr GLuint window_width = 2560;
   static constexpr GLuint window_height = 1440;
-  static constexpr double region_far_plane = 20.;
+  static constexpr double region_far_plane = 100000.f;
 
 private:
   static constexpr GLuint blur_texture_width_ = window_width / 8;

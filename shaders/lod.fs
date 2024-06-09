@@ -10,5 +10,5 @@ out vec4 color;
 void main() {
   color = texture(textureArray, vec3(fragUvs, fragTextureId));
   if (color.a == 0.0)
-    discard; 
+    discard;
 }

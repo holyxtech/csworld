@@ -5,8 +5,6 @@ bool LodLoader::has_lods(const Location& loc) const {
 }
 
 void LodLoader::create_lods(const Chunk& chunk) {
-  // get lod1 into the lods
-  // ...
   auto& loc = chunk.get_location();
   auto& voxels = chunk.get_voxels();
   auto l1 = ChunkLod<LodLevel::lod1>(voxels);
@@ -32,7 +30,6 @@ void LodLoader::create_lods(const Chunk& chunk) {
     adjacents_missing_[loc] == 0) {
     diffs_.emplace_back(Diff{loc, Diff::creation});
   }
-
 }
 
 const std::vector<LodLoader::Diff>& LodLoader::get_diffs() const {
@@ -56,22 +53,21 @@ std::array<const ChunkLod<level>*, 6> LodLoader::get_adjacent_lods(const Locatio
 template std::array<const ChunkLod<LodLevel::lod1>*, 6> LodLoader::get_adjacent_lods<LodLevel::lod1>(const Location& loc) const;
 template std::array<const ChunkLod<LodLevel::lod2>*, 6> LodLoader::get_adjacent_lods<LodLevel::lod2>(const Location& loc) const;
 
-template <>
-const ChunkLod<LodLevel::lod1>& LodLoader::LodPack::get<LodLevel::lod1>() const {
-  return l1;
+template <LodLevel level>
+const ChunkLod<level>& LodLoader::LodPack::get() const {
+  if constexpr (level == LodLevel::lod1)
+    return l1;
+  else if constexpr (level == LodLevel::lod2)
+    return l2;
 }
 
-template <>
-const ChunkLod<LodLevel::lod2>& LodLoader::LodPack::get<LodLevel::lod2>() const {
-  return l2;
+template <LodLevel level>
+const ChunkLod<level>& LodLoader::get_lod(const Location& loc) const {
+  if constexpr (level == LodLevel::lod1)
+    return lods_.at(loc).l1;
+  else if constexpr (level == LodLevel::lod2)
+    return lods_.at(loc).l2;
 }
 
-template <>
-const ChunkLod<LodLevel::lod1> LodLoader::get_lod(const Location& loc) const {
-  return lods_.at(loc).l1;
-}
-
-template <>
-const ChunkLod<LodLevel::lod2> LodLoader::get_lod(const Location& loc) const {
-  return lods_.at(loc).l2;
-}
+template const ChunkLod<LodLevel::lod1>& LodLoader::get_lod<LodLevel::lod1>(const Location& loc) const;
+template const ChunkLod<LodLevel::lod2>& LodLoader::get_lod<LodLevel::lod2>(const Location& loc) const;

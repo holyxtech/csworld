@@ -23,9 +23,6 @@ public:
   };
 
   Region(std::unordered_map<Location2D, Section, Location2DHash>& sections);
-  void add_section(Section section);
-  bool has_section(Location2D loc) const;
-  std::unordered_map<Location2D, Section, Location2DHash>& get_sections();
   Player& get_player();
   Chunk& get_chunk(Location loc);
   bool has_chunk(Location loc) const;
@@ -44,7 +41,8 @@ public:
   void raycast_remove(Camera& camera);
   static Location location_from_global_coords(int x, int y, int z);
 
-  static constexpr int max_sz = 256;
+  static constexpr int max_sz = 4096;
+  static constexpr int fill_distance = 4;
 
 private:
   template <typename Func, typename... Args>
@@ -67,6 +65,7 @@ private:
 
   // has to be at least as big as max_sz
   static constexpr int max_sz_internal = max_sz * 2;
+
 };
 
 #endif // REGION_H

@@ -4,12 +4,12 @@
 #include <array>
 #include <unordered_map>
 #include <vector>
+#include <GL/glew.h>
 #include "lod_mesh_generator.h"
 #include "mesh_generator.h"
 #include "mesh_utils.h"
 #include "region.h"
 #include "types.h"
-#include <GL/glew.h>
 
 class Renderer;
 
@@ -22,41 +22,16 @@ enum class MeshKind {
   lod3
 };
 
-namespace VertexKind {
-  template <MeshKind mesh_kind>
-  struct VertexKind {
-    using type = Vertex;
-  };
-
-  template <>
-  struct VertexKind<MeshKind::cubes> {
-    using type = CubeVertex;
-  };
-
-  template <>
-  struct VertexKind<MeshKind::irregular> {
-    using type = Vertex;
-  };
-
-  template <>
-  struct VertexKind<MeshKind::water> {
-    using type = Vertex;
-  };
-
-  template <>
-  struct VertexKind<MeshKind::lod1> {
-    using type = LodVertex;
-  };
-  template <>
-  struct VertexKind<MeshKind::lod2> {
-    using type = LodVertex;
-  };
-  template <>
-  struct VertexKind<MeshKind::lod3> {
-    using type = LodVertex;
-  };
-
-} // namespace VertexKind
+template <MeshKind mesh_kind>
+struct VertexKind {
+  using type = std::conditional_t<
+    mesh_kind == MeshKind::cubes,
+    CubeVertex,
+    std::conditional_t<
+      (mesh_kind == MeshKind::irregular || mesh_kind == MeshKind::water),
+      Vertex,
+      LodVertex>>;
+};
 
 class TerrainGraphics {
 public:
@@ -70,7 +45,7 @@ public:
   void new_origin(const Location& loc);
 
 private:
-  static constexpr double lod_far_plane = 1000.;
+  static constexpr double lod_far_plane = 10000.;
 
   struct DrawArraysIndirectCommand {
     unsigned int count;
@@ -80,7 +55,6 @@ private:
   };
 
   struct CommandMetadata {
-    bool occupied;
     unsigned int buffer_size;
   };
 
@@ -100,17 +74,13 @@ private:
   template <MeshKind mesh_kind>
   void upload(
     const Location& loc,
-    const std::vector<typename VertexKind::VertexKind<mesh_kind>::type>& mesh);
+    const std::vector<typename VertexKind<mesh_kind>::type>& mesh);
   void remove(const Location& loc, MultiDrawHandle& mdh);
-
   void render(const Renderer& renderer, const MultiDrawHandle& mdh) const;
-
   template <MeshKind mesh_kind>
   MultiDrawHandle& get_multi_draw_handle();
-
   template <typename T>
   void set_up_vao();
-
   template <MeshKind mesh_kind>
   void set_up();
 
@@ -128,7 +98,6 @@ private:
   // LODS
   MultiDrawHandle lod1_draw_handle_;
   glm::mat4 lod_projection_;
-
 
   GLuint voxel_texture_array_;
   GLuint lod_texture_array_;

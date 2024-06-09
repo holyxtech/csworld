@@ -48,7 +48,6 @@ void LodMeshGenerator::mesh_chunk(LodLoader& lod_loader, const Location& locatio
         auto voxel_textures = MeshUtils::get_textures(voxel, adjacent);
         auto& textures = reinterpret_cast<std::array<int, 6>&>(voxel_textures);
 
-        // need to stretch model in x and z at render time
         if (!vops::is_opaque(adjacent[nx])) {
           mesh.emplace_back(LodVertex(x, y, z, nx, br, textures[nx]));
           mesh.emplace_back(LodVertex(x, y + 1, z + 1, nx, tl, textures[nx]));
@@ -129,22 +128,15 @@ const std::vector<LodVertex>& LodMeshGenerator::get_mesh(const Location& loc) co
 template const std::vector<LodVertex>& LodMeshGenerator::get_mesh<LodLevel::lod1>(const Location& loc) const;
 template const std::vector<LodVertex>& LodMeshGenerator::get_mesh<LodLevel::lod2>(const Location& loc) const;
 
-template <>
-const std::vector<LodVertex>& LodMeshGenerator::MeshPack::get<LodLevel::lod1>() const {
-  return l1;
+template <LodLevel level>
+std::vector<LodVertex>& LodMeshGenerator::MeshPack::get() {
+  if constexpr (level == LodLevel::lod1)
+    return l1;
+  else if constexpr (level == LodLevel::lod2)
+    return l2;
 }
 
-template <>
-const std::vector<LodVertex>& LodMeshGenerator::MeshPack::get<LodLevel::lod2>() const {
-  return l2;
-}
-
-template <>
-std::vector<LodVertex>& LodMeshGenerator::MeshPack::get<LodLevel::lod1>() {
-  return l1;
-}
-
-template <>
-std::vector<LodVertex>& LodMeshGenerator::MeshPack::get<LodLevel::lod2>() {
-  return l2;
+template <LodLevel level>
+const std::vector<LodVertex>& LodMeshGenerator::MeshPack::get() const {
+  return const_cast<MeshPack*>(this)->template get<level>();
 }

@@ -1,5 +1,9 @@
 #include "render_utils.h"
+#include <string>
 #include "options.h"
+#include "render_utils.h"
+#include "stb_image.h"
+#include "voxel.h"
 
 namespace {
   std::string read_sfile(std::string path) {
@@ -59,6 +63,5 @@ namespace RenderUtils {
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
   }
-
 
 } // namespace RenderUtils

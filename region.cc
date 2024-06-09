@@ -12,18 +12,6 @@ std::unordered_map<Location, Chunk, LocationHash>& Region::get_chunks() {
   return chunks_;
 }
 
-/* void Region::add_section(Section section) {
-  sections_.insert({section.get_location(), section});
-}
-
-bool Region::has_section(Location2D loc) const {
-  return sections_.contains(loc);
-}
-
-std::unordered_map<Location2D, Section, Location2DHash>& Region::get_sections() {
-  return sections_;
-} */
-
 Chunk& Region::get_chunk(Location loc) {
   return chunks_.at(loc);
 }

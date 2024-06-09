@@ -22,11 +22,11 @@ public:
   const std::vector<Diff>& get_diffs() const;
   void clear_diffs();
   template <LodLevel level>
-  const ChunkLod<level> get_lod(const Location& loc) const;
+  const ChunkLod<level>& get_lod(const Location& loc) const;
   template <LodLevel level>
   std::array<const ChunkLod<level>*, 6> get_adjacent_lods(const Location& loc) const;
 
-  static constexpr int lod1_sz = 1000;
+  static constexpr int lod1_sz = 4096;
 
 private:
   struct LodPack {

@@ -23,8 +23,6 @@ TerrainGraphics::MultiDrawHandle& TerrainGraphics::get_multi_draw_handle() {
     return water_draw_handle_;
   else if constexpr (mesh_kind == MeshKind::lod1)
     return lod1_draw_handle_;
-  else
-    return cubes_draw_handle_;
 }
 
 template <typename T>
@@ -51,7 +49,7 @@ void TerrainGraphics::set_up_vao() {
 
 template <MeshKind mesh_kind>
 void TerrainGraphics::set_up() {
-  using T = VertexKind::VertexKind<mesh_kind>::type;
+  using T = VertexKind<mesh_kind>::type;
   auto& mdh = get_multi_draw_handle<mesh_kind>();
 
   int defacto_vertices = 1;
@@ -93,7 +91,6 @@ void TerrainGraphics::set_up() {
     command.base_instance = 0;
     command.first = idx * defacto_vertices;
     metadata.buffer_size = sizeof(T) * defacto_vertices;
-    metadata.occupied = false;
   }
   glGenBuffers(1, &mdh.ibo);
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
@@ -148,39 +145,35 @@ TerrainGraphics::TerrainGraphics() {
     stbi_image_free(image_data);
   }
 
-  // uniforms
-  glUseProgram(cubes_draw_handle_.shader);
-  GLint texture_loc = glGetUniformLocation(cubes_draw_handle_.shader, "textureArray");
-  glUniform1i(texture_loc, 0);
-
-  glUseProgram(irregular_draw_handle_.shader);
-  texture_loc = glGetUniformLocation(irregular_draw_handle_.shader, "textureArray");
-  glUniform1i(texture_loc, 0);
-
   // lods
-
   set_up<MeshKind::lod1>();
-
-  glGenTextures(1, &lod_texture_array_);
-  glBindTexture(GL_TEXTURE_2D_ARRAY, lod_texture_array_);
-  num_textures = VoxelTextures::num_cube_textures;
-  glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_SRGB8_ALPHA8, width, height, num_textures);
-  for (auto [filename, texture] : RenderUtils::named_cube_textures) {
-    std::string path = Options::instance()->getImagePath(filename + std::string(".png"));
-    auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-    // maybe do something smart
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texture.get(), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-    stbi_image_free(image_data);
+  {
+    GLsizei width = 16;
+    GLsizei height = 16;
+    GLsizei channels;
+    GLsizei num_mipmaps = 1;
+    glGenTextures(1, &lod_texture_array_);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, lod_texture_array_);
+    auto num_textures = VoxelTextures::num_cube_textures;
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_SRGB8_ALPHA8, width, height, num_textures);
+    for (auto [filename, texture] : RenderUtils::named_cube_textures) {
+      std::string path = Options::instance()->getImagePath(filename + std::string(".png"));
+      auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texture.get(), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+      stbi_image_free(image_data);
+    }
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
   }
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
   glUseProgram(lod1_draw_handle_.shader);
-  texture_loc = glGetUniformLocation(lod1_draw_handle_.shader, "textureArray");
+  auto texture_loc = glGetUniformLocation(lod1_draw_handle_.shader, "textureArray");
   glUniform1i(texture_loc, 0);
   lod_projection_ = glm::perspective(glm::radians(45.), 16 / 9., Renderer::region_far_plane, lod_far_plane);
+  auto horizontal_scale_loc = glGetUniformLocation(lod1_draw_handle_.shader, "uHorizontalScale");
+  glUniform1f(horizontal_scale_loc, ChunkLod<LodLevel::lod1>::scale);
 }
 
 void TerrainGraphics::create(const Location& loc, const MeshGenerator& mesh_generator) {
@@ -200,18 +193,15 @@ void TerrainGraphics::create(const Location& loc, LodLevel level, const LodMeshG
 template <MeshKind mesh_kind>
 void TerrainGraphics::upload(
   const Location& loc,
-  const std::vector<typename VertexKind::VertexKind<mesh_kind>::type>& mesh) {
-  using T = VertexKind::VertexKind<mesh_kind>::type;
+  const std::vector<typename VertexKind<mesh_kind>::type>& mesh) {
+  using T = VertexKind<mesh_kind>::type;
   MultiDrawHandle& mdh = get_multi_draw_handle<mesh_kind>();
   std::size_t idx;
   if (mdh.loc_to_command_index.contains(loc)) {
     idx = mdh.loc_to_command_index[loc];
   } else {
     idx = mdh.first_unoccupied++;
-/*     if constexpr (mesh_kind == MeshKind::lod1)
-      std::cout<<"idx: "<<idx<<std::endl; */
     auto& metadata = mdh.commands_metadata[idx];
-    metadata.occupied = true;
 
     float loc_x = (loc[0] - origin_[0]) * Chunk::sz_x;
     float loc_y = (loc[1] - origin_[1]) * Chunk::sz_y;
@@ -302,7 +292,6 @@ void TerrainGraphics::remove(const Location& loc, MultiDrawHandle& mdh) {
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
   glBufferSubData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawArraysIndirectCommand) * idx, sizeof(DrawArraysIndirectCommand), &command);
   mdh.loc_to_command_index.erase(loc);
-  metadata.occupied = false;
   mdh.first_unoccupied = idx;
 }
 

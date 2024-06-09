@@ -120,20 +120,20 @@ void Sim::step() {
       for (int y = render_max_y_offset; y >= render_min_y_offset; --y) {
         for (int z = -render_distance; z <= render_distance; ++z) {
           auto location = Location{loc[0] + x, loc[1] + y, loc[2] + z};
-
-          if (region_distance < std::abs(x) || region_distance < (std::abs(z))) {
-            if (lod_loader_.has_lods(location))
-              continue;
-            else if (world_generator_.ready_to_fill(location, sections_)) {
-              Chunk chunk(location[0], location[1], location[2]);
-              world_generator_.fill_chunk(chunk, sections_);
-              lod_loader_.create_lods(chunk);
-            }
-          } else if (!region_.has_chunk(location) && world_generator_.ready_to_fill(location, sections_)) {
+          /*           if (region_distance < std::abs(x) || region_distance < (std::abs(z))) {
+                      if (lod_loader_.has_lods(location))
+                        continue;
+                      else if (world_generator_.ready_to_fill(location, sections_)) {
+                        Chunk chunk(location[0], location[1], location[2]);
+                        world_generator_.fill_chunk(chunk, sections_);
+                        lod_loader_.create_lods(chunk);
+                      }
+                    } else */
+          if (!region_.has_chunk(location) && world_generator_.ready_to_fill(location, sections_)) {
             Chunk chunk(location[0], location[1], location[2]);
             world_generator_.fill_chunk(chunk, sections_);
-            if (!lod_loader_.has_lods(location))
-              lod_loader_.create_lods(chunk);
+            /* if (!lod_loader_.has_lods(location))
+              lod_loader_.create_lods(chunk); */
             region_.add_chunk(std::move(chunk));
           }
         }
@@ -254,7 +254,7 @@ void Sim::request_sections(std::vector<Location2D>& locs) {
   tcp_client_.write(std::move(message));
 }
 
-void Sim::draw(int64_t ms) {
+void Sim::draw(std::int64_t ms) {
   {
     std::unique_lock<std::mutex> lock(camera_mutex_);
     auto& cursor_pos = Input::instance()->get_cursor_pos();

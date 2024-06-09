@@ -17,16 +17,13 @@ enum class LodLevel {
 template <LodLevel Level>
 class ChunkLod {
 public:
-  static constexpr int sz_x =
-    (Level == LodLevel::lod1)   ? Common::chunk_sz_x / 2
-    : (Level == LodLevel::lod2) ? Common::chunk_sz_x / 4
-    : (Level == LodLevel::lod3) ? Common::chunk_sz_x / 8
-                                : Common::chunk_sz_x / 16;
-  static constexpr int sz_z =
-    (Level == LodLevel::lod1)   ? Common::chunk_sz_z / 2
-    : (Level == LodLevel::lod2) ? Common::chunk_sz_z / 4
-    : (Level == LodLevel::lod3) ? Common::chunk_sz_z / 8
-                                : Common::chunk_sz_z / 16;
+  static constexpr int scale =
+    (Level == LodLevel::lod1)   ? 2
+    : (Level == LodLevel::lod2) ? 4
+    : (Level == LodLevel::lod3) ? 8
+                                : 16;
+  static constexpr int sz_x = Common::chunk_sz_x / scale;
+  static constexpr int sz_z = Common::chunk_sz_z / scale;
   static constexpr int sz_y = Common::chunk_sz_y;
   static constexpr int sz = sz_x * sz_y * sz_z;
 

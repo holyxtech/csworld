@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
     while (!glfwWindowShouldClose(window)) {
       auto end = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-      if (duration.count() > 16) {
+      if (duration.count() >= 16) {
         sim.step();
         start = std::chrono::high_resolution_clock::now();
       }
@@ -103,6 +103,7 @@ int main(int argc, char* argv[]) {
   auto start = std::chrono::high_resolution_clock::now();
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
+
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
       glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
@@ -119,20 +120,22 @@ int main(int argc, char* argv[]) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
-    //    auto time_now = std::chrono::high_resolution_clock::now();
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    if (duration.count() > 16) {
+    if (duration.count() >= 16) {
       sim.draw(duration.count());
       glfwSwapBuffers(window);
       start = std::chrono::high_resolution_clock::now();
     }
   }
+  std::cout<<"draw end"<<std::endl;
   build_thread.join();
-
+  std::cout<<"build end"<<std::endl;
   glfwTerminate();
+  std::cout<<"glfw terminated"<<std::endl;
   io_context.stop();
+  std::cout<<"io context stoppped"<<std::endl;
   t.join();
-
+  std::cout<<"t end"<<std::endl;
   return 0;
 }
