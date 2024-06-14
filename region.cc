@@ -12,12 +12,22 @@ std::unordered_map<Location, Chunk, LocationHash>& Region::get_chunks() {
   return chunks_;
 }
 
-Chunk& Region::get_chunk(Location loc) {
+const Chunk& Region::get_chunk(Location loc) const {
   return chunks_.at(loc);
 }
 
 bool Region::has_chunk(Location loc) const {
   return chunks_.contains(loc);
+}
+
+std::array<const Chunk*, 6> Region::get_adjacent_chunks(const Location& loc) const {
+  return std::array<const Chunk*, 6>{
+    &chunks_.at(Location{loc[0] - 1, loc[1], loc[2]}),
+    &chunks_.at(Location{loc[0] + 1, loc[1], loc[2]}),
+    &chunks_.at(Location{loc[0], loc[1] - 1, loc[2]}),
+    &chunks_.at(Location{loc[0], loc[1] + 1, loc[2]}),
+    &chunks_.at(Location{loc[0], loc[1], loc[2] - 1}),
+    &chunks_.at(Location{loc[0], loc[1], loc[2] + 1})};
 }
 
 std::array<Chunk*, 6> Region::get_adjacent_chunks(const Location& loc) {
@@ -210,6 +220,9 @@ void Region::chunk_to_mesh_generator(const Location& loc) {
   delete_furthest_chunk(loc);
   compute_global_lighting(loc);
   diffs_.emplace_back(Diff{loc, Diff::creation});
+  if (loc[0] == 264392 && loc[1] == 19 && loc[2] == -76276) {
+    std::cout << "sending" << std::endl;
+  }
   chunks_sent_.insert(loc);
 }
 
@@ -226,7 +239,6 @@ void Region::add_chunk(Chunk&& chunk) {
   else
     chunks_supported_[section_loc] = 1;
 
-  // auto adjacent = get_adjacent_locations(loc);
   auto adjacent = get_covering_locations(loc);
 
   for (auto& location : adjacent) {
@@ -318,7 +330,18 @@ Location Region::location_from_global_coords(int x, int y, int z) {
 }
 
 template <typename Func, typename... Args>
-auto Region::get_data(int x, int y, int z, Func func, Args&&... args) {
+auto Region::get_data(int x, int y, int z, Func func) const {
+  auto location = location_from_global_coords(x, y, z);
+  const auto& chunk = chunks_.at(location);
+  return func(
+    chunk,
+    ((x % Chunk::sz_x) + Chunk::sz_x) % Chunk::sz_x,
+    ((y % Chunk::sz_y) + Chunk::sz_y) % Chunk::sz_y,
+    ((z % Chunk::sz_z) + Chunk::sz_z) % Chunk::sz_z);
+}
+
+template <typename Func, typename... Args>
+auto Region::set_data(int x, int y, int z, Func func, Args&&... args) {
   auto location = location_from_global_coords(x, y, z);
   auto& chunk = chunks_.at(location);
   return func(
@@ -329,26 +352,26 @@ auto Region::get_data(int x, int y, int z, Func func, Args&&... args) {
     std::forward<Args>(args)...);
 }
 
-Voxel Region::get_voxel(int x, int y, int z) {
-  return get_data(x, y, z, [](Chunk& chunk, int x, int y, int z) {
+Voxel Region::get_voxel(int x, int y, int z) const {
+  return get_data(x, y, z, [](const Chunk& chunk, int x, int y, int z) {
     return chunk.get_voxel(x, y, z);
   });
 }
 
-unsigned char Region::get_lighting(int x, int y, int z) {
-  return get_data(x, y, z, [](Chunk& chunk, int x, int y, int z) {
+unsigned char Region::get_lighting(int x, int y, int z) const {
+  return get_data(x, y, z, [](const Chunk& chunk, int x, int y, int z) {
     return chunk.get_lighting(x, y, z);
   });
 }
 
 void Region::set_voxel(int x, int y, int z, Voxel voxel) {
-  get_data(x, y, z, [voxel](Chunk& chunk, int x, int y, int z) {
+  set_data(x, y, z, [voxel](Chunk& chunk, int x, int y, int z) {
     chunk.set_voxel(x, y, z, voxel);
   });
 }
 
 void Region::set_lighting(int x, int y, int z, unsigned char lighting) {
-  get_data(x, y, z, [lighting](Chunk& chunk, int x, int y, int z) {
+  set_data(x, y, z, [lighting](Chunk& chunk, int x, int y, int z) {
     chunk.set_lighting(x, y, z, lighting);
   });
 }
@@ -493,6 +516,8 @@ void Region::raycast_place(Camera& camera, Voxel voxel) {
           auto& chunk = chunks_.at(loc);
           auto local = Chunk::to_local(coord);
           chunk.set_voxel(local[0], local[1], local[2], voxel);
+          updated_since_reset_.insert(loc);
+
           auto& section = sections_.at(Location2D{loc[0], loc[2]});
           if (section.get_subsection_obstructing_height(local[0], local[2]) < coord[1])
             section.set_subsection_obstructing_height(local[0], local[2], coord[1]);
@@ -526,6 +551,8 @@ void Region::raycast_remove(Camera& camera) {
       auto voxel = chunk.get_voxel(local[0], local[1], local[2]);
       if (voxel != Voxel::empty) {
         chunk.set_voxel(local[0], local[1], local[2], Voxel::empty);
+        updated_since_reset_.insert(loc);
+
         auto& section = sections_.at(Location2D{loc[0], loc[2]});
         if (section.get_subsection_obstructing_height(local[0], local[2]) == coord[1]) {
           int height = find_obstructing_height(coord);
@@ -541,4 +568,12 @@ void Region::raycast_remove(Camera& camera) {
       }
     }
   }
+}
+
+const std::unordered_set<Location, LocationHash> Region::get_updated_since_reset() const {
+  return updated_since_reset_;
+}
+
+void Region::reset_updated_since_reset() {
+  updated_since_reset_.clear();
 }

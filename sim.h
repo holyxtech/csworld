@@ -9,6 +9,7 @@
 #include <GLFW/glfw3.h>
 #include "camera.h"
 
+#include "db_manager.h"
 #include "lod_loader.h"
 #include "lod_mesh_generator.h"
 #include "mesh_generator.h"
@@ -25,6 +26,7 @@ public:
   Sim(GLFWwindow* window, TCPClient& tcp_client);
   void step();
   void draw(std::int64_t ms);
+  void exit();
 
 private:
   void request_sections(std::vector<Location2D>& locs);
@@ -40,6 +42,7 @@ private:
   Renderer renderer_;
   Camera camera_;
   UI ui_;
+  DbManager db_manager_;
 
   std::mutex mutex_;
   std::mutex mesh_mutex_;
@@ -51,13 +54,13 @@ private:
   std::unordered_set<Location, LocationHash> chunks_to_build_;
   std::unordered_set<Location, LocationHash> sections_to_request_;
   Int3D ray_collision_;
+  std::uint32_t step_count_ = 0;
 
   static constexpr int render_min_y_offset = -2;
   static constexpr int render_max_y_offset = 1;
   // if region_distance = 2 it breaks (placement/removal)
   static constexpr int region_distance = Region::fill_distance;
   static constexpr int render_distance = region_distance;
-
   static constexpr int section_distance = render_distance + 2;
 };
 

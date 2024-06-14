@@ -17,9 +17,9 @@ public:
   };
 
   Chunk(int x, int y, int z);
+  Chunk(const Location& loc, const unsigned char* data, int data_size);
 
   const Location& get_location() const;
-  const std::unordered_set<std::size_t>& get_water_voxels() const;
   Voxel get_voxel(int x, int y, int z) const;
   Voxel get_voxel(int i) const;
   static int get_index(int x, int y, int z);
@@ -50,10 +50,12 @@ public:
   static constexpr unsigned char max_lighting = 0xF;
 
 private:
+  static std::array<int, 3> flat_index_to_3d_zxy(int i);
+
   std::vector<Voxel> voxels_;
   std::vector<unsigned char> lighting_;
   Location location_;
-  uint32_t flags_;
+  uint32_t flags_ = 0;
 };
 
 #endif

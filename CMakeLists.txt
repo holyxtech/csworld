@@ -14,6 +14,7 @@ find_package(flatbuffers CONFIG REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Boost CONFIG REQUIRED COMPONENTS bind)
 find_package(asio CONFIG REQUIRED)
+find_package(SQLite3 REQUIRED)
 
 function(escape_backslashes input_path output_path)
     string(REPLACE "\\" "\\\\" escaped_path "${input_path}")
@@ -21,7 +22,7 @@ function(escape_backslashes input_path output_path)
 endfunction()
 
 if(WIN32)
-    set(APPLICATION_DATA_DIR "$ENV{APPDATA}\\csworld")
+    set(APPLICATION_DATA_DIR "$ENV{APPDATA}\\csworld\\")
     escape_backslashes("${APPLICATION_DATA_DIR}" APPLICATION_DATA_DIR)
 
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -30,9 +31,9 @@ if(WIN32)
     endif()
 
 elseif(APPLE)
-    set(APPLICATION_DATA_DIR "$ENV{HOME}/Library/Application Support/csworld")
+    set(APPLICATION_DATA_DIR "$ENV{HOME}/Library/Application Support/csworld/")
 else()
-    set(APPLICATION_DATA_DIR "$ENV{HOME}/.config/csworld")
+    set(APPLICATION_DATA_DIR "$ENV{HOME}/.config/csworld/")
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
     endif()
@@ -84,6 +85,7 @@ target_link_libraries(
     glfw            
     ${GLEW_LIBRARIES}
     ${OPENGL_LIBRARIES}
+    SQLite::SQLite3
 )
 
 add_executable(server ${projectSourcesServer})

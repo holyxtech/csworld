@@ -25,7 +25,7 @@ namespace Common {
   constexpr int landcover_rows_per_sector = 1;
   constexpr int landcover_cols_per_sector = 1;
   constexpr int landcover_tiles_per_sector = landcover_rows_per_sector * landcover_cols_per_sector;
-  
+
   constexpr std::size_t max_msg_buffer_size = 100000;
 
   enum class LandCover : uint8_t {
@@ -43,6 +43,12 @@ namespace Common {
   float random_probability();
   float random_float(float low, float high);
   int random_int(int low, int high);
+  constexpr unsigned int create_bitmask(int start, int end) {
+    return ((1 << (end - start + 1)) - 1) << start;
+  }
+
+  constexpr std::uint32_t chunk_data_run_length_mask = create_bitmask(0,15);
+  constexpr std::uint32_t chunk_data_voxel_mask = create_bitmask(16,31);
 
 } // namespace Common
 

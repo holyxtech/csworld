@@ -9,7 +9,7 @@
 MeshGenerator::MeshGenerator() {}
 
 std::array<Voxel, 6> MeshGenerator::get_adjacent_voxels(
-  Chunk& chunk, std::array<Chunk*, 6>& adjacent_chunks, int x, int y, int z) const {
+  const Chunk& chunk, std::array<const Chunk*, 6>& adjacent_chunks, int x, int y, int z) const {
   std::array<Voxel, 6> adjacent;
   if (x > 0)
     adjacent[nx] = chunk.get_voxel(x - 1, y, z);
@@ -38,7 +38,7 @@ std::array<Voxel, 6> MeshGenerator::get_adjacent_voxels(
   return adjacent;
 }
 
-std::array<float, 4> MeshGenerator::get_lighting(Region& region, Int3D coord, Axis axis) const {
+std::array<float, 4> MeshGenerator::get_lighting(const Region& region, Int3D coord, Axis axis) const {
   std::array<float, 4> lighting;
   std::array<float, 9> voxel_light_levels;
   auto& offsets = three_by_three_grid_vectors[static_cast<int>(axis)];
@@ -167,7 +167,7 @@ void MeshGenerator::mesh_water(std::vector<Vertex>& mesh, glm::vec3& position, V
   }
 }
 
-void MeshGenerator::mesh_chunk(Region& region, const Location& location) {
+void MeshGenerator::mesh_chunk(const Region& region, const Location& location) {
   auto& chunk = region.get_chunk(location);
   auto adjacent_chunks = region.get_adjacent_chunks(location);
   auto& mesh = meshes_[location];

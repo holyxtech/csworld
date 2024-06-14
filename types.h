@@ -12,10 +12,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include "item.h"
-
-constexpr unsigned int create_bitmask(int start, int end) {
-  return ((1 << (end - start + 1)) - 1) << start;
-}
+#include "common.h"
 
 enum Direction {
   nx,
@@ -156,12 +153,12 @@ public:
   }
 
 private:
-  static constexpr unsigned int xpos_mask = create_bitmask(0, 3);
-  static constexpr unsigned int ypos_mask = create_bitmask(4, 8);
-  static constexpr unsigned int zpos_mask = create_bitmask(9, 12);
-  static constexpr unsigned int normal_mask = create_bitmask(13, 15);
-  static constexpr unsigned int uvs_mask = create_bitmask(16, 17);
-  static constexpr unsigned int texture_mask = create_bitmask(18, 31);
+  static constexpr unsigned int xpos_mask = Common::create_bitmask(0, 3);
+  static constexpr unsigned int ypos_mask = Common::create_bitmask(4, 8);
+  static constexpr unsigned int zpos_mask = Common::create_bitmask(9, 12);
+  static constexpr unsigned int normal_mask = Common::create_bitmask(13, 15);
+  static constexpr unsigned int uvs_mask = Common::create_bitmask(16, 17);
+  static constexpr unsigned int texture_mask = Common::create_bitmask(18, 31);
 };
 
 class CubeVertex {
@@ -180,12 +177,12 @@ public:
   }
 
 private:
-  static constexpr unsigned int xpos_mask = create_bitmask(0, 4);
-  static constexpr unsigned int ypos_mask = create_bitmask(5, 9);
-  static constexpr unsigned int zpos_mask = create_bitmask(10, 14);
-  static constexpr unsigned int normal_mask = create_bitmask(15, 17);
-  static constexpr unsigned int uvs_mask = create_bitmask(18, 19);
-  static constexpr unsigned int texture_mask = create_bitmask(20, 31);
+  static constexpr unsigned int xpos_mask = Common::create_bitmask(0, 4);
+  static constexpr unsigned int ypos_mask = Common::create_bitmask(5, 9);
+  static constexpr unsigned int zpos_mask = Common::create_bitmask(10, 14);
+  static constexpr unsigned int normal_mask = Common::create_bitmask(15, 17);
+  static constexpr unsigned int uvs_mask = Common::create_bitmask(18, 19);
+  static constexpr unsigned int texture_mask = Common::create_bitmask(20, 31);
 };
 
 namespace QuadCoord {

@@ -130,11 +130,18 @@ void Sim::step() {
                       }
                     } else */
           if (!region_.has_chunk(location) && world_generator_.ready_to_fill(location, sections_)) {
-            Chunk chunk(location[0], location[1], location[2]);
-            world_generator_.fill_chunk(chunk, sections_);
+            std::optional<Chunk> chunk;
+            auto possible_chunk = db_manager_.load_chunk_if_exists(location);
+            if (possible_chunk.has_value()) {
+              chunk = possible_chunk.value();
+            } else {
+              chunk.emplace(location[0], location[1], location[2]);
+              world_generator_.fill_chunk(*chunk, sections_);
+            }
+
             /* if (!lod_loader_.has_lods(location))
               lod_loader_.create_lods(chunk); */
-            region_.add_chunk(std::move(chunk));
+            region_.add_chunk(std::move(*chunk));
           }
         }
       }
@@ -229,6 +236,16 @@ void Sim::step() {
     lod_mesh_generator_.consume_lod_loader(lod_loader_);
     ready_to_mesh_ = false;
   }
+  auto& updated_since_reset = region_.get_updated_since_reset();
+  for (auto& loc : updated_since_reset) {
+    if (!region_.has_chunk(loc))
+      continue;
+    auto& chunk = region_.get_chunk(loc);
+    db_manager_.save_chunk(chunk);
+  }
+  region_.reset_updated_since_reset();
+
+  ++step_count_;
 }
 
 void Sim::request_sections(std::vector<Location2D>& locs) {
@@ -310,4 +327,9 @@ void Sim::draw(std::int64_t ms) {
   cv_.notify_one();
 
   renderer_.render();
+}
+
+// make sure no starving after arbitrary thread exit
+void Sim::exit() {
+  ready_to_mesh_ = true;
 }

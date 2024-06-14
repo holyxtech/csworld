@@ -95,6 +95,7 @@ int main(int argc, char* argv[]) {
         start = std::chrono::high_resolution_clock::now();
       }
     }
+    std::cout<<"end build loop"<<std::endl;
   });
 
   bool mouse_locked = true;
@@ -104,12 +105,10 @@ int main(int argc, char* argv[]) {
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
       glfwSetWindowShouldClose(window, GLFW_TRUE);
-    }
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE)
       esc_released = true;
-    }
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && esc_released) {
       esc_released = false;
@@ -128,7 +127,7 @@ int main(int argc, char* argv[]) {
       start = std::chrono::high_resolution_clock::now();
     }
   }
-  std::cout<<"draw end"<<std::endl;
+  sim.exit();
   build_thread.join();
   std::cout<<"build end"<<std::endl;
   glfwTerminate();

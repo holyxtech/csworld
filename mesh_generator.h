@@ -39,11 +39,11 @@ private:
     z
   };
 
-  void mesh_chunk(Region& region, const Location& location);
+  void mesh_chunk(const Region& region, const Location& location);
   void mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position, Voxel voxel, float lighting);
   void mesh_water(std::vector<Vertex>& mesh, glm::vec3& position, Voxel voxel, std::array<Voxel, 6>& adjacent);
-  std::array<float, 4> get_lighting(Region& region, Int3D coord, Axis axis) const;
-  std::array<Voxel, 6> get_adjacent_voxels(Chunk& chunk, std::array<Chunk*, 6>& adjacent_chunks, int x, int y, int z) const;
+  std::array<float, 4> get_lighting(const Region& region, Int3D coord, Axis axis) const;
+  std::array<Voxel, 6> get_adjacent_voxels(const Chunk& chunk, std::array<const Chunk*, 6>& adjacent_chunks, int x, int y, int z) const;
 
   std::unordered_map<Location, std::vector<CubeVertex>, LocationHash> meshes_;
   std::unordered_map<Location, std::vector<Vertex>, LocationHash> irregular_meshes_;

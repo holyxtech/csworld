@@ -4,8 +4,22 @@
 
 Chunk::Chunk(int x, int y, int z)
     : location_{x, y, z}, voxels_(sz, Voxel::empty) {
+}
 
-  flags_ = 0;
+Chunk::Chunk(const Location& loc, const unsigned char* data, int data_size) : location_{loc}, voxels_(sz, Voxel::empty) {
+  int vidx = 0;
+
+  for (int i = 0; i < data_size; i += 4) {
+    // memory alignment...
+    std::uint32_t run = *(int*)(&data[i]);
+    auto voxel = static_cast<Voxel>((Common::chunk_data_voxel_mask & run) >> 16);
+    std::uint32_t run_length = Common::chunk_data_run_length_mask & run;
+    for (int n = 0; n < run_length; ++n) {
+      auto [x, y, z] = flat_index_to_3d_zxy(vidx++);
+      set_voxel(x, y, z, voxel);
+    }
+  }
+  set_flag(Flags::NONEMPTY);
 }
 
 const Location& Chunk::get_location() const {
@@ -22,6 +36,15 @@ int Chunk::get_index(int x, int y, int z) {
 
 int Chunk::get_index(const Int3D& coord) {
   return coord[0] + sz_x * (coord[1] + sz_y * coord[2]);
+}
+
+std::array<int, 3> Chunk::flat_index_to_3d_zxy(int i) {
+  auto arr = flat_index_to_3d(i);
+  auto tmp = arr[0];
+  arr[0] = arr[1];
+  arr[1] = arr[2];
+  arr[2] = tmp;
+  return arr;
 }
 
 std::array<int, 3> Chunk::flat_index_to_3d(int i) {
