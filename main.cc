@@ -5,6 +5,17 @@
 #include <thread>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_IMPLEMENTATION
+#include <nuklear/nuklear.h>
+#undef NK_IMPLEMENTATION
+
 #ifdef _WIN32
 #include <SDKDDKVer.h>
 #endif
@@ -75,7 +86,10 @@ int main(int argc, char* argv[]) {
   glfwSetCursorPosCallback(window, cursor_position_callback);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   Input::instance()->set_prev_cursor_pos(Renderer::window_width / 2, Renderer::window_height / 2);
-  Input::instance()->set_cursor_pos(Renderer::window_width / 2, Renderer::window_height / 2);
+  double xpos = Renderer::window_width / 2;
+  double ypos = Renderer::window_height / 2;
+  Input::instance()->set_cursor_pos(xpos, ypos);
+  glfwSetCursorPos(window, xpos, ypos);
 
   asio::io_context io_context;
 
@@ -85,9 +99,11 @@ int main(int argc, char* argv[]) {
 
   Sim sim(window, tcp_client);
 
-  std::thread build_thread([&sim, window]() {
+  bool quit = false;
+
+  std::thread build_thread([&sim, &quit]() {
     auto start = std::chrono::high_resolution_clock::now();
-    while (!glfwWindowShouldClose(window)) {
+    while (!quit) {
       auto end = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
       if (duration.count() >= 16) {
@@ -95,18 +111,22 @@ int main(int argc, char* argv[]) {
         start = std::chrono::high_resolution_clock::now();
       }
     }
-    std::cout<<"end build loop"<<std::endl;
+    std::cout<<"build loop over"<<std::endl;
   });
 
   bool mouse_locked = true;
   bool esc_released = true;
 
   auto start = std::chrono::high_resolution_clock::now();
-  while (!glfwWindowShouldClose(window)) {
+  while (!quit) {
     glfwPollEvents();
 
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-      glfwSetWindowShouldClose(window, GLFW_TRUE);
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+      quit = true;
+      std::cout<<"q pressed"<<std::endl;
+      break;
+    }
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE)
       esc_released = true;
 
@@ -127,14 +147,15 @@ int main(int argc, char* argv[]) {
       start = std::chrono::high_resolution_clock::now();
     }
   }
+  std::cout<<"waiting for sim exit"<<std::endl;
   sim.exit();
+  std::cout<<"waiting for build exit"<<std::endl;
   build_thread.join();
-  std::cout<<"build end"<<std::endl;
+  std::cout<<"waiting for glfw"<<std::endl;
   glfwTerminate();
-  std::cout<<"glfw terminated"<<std::endl;
+  std::cout<<"waiting for io context"<<std::endl;
   io_context.stop();
-  std::cout<<"io context stoppped"<<std::endl;
+  std::cout<<"waiting for t"<<std::endl;
   t.join();
-  std::cout<<"t end"<<std::endl;
   return 0;
 }

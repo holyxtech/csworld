@@ -156,6 +156,7 @@ void Sky::render(const Renderer& renderer) const {
     GLint texture_loc = glGetUniformLocation(cb_shader_, "cbTexture");
     glUniform1i(texture_loc, 0);
     auto transform_loc = glGetUniformLocation(cb_shader_, "uTransform");
+    auto transform = p * glm::mat4(glm::mat3(v));
     glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
     glBindVertexArray(cb_vao_);
     glDrawArrays(GL_TRIANGLES, 0, 6);

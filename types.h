@@ -200,7 +200,6 @@ struct Action {
   };
   enum Kind {
     new_active_item,
-    create_group // blah blah
   };
   Kind kind;
   std::any data;

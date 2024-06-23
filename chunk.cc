@@ -8,7 +8,6 @@ Chunk::Chunk(int x, int y, int z)
 
 Chunk::Chunk(const Location& loc, const unsigned char* data, int data_size) : location_{loc}, voxels_(sz, Voxel::empty) {
   int vidx = 0;
-
   for (int i = 0; i < data_size; i += 4) {
     // memory alignment...
     std::uint32_t run = *(int*)(&data[i]);

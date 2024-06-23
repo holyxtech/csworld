@@ -6,7 +6,9 @@ enum class Item {
   dirt,
   stone,
   sandstone,
-  water
+  water,
+  
+  enum_size
 };
 
 #endif

@@ -220,9 +220,6 @@ void Region::chunk_to_mesh_generator(const Location& loc) {
   delete_furthest_chunk(loc);
   compute_global_lighting(loc);
   diffs_.emplace_back(Diff{loc, Diff::creation});
-  if (loc[0] == 264392 && loc[1] == 19 && loc[2] == -76276) {
-    std::cout << "sending" << std::endl;
-  }
   chunks_sent_.insert(loc);
 }
 

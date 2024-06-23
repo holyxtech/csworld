@@ -10,7 +10,7 @@
 #include "stb_image.h"
 #include "types.h"
 
-Renderer::Renderer(World& world) : world_(world) {
+Renderer::Renderer(GLFWwindow* window, const UI& ui) : window_(window), ui_graphics_(window, ui) {
   projection_ = glm::perspective(glm::radians(45.), 16 / 9., 0.1, region_far_plane);
 
   RenderUtils::preload_include(Options::instance()->getShaderPath("ssr.glsl"), "/ssr.glsl");
@@ -182,8 +182,10 @@ void Renderer::consume_camera(const Camera& camera) {
 }
 
 void Renderer::render() const {
-
+  glViewport(0, 0, window_width, window_height);
+  glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
 
   glBindFramebuffer(GL_FRAMEBUFFER, water_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -229,7 +231,7 @@ void Renderer::render() const {
   glUniform1i(glGetUniformLocation(blur_shader_, "image"), 6);
   bool horizontal = true, first_iteration = true;
   int amount = 3;
-  for (size_t i = 0; i < amount; ++i) {
+  for (int i = 0; i < amount; ++i) {
     glBindFramebuffer(GL_FRAMEBUFFER, pingpong_framebuffers_[horizontal]);
     glUniform1i(glGetUniformLocation(blur_shader_, "horizontal"), horizontal);
     glBindTexture(GL_TEXTURE_2D, first_iteration ? composite_cbos_[1] : pingpong_textures_[!horizontal]);
@@ -240,6 +242,7 @@ void Renderer::render() const {
   glViewport(0, 0, window_width, window_height);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glClear(GL_DEPTH_BUFFER_BIT);
   glUseProgram(final_shader_);
   glBindVertexArray(quad_vao_);
   glActiveTexture(GL_TEXTURE7);
@@ -262,7 +265,7 @@ void Renderer::render() const {
   glBindVertexArray(voxel_highlight_vao_);
   glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
 
-  ui_.render(*this);
+  ui_graphics_.render();
 }
 
 const glm::mat4& Renderer::get_projection_matrix() const {
@@ -275,10 +278,6 @@ const glm::mat4& Renderer::get_view_matrix() const {
 
 void Renderer::set_highlight(Int3D& highlight) {
   voxel_highlight_position_ = glm::dvec3(highlight[0], highlight[1], highlight[2]) - camera_offset_;
-}
-
-void Renderer::consume_ui(UI& ui) {
-  ui_.consume_ui(ui);
 }
 
 float Renderer::normalize_x(float x) {

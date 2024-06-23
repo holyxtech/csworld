@@ -3,6 +3,7 @@
 
 #include <array>
 #include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include "camera.h"
 #include "lod_mesh_generator.h"
 #include "mesh_generator.h"
@@ -15,11 +16,10 @@
 
 class Renderer {
 public:
-  Renderer(World& world);
+  Renderer(GLFWwindow* window, const UI& ui);
   void consume_mesh_generator(MeshGenerator& mesh_generator);
   void consume_lod_mesh_generator(LodMeshGenerator& lod_mesh_generator);
   void consume_camera(const Camera& camera);
-  void consume_ui(UI& ui);
   void set_highlight(Int3D& highlight);
   void render() const;
   const glm::mat4& get_view_matrix() const;
@@ -28,13 +28,13 @@ public:
   const Sky& get_sky() const;
   static float normalize_x(float x);
 
-  static constexpr GLuint window_width = 2560;
-  static constexpr GLuint window_height = 1440;
+  static const GLuint window_width = 2560;
+  static const GLuint window_height = 1440;
   static constexpr double region_far_plane = 100000.f;
 
 private:
-  static constexpr GLuint blur_texture_width_ = window_width / 8;
-  static constexpr GLuint blur_texture_height_ = window_height / 8;
+  static const GLuint blur_texture_width_ = window_width / 8;
+  static const GLuint blur_texture_height_ = window_height / 8;
 
   GLuint main_framebuffer_;
   GLuint water_framebuffer_;
@@ -64,10 +64,10 @@ private:
   glm::vec3 camera_world_position_;
   glm::mat4 projection_;
   glm::mat4 view_;
-  World& world_;
   Sky sky_;
-  UIGraphics ui_;
+  UIGraphics ui_graphics_;
   TerrainGraphics terrain_;
+  GLFWwindow* window_;
 };
 
 #endif

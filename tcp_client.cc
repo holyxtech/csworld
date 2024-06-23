@@ -2,9 +2,9 @@
 
 TCPClient::TCPClient(asio::io_context& io_context)
     : io_context_{io_context}, socket_{io_context} {
-   tcp::resolver resolver(io_context_);
+  tcp::resolver resolver(io_context_);
   auto* host = "127.0.0.1";
-  auto endpoints = resolver.resolve(host,  "7331");
+  auto endpoints = resolver.resolve(host, "7331");
   asio::connect(socket_, endpoints);
   handle_connect(asio::error_code());
 }

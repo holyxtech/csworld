@@ -2,36 +2,52 @@
 #include <vector>
 #include "render_utils.h"
 #include "renderer.h"
-#define STB_IMAGE_IMPLEMENTATION
+#define NK_GLFW_GL4_IMPLEMENTATION
+#include "nuklear_glfw_gl4.h"
 #include "options.h"
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-UIGraphics::UIGraphics() {
+UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
+  std::initializer_list<std::pair<const Item, UITexture>> init_list = {
+    {Item::empty, UITexture::white},
+    {Item::dirt, UITexture::dirt},
+    {Item::stone, UITexture::stone},
+    {Item::sandstone, UITexture::sandstone},
+    {Item::water, UITexture::water},
+  };
+  for (auto& pair : init_list)
+    item_to_texture_.emplace(pair);
 
-  RenderUtils::create_shader(&shader_, Options::instance()->getShaderPath("ui.vs"), Options::instance()->getShaderPath("ui.fs"));
+  int max_vertex_buffer = 512 * 1024;
+  int max_element_buffer = 128 * 1024;
+  ctx_ = nk_glfw3_init(window, NK_GLFW3_DEFAULT, max_vertex_buffer, max_element_buffer);
+  struct nk_font_atlas* atlas;
+  nk_glfw3_font_stash_begin(&atlas);
 
-  glGenVertexArrays(1, &vao_);
-  glGenBuffers(1, &vbo_);
+  // auto* font = nk_font_atlas_add_default(atlas, 16.f, NULL);
 
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-  glBindVertexArray(vao_);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvs));
-  glVertexAttribIPointer(2, 1, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex, layer));
-  glEnableVertexAttribArray(0);
-  glEnableVertexAttribArray(1);
-  glEnableVertexAttribArray(2);
+  nk_glfw3_font_stash_end();
+  // nk_style_set_font(ctx_, &font->handle);
 
-  glGenTextures(1, &icon_texture_array_);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D_ARRAY, icon_texture_array_);
+  struct nk_color table[NK_COLOR_COUNT];
+
+  table[NK_COLOR_WINDOW] = nk_rgba(0, 0, 0, 0);
+  nk_style_from_table(ctx_, table);
+  ctx_->style.button.border = 0.f;
+  ctx_->style.button.padding = {button_padding, button_padding};
+  ctx_->style.button.rounding = 0.f;
+  ctx_->style.window.spacing = {4.f, 4.f};
+  ctx_->style.window.border = 0.f;
+  ctx_->style.window.padding = {0.f, 0.f};
+  ctx_->style.window.scrollbar_size = {0.f, 0.f};
+
+  font_height_ = ctx_->style.font->height;
   GLuint num_layers = static_cast<GLuint>(num_ui_textures);
   GLsizei width = 16;
   GLsizei height = 16;
-  GLsizei num_mipmaps = 1;
-  glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mipmaps, GL_RGBA8, width, height, num_layers);
-  stbi_set_flip_vertically_on_load(1);
   GLsizei channels;
+  GLsizei num_mipmaps = 1;
   std::vector<std::pair<std::string, UITexture>> textures = {
     std::make_pair("white", UITexture::white),
     std::make_pair("black", UITexture::black),
@@ -39,116 +55,74 @@ UIGraphics::UIGraphics() {
     std::make_pair("stone", UITexture::stone),
     std::make_pair("sandstone", UITexture::sandstone),
     std::make_pair("water", UITexture::water)};
+
   for (auto [filename, texture] : textures) {
     std::string path = Options::instance()->getImagePath(filename + ".png");
     auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(texture), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+
+    int tex_index = nk_glfw3_create_texture(image_data, width, height);
+    auto img = nk_image_id(tex_index);
+    icons_.insert({texture, std::move(img)});
+
     stbi_image_free(image_data);
   }
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glUseProgram(shader_);
-
-  float w = 0.3;
-  float h = 0.07;
-  float b = 0.03;
-  auto top_left = glm::vec2(-w, 2 * (h + b) - 1);
-
-  int layer = static_cast<int>(UITexture::white);
-  mesh_.emplace_back(Vertex{top_left, QuadCoord::tl, layer});
-  mesh_.emplace_back(Vertex{glm::vec2(w, 2 * (h + b) - 1), QuadCoord::tr, layer});
-  mesh_.emplace_back(Vertex{glm::vec2(w, 2 * b - 1), QuadCoord::br, layer});
-  mesh_.emplace_back(Vertex{glm::vec2(-w, 2 * (h + b) - 1), QuadCoord::tl, layer});
-  mesh_.emplace_back(Vertex{glm::vec2(w, 2 * b - 1), QuadCoord::br, layer});
-  mesh_.emplace_back(Vertex{glm::vec2(-w, 2 * b - 1), QuadCoord::bl, layer});
-
-  auto wt = [w](float nw) { return 2 * w * nw; };
-  auto ht = [h](float nh) { return 2 * h * nh; };
-
-  // create triangles for icons
-  std::vector<UITexture> layers =
-    {UITexture::dirt, UITexture::stone, UITexture::sandstone, UITexture::water};
-
-  w = 0.02; // horizontal spacing... change later
-  h = 0.8;  // proportion of vertical height the icon takes up, range [0,1]
-  float hs = wt(w);
-  float rh = ht(1) * h;
-  float rw = rh * (Renderer::window_height / static_cast<float>(Renderer::window_width));
-  for (int i = 0; i < layers.size(); ++i) {
-    auto layer_as_ui_texture = layers[i];
-    auto icon_left = top_left + glm::vec2(hs, (h - 1) / 2 * ht(1));
-    icon_positions_.push_back(icon_left);
-    layer = static_cast<int>(layer_as_ui_texture);
-    mesh_.emplace_back(Vertex{icon_left, QuadCoord::tl, layer});
-    mesh_.emplace_back(Vertex{icon_left + glm::vec2(rw, 0), QuadCoord::tr, layer});
-    mesh_.emplace_back(Vertex{icon_left + glm::vec2(rw, -rh), QuadCoord::br, layer});
-    mesh_.emplace_back(Vertex{icon_left, QuadCoord::tl, layer});
-    mesh_.emplace_back(Vertex{icon_left + glm::vec2(rw, -rh), QuadCoord::br, layer});
-    mesh_.emplace_back(Vertex{icon_left + glm::vec2(0, -rh), QuadCoord::bl, layer});
-
-    hs += rw + wt(w);
-  }
-
-  float border_offset = 0.006;
-  border_box_offset_ = glm::vec2(-border_offset * (Renderer::window_height / static_cast<float>(Renderer::window_width)), border_offset);
-  auto border_box_size_loc = glGetUniformLocation(shader_, "uBorderBoxSize");
-  auto border_box_size = glm::vec2(rw, rh) + glm::vec2(2 * border_offset * (Renderer::window_height / static_cast<float>(Renderer::window_width)), 2 * border_offset);
-  glUniform2fv(border_box_size_loc, 1, glm::value_ptr(border_box_size));
-
-  auto icon_size_loc = glGetUniformLocation(shader_, "uIconSize");
-  auto icon_size = glm::vec2(rw, rh);
-  glUniform2fv(icon_size_loc, 1, glm::value_ptr(icon_size));
-
-  // draw square in center of screen
-  {
-    float aim_box_size = 0.015;
-    float w = Renderer::normalize_x(aim_box_size);
-    float h = aim_box_size;
-    auto top_left = glm::vec2(-w / 2, h / 2);
-    layer = static_cast<int>(UITexture::black);
-    mesh_.emplace_back(Vertex{top_left, QuadCoord::tl, layer});
-    mesh_.emplace_back(Vertex{top_left + glm::vec2(w, 0), QuadCoord::tr, layer});
-    mesh_.emplace_back(Vertex{top_left + glm::vec2(w, -h), QuadCoord::br, layer});
-    mesh_.emplace_back(Vertex{top_left, QuadCoord::tl, layer});
-    mesh_.emplace_back(Vertex{top_left + glm::vec2(w, -h), QuadCoord::br, layer});
-    mesh_.emplace_back(Vertex{top_left + glm::vec2(0, -h), QuadCoord::bl, layer});
-  }
-
-  glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * mesh_.size(), mesh_.data(), GL_STATIC_DRAW);
 }
 
-void UIGraphics::render(const Renderer& renderer) const {
-  glDisable(GL_DEPTH_TEST);
-  glUseProgram(shader_);
-  glBindVertexArray(vao_);
-  glDrawArrays(GL_TRIANGLES, 0, mesh_.size());
-}
+void UIGraphics::render() const {
+  nk_glfw3_new_frame();
+  if (nk_begin(ctx_, "nuklear window", nk_rect(0, 0, Renderer::window_width, Renderer::window_height), 0)) {
+    nk_layout_set_min_row_height(ctx_, 0);
 
-void UIGraphics::consume_ui(UI& ui) {
+    auto* canvas = nk_window_get_canvas(ctx_);
+    nk_layout_space_begin(ctx_, NK_STATIC, 0, 1);
 
-  auto& diffs = ui.get_diffs();
-  for (auto& diff : diffs) {
-    if (diff.kind == UI::Diff::action_bar_selection) {
-      auto& data = std::any_cast<const UI::Diff::ActionBarData&>(diff.data);
-      auto index = data.index;
-      glUseProgram(shader_);
-      glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D_ARRAY, icon_texture_array_);
-      GLint texture_loc = glGetUniformLocation(shader_, "textureArray");
-      glUniform1i(texture_loc, 1);
-      auto border_box_top_left_loc = glGetUniformLocation(shader_, "uBorderBoxTopLeft");
-      glm::vec2 pos = icon_positions_[index] + border_box_offset_;
-      glUniform2fv(border_box_top_left_loc, 1, glm::value_ptr(pos));
-      auto icon_top_left_loc = glGetUniformLocation(shader_, "uIconTopLeft");
-      pos = icon_positions_[index];
-      glUniform2fv(icon_top_left_loc, 1, glm::value_ptr(pos));
+    int action_bar_height = Renderer::window_height * 0.07;
+    int action_bar_width = (action_bar_height + 2 * button_padding) * UI::action_bar_size; // doesn't account for widget_spacing
+    int width_offset = Renderer::window_width / 2 - action_bar_width / 2;
+    int height_offset = (Renderer::window_height * 0.99) - action_bar_height;
+    auto action_bar_rect = nk_rect(width_offset, height_offset, action_bar_width, Renderer::window_height);
+    nk_layout_space_push(ctx_, action_bar_rect);
 
-    } else if (diff.kind == UI::Diff::inventory_selection) {
-      // blah blah
+    ctx_->style.window.spacing = {widget_spacing, widget_spacing};
+    if (nk_group_begin(ctx_, "action_bar", 0)) {
+      nk_layout_row_dynamic(ctx_, action_bar_height, UI::action_bar_size);
+      auto& action_bar = ui_.get_action_bar();
+      std::size_t idx = 0;
+      auto active_index = ui_.get_active_index();
+      for (; idx < active_index; ++idx) {
+        auto texture = item_to_texture_.at(action_bar[idx]);
+        nk_button_image(ctx_, icons_.at(texture));
+      }
+      nk_style_push_style_item(ctx_, &ctx_->style.button.normal, nk_style_item_color(nk_rgb(255, 215, 0)));
+      auto texture = item_to_texture_.at(action_bar[idx++]);
+      nk_button_image(ctx_, icons_.at(texture));
+      nk_style_pop_style_item(ctx_);
+      for (; idx < action_bar.size(); ++idx) {
+        auto texture = item_to_texture_.at(action_bar[idx]);
+        nk_button_image(ctx_, icons_.at(texture));
+      }
+      nk_group_end(ctx_);
     }
-  }
 
-  ui.clear_diffs();
+    {
+      ctx_->style.window.spacing = {0.f, 0.f};
+      int crosshair_width = 10;
+      int crosshair_height = 10;
+      int width_offset = Renderer::window_width / 2 - crosshair_width / 2;
+      int height_offset = Renderer::window_height / 2 - crosshair_width / 2;
+      auto crosshair_rect = nk_rect(width_offset, height_offset, crosshair_width, crosshair_height);
+
+      nk_layout_space_push(ctx_, crosshair_rect);
+
+      auto screen_rect = nk_layout_space_rect_to_screen(ctx_, crosshair_rect);
+      nk_style_push_vec2(ctx_, &ctx_->style.button.padding, nk_vec2(0, 0));
+      nk_button_image(ctx_, icons_.at(UITexture::black));
+      nk_style_pop_vec2(ctx_);
+    }
+
+    nk_layout_space_end(ctx_);
+    nk_layout_reset_min_row_height(ctx_);
+  }
+  nk_end(ctx_);
+  nk_glfw3_render(NK_ANTI_ALIASING_ON);
 }

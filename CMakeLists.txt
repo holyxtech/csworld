@@ -15,6 +15,7 @@ find_package(CURL REQUIRED)
 find_package(Boost CONFIG REQUIRED COMPONENTS bind)
 find_package(asio CONFIG REQUIRED)
 find_package(SQLite3 REQUIRED)
+find_package(unofficial-nuklear CONFIG REQUIRED)
 
 function(escape_backslashes input_path output_path)
     string(REPLACE "\\" "\\\\" escaped_path "${input_path}")
@@ -75,10 +76,6 @@ include_directories(${projectIncludeDirs})
 
 configure_file(config.h.in "${CMAKE_SOURCE_DIR}/config.h")
 
-add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
-add_definitions(-D GLM_FORCE_LEFT_HANDED)
-add_definitions(-D ASIO_HAS_BOOST_BIND)
-
 add_executable(client ${projectSources})
 target_link_libraries(
     client PRIVATE
@@ -96,3 +93,6 @@ target_link_libraries(
 
 file(MAKE_DIRECTORY ${APPLICATION_DATA_DIR})
 
+add_definitions(-D ASIO_HAS_BOOST_BIND)
+target_compile_definitions(client PRIVATE GLM_FORCE_LEFT_HANDED)
+target_compile_definitions(client PRIVATE GLM_ENABLE_EXPERIMENTAL)

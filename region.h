@@ -44,7 +44,7 @@ public:
   const std::unordered_set<Location, LocationHash> get_updated_since_reset() const;
   void reset_updated_since_reset();
 
-  static constexpr int max_sz = 4096;
+  static constexpr int max_sz = 512;
   static constexpr int fill_distance = 4;
 
 private:

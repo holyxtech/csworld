@@ -69,20 +69,11 @@ void DbManager::save_chunk(const Chunk& chunk) {
     for (int x = 0; x < Chunk::sz_x; ++x) {
       for (int z = 0; z < Chunk::sz_z; ++z) {
         auto voxel = chunk.get_voxel(x, y, z);
-        // true for the first loop
         if (voxel == last_voxel) {
           ++run_length;
         } else {
-          // save (last_voxel, run_length) as 1 uint32_t
-          //auto r = static_cast<std::uint32_t>(last_voxel) << 16;
-          //std::cout<<"r shifted: "<<(r>> 16)<<std::endl;
           std::uint32_t run = (static_cast<std::uint32_t>(last_voxel) << 16) | run_length;
-/*            auto v = static_cast<Voxel>((Common::chunk_data_voxel_mask & run) >> 16);
-           std::cout<<"v: "<<static_cast<int>(v)<<std::endl; */
-
           runs.push_back(run);
-
-          // reset last_voxel, run_length
           last_voxel = voxel;
           run_length = 1;
         }

@@ -8,12 +8,12 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "camera.h"
-
 #include "db_manager.h"
 #include "lod_loader.h"
 #include "lod_mesh_generator.h"
 #include "mesh_generator.h"
 #include "player.h"
+#include "readerwriterqueue.h"
 #include "region.h"
 #include "renderer.h"
 #include "tcp_client.h"
@@ -29,6 +29,14 @@ public:
   void exit();
 
 private:
+  struct WindowEvent {
+    enum Kind {
+      enable_cursor,
+      disable_cursor,
+    };
+    Kind kind;
+  };
+
   void request_sections(std::vector<Location2D>& locs);
 
   GLFWwindow* window_;
@@ -55,6 +63,8 @@ private:
   std::unordered_set<Location, LocationHash> sections_to_request_;
   Int3D ray_collision_;
   std::uint32_t step_count_ = 0;
+  moodycamel::ReaderWriterQueue<WindowEvent> window_events_;
+  bool camera_controlled_ = true;
 
   static constexpr int render_min_y_offset = -2;
   static constexpr int render_max_y_offset = 1;
@@ -62,6 +72,7 @@ private:
   static constexpr int region_distance = Region::fill_distance;
   static constexpr int render_distance = region_distance;
   static constexpr int section_distance = render_distance + 2;
+  static constexpr int frame_rate_target = 60;
 };
 
 #endif

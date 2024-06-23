@@ -17,7 +17,7 @@
 #include "section.h"
 
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
-    : window_(window), tcp_client_(tcp_client), renderer_(world_), region_(sections_) {
+    : window_(window), tcp_client_(tcp_client), renderer_(window, ui_), region_(sections_) {
 
   std::array<double, 3> starting_pos{4230249, 316, -1220386};
   {
@@ -205,22 +205,41 @@ void Sim::step() {
     KeyButtonEvent key_button_event;
     success = key_button_events.try_dequeue(key_button_event);
     while (success) {
-      if (key_button_event.action == GLFW_PRESS) {
-        if (key_button_event.key == GLFW_KEY_1) {
-          ui_.action_bar_select(0);
-        } else if (key_button_event.key == GLFW_KEY_2) {
-          ui_.action_bar_select(1);
-        } else if (key_button_event.key == GLFW_KEY_3) {
-          ui_.action_bar_select(2);
-        } else if (key_button_event.key == GLFW_KEY_4) {
-          ui_.action_bar_select(3);
-        } else if (key_button_event.key == GLFW_KEY_P) {
-          std::cout << "Player at (" << static_cast<long long>(pos[0]) << "," << static_cast<long long>(pos[1]) << "," << static_cast<long long>(pos[2]) << ")" << std::endl;
-          auto& origin = mesh_generator_.get_origin();
-          auto apos = glm::dvec3(pos[0] - origin[0] * Chunk::sz_x, pos[1] - origin[1] * Chunk::sz_y, pos[2] - origin[2] * Chunk::sz_z);
-          std::cout << "Adjusted at (" << apos[0] << "," << apos[1] << "," << apos[2] << ")" << std::endl;
-        }
+      if (key_button_event.action != GLFW_PRESS) {
+        success = key_button_events.try_dequeue(key_button_event);
+        continue;
       }
+
+      bool inv_open = ui_.is_inv_open();
+
+      if (inv_open && key_button_event.key >= GLFW_KEY_0 && key_button_event.key <= GLFW_KEY_9) {
+        // 1. convert cursor pos to [0,1] x [0,1]
+        auto cursor_pos = Input::instance()->get_cursor_pos();
+        float xpos = cursor_pos[0] / (Renderer::window_width - 1);
+        float ypos = cursor_pos[1] / (Renderer::window_height - 1);
+        // 1.5 convert the key to an index 0-(9?)
+        // 2. do ui_.select_item() on that spot
+        // 3. do ui_.action_bar_assign() on the index/item pair
+      }
+
+      if (key_button_event.key == GLFW_KEY_1) {
+        ui_.action_bar_select(0);
+      } else if (key_button_event.key == GLFW_KEY_2) {
+        ui_.action_bar_select(1);
+      } else if (key_button_event.key == GLFW_KEY_3) {
+        ui_.action_bar_select(2);
+      } else if (key_button_event.key == GLFW_KEY_4) {
+        ui_.action_bar_select(3);
+      } else if (key_button_event.key == GLFW_KEY_P) {
+        std::cout << "Player at (" << static_cast<long long>(pos[0]) << "," << static_cast<long long>(pos[1]) << "," << static_cast<long long>(pos[2]) << ")" << std::endl;
+      } else if (key_button_event.key == GLFW_KEY_I) {
+        ui_.set_inv_open(!inv_open);
+        if (inv_open)
+          window_events_.enqueue(WindowEvent{WindowEvent::disable_cursor});
+        else
+          window_events_.enqueue(WindowEvent{WindowEvent::enable_cursor});
+      }
+
       success = key_button_events.try_dequeue(key_button_event);
     }
 
@@ -272,7 +291,25 @@ void Sim::request_sections(std::vector<Location2D>& locs) {
 }
 
 void Sim::draw(std::int64_t ms) {
-  {
+  WindowEvent event;
+  bool success = window_events_.try_dequeue(event);
+  while (success) {
+    switch (event.kind) {
+    case WindowEvent::disable_cursor: {
+      glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      camera_controlled_ = true;
+      auto& cursor_pos = Input::instance()->get_cursor_pos();
+      Input::instance()->set_prev_cursor_pos(cursor_pos[0], cursor_pos[1]);
+    } break;
+    case WindowEvent::enable_cursor: {
+      glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      camera_controlled_ = false;
+    } break;
+    }
+    success = window_events_.try_dequeue(event);
+  }
+
+  if (camera_controlled_) {
     std::unique_lock<std::mutex> lock(camera_mutex_);
     auto& cursor_pos = Input::instance()->get_cursor_pos();
     auto& prev_cursor_pos = Input::instance()->get_prev_cursor_pos();
@@ -289,7 +326,6 @@ void Sim::draw(std::int64_t ms) {
       camera_.set_base_translation_speed(0.1);
     }
 
-    int frame_rate_target = 60;
     camera_.scale_translation_speed(ms * frame_rate_target / 1000.0);
     camera_.scale_rotation_speed(ms * frame_rate_target / 1000.0);
 
@@ -306,7 +342,6 @@ void Sim::draw(std::int64_t ms) {
 
     if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS) {
       camera_.move_left();
-
     } else if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS) {
       camera_.move_right();
     }
@@ -319,7 +354,6 @@ void Sim::draw(std::int64_t ms) {
     if (suc) {
       renderer_.consume_mesh_generator(mesh_generator_);
       renderer_.consume_lod_mesh_generator(lod_mesh_generator_);
-      renderer_.consume_ui(ui_);
       ready_to_mesh_ = true;
       mesh_mutex_.unlock();
     }
