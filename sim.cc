@@ -253,6 +253,7 @@ void Sim::step() {
     ui_.clear_actions();
     mesh_generator_.consume_region(region_);
     lod_mesh_generator_.consume_lod_loader(lod_loader_);
+
     ready_to_mesh_ = false;
   }
   auto& updated_since_reset = region_.get_updated_since_reset();
@@ -366,4 +367,5 @@ void Sim::draw(std::int64_t ms) {
 // make sure no starving after arbitrary thread exit
 void Sim::exit() {
   ready_to_mesh_ = true;
+  cv_.notify_one();
 }
