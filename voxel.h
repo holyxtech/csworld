@@ -5,6 +5,7 @@
 
 enum class Voxel {
   empty,
+  
   WATER_LOWER,
   water_full,
   WATER_UPPER,
@@ -25,6 +26,7 @@ enum class Voxel {
   tree_trunk,
   sandstone,
   stone,
+  bricks,
 
   voxel_enum_size
 };
@@ -46,6 +48,7 @@ enum class CubeTexture {
   leaves,
   sandstone,
   stone,
+  bricks,
 
   num_cube_textures,
 };

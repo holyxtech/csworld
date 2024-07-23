@@ -1,6 +1,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <optional>
 #include <any>
 #include <array>
 #include <cmath>
@@ -168,21 +169,21 @@ public:
 
   CubeVertex(int x, int y, int z, Direction normal, QuadCorner uvs, int textureId, float lighting) {
     data_ |= (x & xpos_mask);
-    data_ |= ((y << 5) & ypos_mask);
-    data_ |= ((z << 10) & zpos_mask);
-    data_ |= ((normal << 15) & normal_mask);
-    data_ |= ((uvs << 18) & uvs_mask);
-    data_ |= ((textureId << 20) & texture_mask);
+    data_ |= ((y << 6) & ypos_mask);
+    data_ |= ((z << 12) & zpos_mask);
+    data_ |= ((normal << 18) & normal_mask);
+    data_ |= ((uvs << 21) & uvs_mask);
+    data_ |= ((textureId << 23) & texture_mask);
     lighting_ = lighting;
   }
 
 private:
-  static constexpr unsigned int xpos_mask = Common::create_bitmask(0, 4);
-  static constexpr unsigned int ypos_mask = Common::create_bitmask(5, 9);
-  static constexpr unsigned int zpos_mask = Common::create_bitmask(10, 14);
-  static constexpr unsigned int normal_mask = Common::create_bitmask(15, 17);
-  static constexpr unsigned int uvs_mask = Common::create_bitmask(18, 19);
-  static constexpr unsigned int texture_mask = Common::create_bitmask(20, 31);
+  static constexpr unsigned int xpos_mask = Common::create_bitmask(0, 5);
+  static constexpr unsigned int ypos_mask = Common::create_bitmask(6, 11);
+  static constexpr unsigned int zpos_mask = Common::create_bitmask(12, 17);
+  static constexpr unsigned int normal_mask = Common::create_bitmask(18, 20);
+  static constexpr unsigned int uvs_mask = Common::create_bitmask(21, 22);
+  static constexpr unsigned int texture_mask = Common::create_bitmask(23, 31);
 };
 
 namespace QuadCoord {
@@ -196,7 +197,7 @@ using Message = std::vector<uint8_t>;
 
 struct Action {
   struct NewActiveItemData {
-    Item item;
+    std::optional<Item> item;
   };
   enum Kind {
     new_active_item,

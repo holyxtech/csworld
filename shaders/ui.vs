@@ -3,6 +3,9 @@
 layout (location = 0) in vec2 position;
 layout (location = 1) in vec2 uvs;
 layout (location = 2) in int layer;
+layout (binding = 3, std140) uniform icons {
+    int textureId[];
+};
 
 out vec2 fragUvs;
 flat out int fragLayer;

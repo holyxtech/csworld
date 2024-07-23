@@ -1,14 +1,13 @@
 #include "section.h"
+#include "chunk.h"
+#include "region.h"
 
 Section::Section(const fbs_update::Section* section) {
   auto loc = section->location();
   location_ = Location2D{loc->x(), loc->y()};
   elevation_ = section->elevation();
-  // std::cout<<"Landcover at "<<location_[0]<<","<<location_[1]<<std::endl;
-  for (int i = 0; i < Common::landcover_tiles_per_sector; ++i) {
+  for (int i = 0; i < Common::landcover_tiles_per_sector; ++i)
     landcover_[i] = static_cast<Common::LandCover>(section->landcover()->Get(i));
-    // std::cout<<static_cast<int>(landcover_[i])<<std::endl;
-  }
 }
 
 const Location2D& Section::get_location() const {
@@ -116,6 +115,26 @@ void Section::set_subsection_obstructing_heights_from_elevations() {
 int Section::get_subsection_obstructing_height(int x, int z) {
   return subsection_obstructing_heights_[x + sz_x * z];
 }
+
 void Section::set_subsection_obstructing_height(int x, int z, int height) {
   subsection_obstructing_heights_[x + sz_x * z] = height;
+}
+
+void Section::insert_into_features(int x, int y, int z, Voxel voxel) {
+  auto location = Region::location_from_global_coords(x, y, z);
+  auto& location_features = features_[location];
+  int idx = Chunk::get_index(Chunk::to_local(Int3D{x, y, z}));
+  location_features.emplace_back(std::make_pair(idx, voxel));
+}
+
+void Section::set_features_loaded(bool loaded) {
+  features_loaded_ = loaded;
+}
+
+bool Section::is_features_loaded() const {
+  return features_loaded_;
+}
+
+std::vector<std::pair<int,Voxel>>& Section::get_features(const Location& location) {
+  return features_[location];
 }

@@ -1,6 +1,7 @@
 #ifndef UI_H
 #define UI_H
 
+#include <optional>
 #include <any>
 #include <array>
 #include <memory>
@@ -27,15 +28,16 @@ public:
   Item inv_select() const;
   void clear_actions();
   const std::vector<Action>& get_actions() const;
-  const std::array<Item, action_bar_size> get_action_bar() const;
+  const std::array<std::optional<Item>, action_bar_size> get_action_bar() const;
   std::size_t get_active_index() const;
-
+  const std::vector<Item>& get_inv() const;
+  std::optional<Item> get_active_item() const;
 private:
   std::vector<Action> actions_;
 
-  std::array<Item, action_bar_size> action_bar_;
+  std::array<std::optional<Item>, action_bar_size> action_bar_;
   std::size_t active_index_;
-  std::array<Item, static_cast<std::size_t>(Item::enum_size) - 1> inv_;
+  std::vector<Item> inv_;
   bool inv_open_ = false;
 };
 

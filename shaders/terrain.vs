@@ -13,12 +13,12 @@ out vec3 fragWorldPosition;
 flat out uint fragTextureId;
 out float fragLighting;
 
-const uint xpos_mask = 0x0000001F;
-const uint ypos_mask = 0x000003E0;
-const uint zpos_mask = 0x00007C00;
-const uint normal_mask = 0x00038000;
-const uint uvs_mask = 0x000C0000;
-const uint texture_mask = 0xFFF00000;
+const uint xpos_mask = 0x0000003F;
+const uint ypos_mask = 0x00000FC0;
+const uint zpos_mask = 0x0003F000;
+const uint normal_mask = 0x001C0000;
+const uint uvs_mask = 0x00600000;
+const uint texture_mask = 0xFF800000;
 const vec2 uvs[4] = {
     vec2(0.0, 0.0),
     vec2(1.0, 0.0),
@@ -30,16 +30,16 @@ void main() {
     vec3 pos;
     vec3 loc = chunkPos[gl_DrawID];
     pos.x = (data & xpos_mask) + loc.x;
-    pos.y = ((data & ypos_mask) >> 5) + loc.y;
-    pos.z = ((data & zpos_mask) >> 10) + loc.z;
+    pos.y = ((data & ypos_mask) >> 6) + loc.y;
+    pos.z = ((data & zpos_mask) >> 12) + loc.z;
 
     gl_Position = uTransform * vec4(pos,1.f);    
     
-    int normal = int((data & normal_mask) >> 15);
+    int normal = int((data & normal_mask) >> 18);
 
-    int uvsId = int((data & uvs_mask) >> 18);
+    int uvsId = int((data & uvs_mask) >> 21);
 
-    uint textureId = uint((data & texture_mask) >> 20);
+    uint textureId = uint((data & texture_mask) >> 23);
 
     fragTextureId = textureId;
     fragUvs = uvs[uvsId];

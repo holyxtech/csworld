@@ -181,18 +181,18 @@ void MeshGenerator::mesh_chunk(const Region& region, const Location& location) {
     for (int y = 0; y < Chunk::sz_y; ++y) {
       for (int x = 0; x < Chunk::sz_x; ++x) {
         auto voxel = chunk.get_voxel(x, y, z);
-        if (voxel < Voxel::WATER_LOWER)
+        if (voxel == Voxel::empty)
           continue;
 
         auto position = chunk_position + glm::vec3(x, y, z);
         auto adjacent = get_adjacent_voxels(chunk, adjacent_chunks, x, y, z);
 
-        if (voxel < Voxel::WATER_UPPER) {
+        if (vops::is_water(voxel)) {
           mesh_water(water_mesh, position, voxel, adjacent);
           continue;
         }
 
-        if (voxel < Voxel::CUBE_LOWER) {
+        if (!vops::is_cube(voxel)) {
           auto level = chunk.get_lighting(x, y, z);
           auto lighting = lighting_levels[level];
           mesh_noncube(irregular_mesh, position, voxel, lighting);
@@ -202,7 +202,7 @@ void MeshGenerator::mesh_chunk(const Region& region, const Location& location) {
         auto voxel_textures = MeshUtils::get_textures(voxel, adjacent);
 
         auto occluding_voxel_type = Voxel::voxel_enum_size;
-        if (voxel > Voxel::OPAQUE_LOWER)
+        if (vops::is_opaque(voxel))
           occluding_voxel_type = Voxel::OPAQUE_LOWER;
 
         auto& textures = reinterpret_cast<std::array<int, 6>&>(voxel_textures);

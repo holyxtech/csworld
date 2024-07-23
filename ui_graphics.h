@@ -1,8 +1,9 @@
 #ifndef UI_GRAPHICS_H
 #define UI_GRAPHICS_H
-
 #include <array>
+#include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -24,22 +25,14 @@ class Renderer;
 class UIGraphics {
 public:
   UIGraphics(GLFWwindow* window, const UI& ui);
-  void render() const;
+  void render();
+  std::optional<Item> get_hovering() const;
 
 private:
-  enum UITexture {
-    white,
-    black,
-
-    dirt,
-    stone,
-    sandstone,
-    water,
-
-    num_ui_textures
-  };
+  using UITexture = std::uint32_t;
 
   nk_context* ctx_;
+  std::unordered_map<std::string, UITexture> ui_textures;
   std::unordered_map<UITexture, struct nk_image> icons_;
   std::unordered_map<Item, UITexture> item_to_texture_;
 
@@ -48,6 +41,8 @@ private:
   float font_height_;
 
   const UI& ui_;
+
+  std::optional<Item> hovering_;
 };
 
 #endif

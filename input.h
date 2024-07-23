@@ -33,11 +33,13 @@ public:
   int get_last_mouse_button_state(int button) const;
   moodycamel::ReaderWriterQueue<MouseButtonEvent>& get_mouse_button_events();
   moodycamel::ReaderWriterQueue<KeyButtonEvent>& get_key_button_events();
+  bool is_key_pressed(int key) const;
 
 private:
   std::array<double, 2> prev_cursor_pos_;
   std::array<double, 2> cursor_pos_;
   std::array<int, 8> mouse_button_state_;
+  std::array<bool, GLFW_KEY_LAST> pressed_keys_;
 
   moodycamel::ReaderWriterQueue<MouseButtonEvent> mouse_button_events_;
   moodycamel::ReaderWriterQueue<KeyButtonEvent> key_button_events_;

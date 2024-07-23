@@ -45,7 +45,6 @@ public:
   void reset_updated_since_reset();
 
   static constexpr int max_sz = 512;
-  static constexpr int fill_distance = 4;
 
 private:
   template <typename Func, typename... Args>

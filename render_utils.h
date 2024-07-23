@@ -18,7 +18,7 @@ namespace RenderUtils {
     std::copy(lhs.begin(), lhs.end(), current);
     return ar;
   }
-    constexpr auto named_cube_textures = std::array{
+  constexpr auto named_cube_textures = std::array{
     std::pair{"dirt", VT{CubeTexture::dirt}},
     std::pair{"grass", VT{CubeTexture::grass}},
     std::pair{"grass_side", VT{CubeTexture::grass_side}},
@@ -28,6 +28,7 @@ namespace RenderUtils {
     std::pair{"leaves", VT{CubeTexture::leaves}},
     std::pair{"sandstone", VT{CubeTexture::sandstone}},
     std::pair{"stone", VT{CubeTexture::stone}},
+    std::pair{"bricks", VT{CubeTexture::bricks}}
   };
   constexpr auto named_irregular_textures = std::array{
     std::pair{"standing_grass", VT{IrregularTexture::standing_grass}},

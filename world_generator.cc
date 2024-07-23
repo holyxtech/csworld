@@ -5,6 +5,19 @@
 #include "region.h"
 #include "types.h"
 
+namespace {
+  const std::array<std::array<int, 2>, 9> section_order =
+    {{{-1, -1},
+      {0, -1},
+      {1, -1},
+      {-1, 0},
+      {0, 0},
+      {1, 0},
+      {-1, 1},
+      {0, 1},
+      {1, 1}}};
+}
+
 WorldGenerator::WorldGenerator() {
   open_simplex_noise(7, &ctx_);
 }
@@ -21,22 +34,22 @@ bool WorldGenerator::ready_to_fill(Location& location, const std::unordered_map<
 }
 
 // Implement world gen -> region messaging system to recreate chunks when they receive new feature data
-void WorldGenerator::insert_into_features(int x, int y, int z, Voxel voxel) {
+/* void WorldGenerator::insert_into_features(int x, int y, int z, Voxel voxel) {
   auto location = Region::location_from_global_coords(x, y, z);
   auto& location_features = features_[location];
   int idx = Chunk::get_index(Chunk::to_local(Int3D{x, y, z}));
   // these are never removed...
   location_features.emplace_back(std::make_pair(idx, voxel));
-}
+} */
 
-void WorldGenerator::build_tree(int x, int y, int z) {
+void WorldGenerator::build_tree(Section& section, int x, int y, int z) {
   int i, j, k;
 
   // the randomness needs to be seeded by x,y,z, so the results don't depend on when this is called
   int tree_height = Common::random_int(5, 8);
   int height_without_leaves;
   if (tree_height >= 7) {
-    height_without_leaves = Common::random_int(3,4);
+    height_without_leaves = Common::random_int(3, 4);
   } else {
     height_without_leaves = Common::random_int(2, 3);
   }
@@ -47,17 +60,17 @@ void WorldGenerator::build_tree(int x, int y, int z) {
   for (int count = height_without_leaves; count < tree_height; ++count) {
     for (auto x : arr_1) {
       for (auto z : arr_1) {
-        insert_into_features(i + x, j + count, k + z, Voxel::leaves);
+        section.insert_into_features(i + x, j + count, k + z, Voxel::leaves);
       }
     }
     for (auto z : arr_1) {
       for (auto x : arr_2) {
-        insert_into_features(i + x, j + count, k + z, Voxel::leaves);
+        section.insert_into_features(i + x, j + count, k + z, Voxel::leaves);
       }
     }
     for (auto x : arr_1) {
       for (auto z : arr_2) {
-        insert_into_features(i + x, j + count, k + z, Voxel::leaves);
+        section.insert_into_features(i + x, j + count, k + z, Voxel::leaves);
       }
     }
   }
@@ -65,22 +78,22 @@ void WorldGenerator::build_tree(int x, int y, int z) {
   // cross on top
   constexpr std::array<int, 3> arr_3 = {-1, 1};
   for (auto x : arr_3) {
-    insert_into_features(i + x, j + tree_height, k, Voxel::leaves);
+    section.insert_into_features(i + x, j + tree_height, k, Voxel::leaves);
   }
   for (auto z : arr_3) {
-    insert_into_features(i, j + tree_height, k + z, Voxel::leaves);
+    section.insert_into_features(i, j + tree_height, k + z, Voxel::leaves);
   }
-  insert_into_features(i, j + tree_height, k, Voxel::leaves);
-  insert_into_features(i, j + tree_height + 1, k, Voxel::leaves);
+  section.insert_into_features(i, j + tree_height, k, Voxel::leaves);
+  section.insert_into_features(i, j + tree_height + 1, k, Voxel::leaves);
 
   // trunk
   i = x, j = y, k = z;
   for (int count = 0; count < tree_height; ++count) {
-    insert_into_features(i, j + count, k, Voxel::tree_trunk);
+    section.insert_into_features(i, j + count, k, Voxel::tree_trunk);
   }
 }
 
-void WorldGenerator::populate(Section& section) {
+void WorldGenerator::load_features(Section& section) {
   auto& loc = section.get_location();
 
   float kRadius = 6;
@@ -99,10 +112,10 @@ void WorldGenerator::populate(Section& section) {
     if (landcover != Common::LandCover::trees)
       continue;
     int subsection_elevation = section.get_subsection_elevation(s[0], s[1]);
-    build_tree(loc[0] * Section::sz_x + static_cast<int>(s[0]), subsection_elevation + 1, loc[1] * Section::sz_z + static_cast<int>(s[1]));
+    build_tree(section, loc[0] * Section::sz_x + static_cast<int>(s[0]), subsection_elevation + 1, loc[1] * Section::sz_z + static_cast<int>(s[1]));
   }
 
-  sections_populated_.insert(loc);
+  //  sections_populated_.insert(loc);
 }
 
 void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Section, Location2DHash>& sections) {
@@ -117,8 +130,10 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
         section.compute_subsection_elevations(sections);
         section.set_subsection_obstructing_heights_from_elevations();
       }
-      if (!sections_populated_.contains(section_loc))
-        populate(section);
+      if (!section.is_features_loaded()) {
+        load_features(section);
+        section.set_features_loaded(true);
+      }
     }
   }
   auto& section = sections.at(Location2D{location[0], location[2]});
@@ -148,18 +163,14 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
         chunk.set_voxel(x, y - y_global, z, voxel);
       }
 
-      {
-        auto n = noise(x + location[0] * Chunk::sz_x, z + location[2] * Chunk::sz_z);
+      if (landcover != Common::LandCover::bare) {
+        double n = noise(x + location[0] * Chunk::sz_x, z + location[2] * Chunk::sz_z);
         if (n > 0.65 && y < (y_global + Chunk::sz_y))
           chunk.set_voxel(x, y - y_global, z, Voxel::grass);
-      }
-      {
-        auto n = noise(x + location[0] * Chunk::sz_x * 2, z + location[2] * Chunk::sz_z * 2);
+        n = noise(x + location[0] * Chunk::sz_x * 2, z + location[2] * Chunk::sz_z * 2);
         if (n > 0.75 && y < (y_global + Chunk::sz_y))
           chunk.set_voxel(x, y - y_global, z, Voxel::roses);
-      }
-      {
-        auto n = noise(x + location[0] * Chunk::sz_x * 3, z + location[2] * Chunk::sz_z * 3);
+        n = noise(x + location[0] * Chunk::sz_x * 3, z + location[2] * Chunk::sz_z * 3);
         if (n > 0.75 && y < (y_global + Chunk::sz_y))
           chunk.set_voxel(x, y - y_global, z, Voxel::sunflower);
       }
@@ -168,23 +179,25 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
   if (empty_subsections < Chunk::sz_x * Chunk::sz_z)
     chunk.set_flag(Chunk::Flags::NONEMPTY);
 
-  auto& features = features_[location];
+  for (auto [x, z] : section_order) {
+    auto& section = sections.at(Location2D{location[0] + x, location[2] + z});
+    auto& features = section.get_features(location);
 
-  for (auto [idx, voxel] : features) {
-    chunk.set_voxel(idx, voxel);
+    for (auto [idx, voxel] : features) {
+      chunk.set_voxel(idx, voxel);
 
-    if (voxel > Voxel::PARTIAL_OPAQUE_LOWER) {
+      if (voxel > Voxel::PARTIAL_OPAQUE_LOWER) {
+        auto [x, y, z] = Chunk::flat_index_to_3d(idx);
+        int cur_obstructing_height = section.get_subsection_obstructing_height(x, z);
+        int this_obstructing_height = y + location[1] * Chunk::sz_y;
 
-      auto [x, y, z] = Chunk::flat_index_to_3d(idx);
-      auto cur_obstructing_height = section.get_subsection_obstructing_height(x, z);
-      int this_obstructing_height = y + location[1] * Chunk::sz_y;
-
-      if (cur_obstructing_height < this_obstructing_height)
-        section.set_subsection_obstructing_height(x, z, this_obstructing_height);
+        if (cur_obstructing_height < this_obstructing_height)
+          section.set_subsection_obstructing_height(x, z, this_obstructing_height);
+      }
     }
+    if (features.size() > 0)
+      chunk.set_flag(Chunk::Flags::NONEMPTY);
   }
-  if (features.size() > 0)
-    chunk.set_flag(Chunk::Flags::NONEMPTY);
 }
 
 double WorldGenerator::noise(double x, double y) const {

@@ -36,8 +36,9 @@ private:
     };
     Kind kind;
   };
-
+  
   void request_sections(std::vector<Location2D>& locs);
+  void stream_chunks();
 
   GLFWwindow* window_;
   TCPClient& tcp_client_;
@@ -57,22 +58,22 @@ private:
   std::mutex camera_mutex_;
   std::condition_variable cv_;
   bool ready_to_mesh_ = true;
+
   std::unordered_set<Location2D, Location2DHash> requested_sections_;
   std::unordered_map<Location2D, Section, Location2DHash> sections_;
   std::unordered_set<Location, LocationHash> chunks_to_build_;
   std::unordered_set<Location, LocationHash> sections_to_request_;
   Int3D ray_collision_;
-  std::uint32_t step_count_ = 0;
   moodycamel::ReaderWriterQueue<WindowEvent> window_events_;
-  bool camera_controlled_ = true;
+  bool player_controlled_ = true;
+  std::uint64_t step_ = 0;
 
   static constexpr int render_min_y_offset = -2;
-  static constexpr int render_max_y_offset = 1;
-  // if region_distance = 2 it breaks (placement/removal)
-  static constexpr int region_distance = Region::fill_distance;
-  static constexpr int render_distance = region_distance;
-  static constexpr int section_distance = render_distance + 2;
+  static constexpr int render_max_y_offset = 2;
+  static constexpr int region_distance = 8; // if region_distance == 2 it breaks (placement/removal)
+  static constexpr int section_distance = region_distance + 2;
   static constexpr int frame_rate_target = 60;
+  static constexpr int max_chunks_to_stream_per_step = 1;
 };
 
 #endif

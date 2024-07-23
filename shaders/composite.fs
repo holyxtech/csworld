@@ -15,6 +15,7 @@ uniform sampler2D waterPosition;
 uniform sampler2D waterNormal;
 
 uniform mat4 uPixelProjection;
+uniform float jitter;
 
 void main() {
   ivec2 texcoord = ivec2(floor(gl_FragCoord.xy));

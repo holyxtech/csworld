@@ -5,7 +5,7 @@ namespace MeshUtils {
   std::array<VT, 6> get_textures(Voxel voxel, std::array<Voxel, 6>& adjacent) {
     std::array<VT, 6> textures;
     switch (voxel) {
-    case Voxel::dirt:
+    case Voxel::dirt: 
       if (adjacent[py] < Voxel::OPAQUE_LOWER) {
         textures[nx] = CubeTexture::grass;
         textures[px] = CubeTexture::grass;
@@ -38,6 +38,9 @@ namespace MeshUtils {
       break;
     case Voxel::stone:
       textures.fill(CubeTexture::stone);
+      break;
+    case Voxel::bricks:
+      textures.fill(CubeTexture::bricks);
       break;
     }
     return textures;

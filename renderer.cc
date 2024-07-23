@@ -158,10 +158,7 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
       terrain_.new_origin(loc);
     }
   }
-
   mesh_generator.clear_diffs();
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void Renderer::consume_lod_mesh_generator(LodMeshGenerator& lod_mesh_generator) {
@@ -181,7 +178,7 @@ void Renderer::consume_camera(const Camera& camera) {
   camera_world_position_ = camera.get_world_position(camera_offset_);
 }
 
-void Renderer::render() const {
+void Renderer::render() {
   glViewport(0, 0, window_width, window_height);
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
@@ -290,4 +287,8 @@ const Sky& Renderer::get_sky() const {
 
 const glm::vec3 Renderer::get_camera_world_position() const {
   return camera_world_position_;
+}
+
+const UIGraphics& Renderer::get_ui_graphics() const {
+  return ui_graphics_;
 }

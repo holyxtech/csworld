@@ -6,6 +6,23 @@
 #include <optional>
 #include <queue>
 
+namespace {
+  const std::array<Location, 26> covering_origin = []() {
+    std::array<Location, 26> covering;
+    int i = 0;
+    for (int x = -1; x <= 1; ++x) {
+      for (int y = -1; y <= 1; ++y) {
+        for (int z = -1; z <= 1; ++z) {
+          if (x == 0 && y == 0 && z == 0)
+            continue;
+          covering[i++] = Location{x, y, z};
+        }
+      }
+    }
+    return covering;
+  }();
+} // namespace
+
 Region::Region(std::unordered_map<Location2D, Section, Location2DHash>& sections) : sections_{sections} {}
 
 std::unordered_map<Location, Chunk, LocationHash>& Region::get_chunks() {
@@ -42,19 +59,10 @@ std::array<Chunk*, 6> Region::get_adjacent_chunks(const Location& loc) {
 
 std::array<Location, 26> Region::get_covering_locations(const Location& loc) const {
   std::array<Location, 26> covering;
-
   int i = 0;
-  for (int x = -1; x <= 1; ++x) {
-    for (int y = -1; y <= 1; ++y) {
-      for (int z = -1; z <= 1; ++z) {
-        if (x == 0 && y == 0 && z == 0)
-          continue;
-
-        covering[i++] = Location{loc[0] + x, loc[1] + y, loc[2] + z};
-      }
-    }
+  for (auto& cov : covering_origin) {
+    covering[i++] = Location{loc[0] + cov[0], loc[1] + cov[1], loc[2] + cov[2]};
   }
-
   return covering;
 }
 
@@ -231,6 +239,7 @@ void Region::add_chunk(Chunk&& chunk) {
   chunks_.insert({loc, std::move(chunk)});
 
   // if section never supports a chunk, will never unload...
+  // thus, need to periodically check distance from sections...
   if (chunks_supported_.contains(section_loc))
     ++chunks_supported_[section_loc];
   else

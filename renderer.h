@@ -21,12 +21,13 @@ public:
   void consume_lod_mesh_generator(LodMeshGenerator& lod_mesh_generator);
   void consume_camera(const Camera& camera);
   void set_highlight(Int3D& highlight);
-  void render() const;
+  void render();
   const glm::mat4& get_view_matrix() const;
   const glm::mat4& get_projection_matrix() const;
   const glm::vec3 get_camera_world_position() const;
   const Sky& get_sky() const;
   static float normalize_x(float x);
+  const UIGraphics& get_ui_graphics() const;
 
   static const GLuint window_width = 2560;
   static const GLuint window_height = 1440;
