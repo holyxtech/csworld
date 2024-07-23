@@ -98,6 +98,11 @@ namespace LocationMath {
     int z_squared = (l1[2] - l2[2]) * (l1[2] - l2[2]);
     return std::sqrt(x_squared + y_squared + z_squared);
   }
+  static double distance(Location2D l1, Location2D l2) {
+    int x_squared = (l1[0] - l2[0]) * (l1[0] - l2[0]);
+    int z_squared = (l1[1] - l2[1]) * (l1[1] - l2[1]);
+    return std::sqrt(x_squared + z_squared);
+  }
   static int difference(Location l1, Location l2) {
     return std::abs(l1[0] - l2[0]) + std::abs(l1[1] - l2[1]) + std::abs(l1[2] - l2[2]);
   }
@@ -138,7 +143,6 @@ struct Vertex {
   glm::vec3 position_;
   glm::vec2 uvs_;
   int textureId_;
-  float lighting_;
 };
 
 class LodVertex {
@@ -165,16 +169,14 @@ private:
 class CubeVertex {
 public:
   unsigned int data_ = 0;
-  float lighting_;
 
-  CubeVertex(int x, int y, int z, Direction normal, QuadCorner uvs, int textureId, float lighting) {
+  CubeVertex(int x, int y, int z, Direction normal, QuadCorner uvs, int textureId) {
     data_ |= (x & xpos_mask);
     data_ |= ((y << 6) & ypos_mask);
     data_ |= ((z << 12) & zpos_mask);
     data_ |= ((normal << 18) & normal_mask);
     data_ |= ((uvs << 21) & uvs_mask);
     data_ |= ((textureId << 23) & texture_mask);
-    lighting_ = lighting;
   }
 
 private:

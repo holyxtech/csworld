@@ -61,8 +61,6 @@ private:
 
   std::unordered_set<Location2D, Location2DHash> requested_sections_;
   std::unordered_map<Location2D, Section, Location2DHash> sections_;
-  std::unordered_set<Location, LocationHash> chunks_to_build_;
-  std::unordered_set<Location, LocationHash> sections_to_request_;
   Int3D ray_collision_;
   moodycamel::ReaderWriterQueue<WindowEvent> window_events_;
   bool player_controlled_ = true;
@@ -72,8 +70,9 @@ private:
   static constexpr int render_max_y_offset = 2;
   static constexpr int region_distance = 8; // if region_distance == 2 it breaks (placement/removal)
   static constexpr int section_distance = region_distance + 2;
+  static constexpr int max_sections = 2 * 4 * section_distance * section_distance;
   static constexpr int frame_rate_target = 60;
-  static constexpr int max_chunks_to_stream_per_step = 1;
+  static constexpr int max_chunks_to_stream_per_step = 5;
 };
 
 #endif

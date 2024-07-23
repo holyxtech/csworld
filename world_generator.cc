@@ -33,15 +33,6 @@ bool WorldGenerator::ready_to_fill(Location& location, const std::unordered_map<
   return true;
 }
 
-// Implement world gen -> region messaging system to recreate chunks when they receive new feature data
-/* void WorldGenerator::insert_into_features(int x, int y, int z, Voxel voxel) {
-  auto location = Region::location_from_global_coords(x, y, z);
-  auto& location_features = features_[location];
-  int idx = Chunk::get_index(Chunk::to_local(Int3D{x, y, z}));
-  // these are never removed...
-  location_features.emplace_back(std::make_pair(idx, voxel));
-} */
-
 void WorldGenerator::build_tree(Section& section, int x, int y, int z) {
   int i, j, k;
 
@@ -114,8 +105,6 @@ void WorldGenerator::load_features(Section& section) {
     int subsection_elevation = section.get_subsection_elevation(s[0], s[1]);
     build_tree(section, loc[0] * Section::sz_x + static_cast<int>(s[0]), subsection_elevation + 1, loc[1] * Section::sz_z + static_cast<int>(s[1]));
   }
-
-  //  sections_populated_.insert(loc);
 }
 
 void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Section, Location2DHash>& sections) {
@@ -126,10 +115,8 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
     for (auto z : arr) {
       auto section_loc = Location2D{location[0] + x, location[2] + z};
       auto& section = sections.at(section_loc);
-      if (!section.has_subsection_elevations()) {
+      if (!section.has_subsection_elevations())
         section.compute_subsection_elevations(sections);
-        section.set_subsection_obstructing_heights_from_elevations();
-      }
       if (!section.is_features_loaded()) {
         load_features(section);
         section.set_features_loaded(true);
@@ -176,28 +163,19 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
       }
     }
   }
-  if (empty_subsections < Chunk::sz_x * Chunk::sz_z)
-    chunk.set_flag(Chunk::Flags::NONEMPTY);
+  if (empty_subsections == Chunk::sz_x * Chunk::sz_z)
+    chunk.set_flag(Chunk::Flags::EMPTY);
 
+  int num_features = 0;
   for (auto [x, z] : section_order) {
     auto& section = sections.at(Location2D{location[0] + x, location[2] + z});
     auto& features = section.get_features(location);
-
-    for (auto [idx, voxel] : features) {
+    for (auto [idx, voxel] : features)
       chunk.set_voxel(idx, voxel);
-
-      if (voxel > Voxel::PARTIAL_OPAQUE_LOWER) {
-        auto [x, y, z] = Chunk::flat_index_to_3d(idx);
-        int cur_obstructing_height = section.get_subsection_obstructing_height(x, z);
-        int this_obstructing_height = y + location[1] * Chunk::sz_y;
-
-        if (cur_obstructing_height < this_obstructing_height)
-          section.set_subsection_obstructing_height(x, z, this_obstructing_height);
-      }
-    }
-    if (features.size() > 0)
-      chunk.set_flag(Chunk::Flags::NONEMPTY);
+    num_features += features.size();
   }
+  if (num_features > 0)
+    chunk.unset_flag(Chunk::Flags::EMPTY);
 }
 
 double WorldGenerator::noise(double x, double y) const {

@@ -21,11 +21,11 @@ namespace {
 } // namespace
 
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
-    : window_(window), tcp_client_(tcp_client), renderer_(window, ui_), region_(sections_) {
+    : window_(window), tcp_client_(tcp_client), renderer_(window, ui_) {
 
   std::array<double, 3> starting_pos{4230249, 316, -1220386};
-  //auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
-  //starting_pos[1] = 530;
+  // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
+  // starting_pos[1] = 530;
 
   {
     std::unique_lock<std::mutex> lock(camera_mutex_);
@@ -35,8 +35,6 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
   auto& player = region_.get_player();
   player.set_position(starting_pos[0], starting_pos[1], starting_pos[2]);
   auto loc = Chunk::pos_to_loc(starting_pos);
-
-  // add to flat list of chunk locations
 
   ++loc[0]; // hack so loc != last_location in step() triggers
   player.set_last_location(loc);
@@ -50,6 +48,7 @@ void Sim::stream_chunks() {
       if (!region_.has_chunk(location) && world_generator_.ready_to_fill(location, sections_)) {
         std::optional<Chunk> chunk;
         auto possible_chunk = db_manager_.load_chunk_if_exists(location);
+
         if (possible_chunk.has_value()) {
           chunk = possible_chunk.value();
         } else {
@@ -76,7 +75,6 @@ void Sim::stream_chunks() {
 
   for (int r = 0; r < region_distance; ++r) {
     Location column = Location{loc[0] - r, loc[1], loc[2] - r};
-    // do with starting column
     stream_column(column);
     if (num_new_chunks == max_chunks_to_stream_per_step)
       return;
@@ -105,15 +103,13 @@ void Sim::step() {
   auto& q = tcp_client_.get_queue();
   bool success = q.try_dequeue(message);
   while (success) {
-
     auto* update = fbs_update::GetUpdate(message.data());
     switch (update->kind_type()) {
-    case fbs_update::UpdateKind_Region:
+    case fbs_update::UpdateKind_Region: {
       new_sections = true;
       auto* region = update->kind_as_Region();
       auto* sections = region->sections();
       for (int i = 0; i < sections->size(); ++i) {
-
         auto* section_update = sections->Get(i);
         auto* loc = section_update->location();
         auto x = loc->x(), z = loc->y();
@@ -124,7 +120,29 @@ void Sim::step() {
           requested_sections_.erase(location);
         }
       }
-      break;
+      if (sections_.size() > max_sections) {
+        std::vector<Location2D> section_locs;
+        section_locs.reserve(sections_.size());
+        for (auto& [location, _] : sections_)
+          section_locs.emplace_back(location);
+        auto& player = region_.get_player();
+        auto& pos = player.get_position();
+        auto loc = Chunk::pos_to_loc(pos);
+        auto player_location2d = Location2D{loc[0], loc[2]};
+        std::sort(
+          section_locs.begin(), section_locs.end(),
+          [&player_location2d](const Location2D l1, const Location2D l2) {
+            auto d1 = LocationMath::distance(l1, player_location2d);
+            auto d2 = LocationMath::distance(l2, player_location2d);
+            return d1 > d2;
+          });
+        int to_remove = sections_.size() - max_sections;
+        for (int i = 0; i < to_remove; ++i) {
+          auto& location = section_locs[i];
+          sections_.erase(location);
+        }
+      }
+    } break;
     }
     success = q.try_dequeue(message);
   }
@@ -144,7 +162,6 @@ void Sim::step() {
       }
     }
   }
-
   auto& pos = player.get_position();
   auto loc = Chunk::pos_to_loc(pos);
   auto& last_location = player.get_last_location();
@@ -162,7 +179,6 @@ void Sim::step() {
     if (locs.size() > 0)
       request_sections(locs);
   }
-
   stream_chunks();
 
   player.set_last_location(loc);
@@ -225,7 +241,6 @@ void Sim::step() {
       continue;
     }
 
-    // player controls
     if (key_button_event.key >= GLFW_KEY_0 && key_button_event.key <= GLFW_KEY_9) {
       std::size_t index = key_button_event.key > GLFW_KEY_0 ? key_button_event.key - GLFW_KEY_1 : UI::action_bar_size - 1;
       ui_.action_bar_select(index);
@@ -244,7 +259,6 @@ void Sim::step() {
       cv_.wait(lock, [this] { return ready_to_mesh_; });
     }
     std::unique_lock<std::mutex> lock(mesh_mutex_);
-
     mesh_generator_.consume_region(region_);
     lod_mesh_generator_.consume_lod_loader(lod_loader_);
     ready_to_mesh_ = false;

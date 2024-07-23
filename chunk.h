@@ -13,7 +13,7 @@ class Chunk {
 public:
   enum Flags : uint32_t {
     DELETED = 1 << 0,
-    NONEMPTY = 1 << 1,
+    EMPTY = 1 << 1,
   };
 
   Chunk(int x, int y, int z);
@@ -36,10 +36,6 @@ public:
   static Location pos_to_loc(const std::array<double, 3>& position);
   static std::array<int, 3> flat_index_to_3d(int i);
 
-  void compute_lighting(Section& section);
-  unsigned char get_lighting(int x, int y, int z) const;
-  void set_lighting(int x, int y, int z, unsigned char value);
-  void set_lighting(int i, unsigned char value);
   static Int3D to_local(Int3D coord);
 
   static constexpr int sz_x = Common::chunk_sz_x;
@@ -47,13 +43,10 @@ public:
   static constexpr int sz_z = Common::chunk_sz_z;
   static constexpr int sz = Common::chunk_sz;
 
-  static constexpr unsigned char max_lighting = 0xF;
-
 private:
   static std::array<int, 3> flat_index_to_3d_zxy(int i);
 
   std::vector<Voxel> voxels_;
-  std::vector<unsigned char> lighting_;
   Location location_;
   uint32_t flags_ = 0;
 };

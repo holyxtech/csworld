@@ -23,9 +23,6 @@ public:
   bool has_subsection_elevations() const;
   const std::array<int, sz>& get_subsection_elevations() const;
   int get_subsection_elevation(int x, int z) const;
-  void set_subsection_obstructing_heights_from_elevations();
-  int get_subsection_obstructing_height(int x, int z);
-  void set_subsection_obstructing_height(int x, int z, int height);
   void insert_into_features(int x, int y, int z, Voxel voxel);
   void set_features_loaded(bool loaded);
   bool is_features_loaded() const;
@@ -37,7 +34,6 @@ private:
   std::array<Common::LandCover, Common::landcover_tiles_per_sector> landcover_;
 
   std::array<int, sz> subsection_elevations_;
-  std::array<int, sz> subsection_obstructing_heights_;
   bool computed_subsection_elevations_ = false;
 
   std::unordered_map<Location, std::vector<std::pair<int, Voxel>>, LocationHash> features_;

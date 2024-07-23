@@ -1,7 +1,6 @@
 #version 460 core
 
 layout (location = 0) in uint data;
-layout (location = 1) in float lighting;
 layout (binding = 2, std430) readonly buffer ssbo {
     vec3 chunkPos[];
 };
@@ -11,7 +10,6 @@ uniform mat4 uTransform;
 out vec2 fragUvs;
 out vec3 fragWorldPosition;
 flat out uint fragTextureId;
-out float fragLighting;
 
 const uint xpos_mask = 0x0000003F;
 const uint ypos_mask = 0x00000FC0;
@@ -43,6 +41,5 @@ void main() {
 
     fragTextureId = textureId;
     fragUvs = uvs[uvsId];
-    fragLighting = lighting;
     fragWorldPosition = pos;
 }

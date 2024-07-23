@@ -29,18 +29,14 @@ template <typename T>
 void TerrainGraphics::set_up_vao() {
   if constexpr (std::is_same_v<T, CubeVertex>) {
     glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(CubeVertex), (void*)offsetof(CubeVertex, data_));
-    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(CubeVertex), (void*)offsetof(CubeVertex, lighting_));
     glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
   } else if constexpr (std::is_same_v<T, Vertex>) {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position_));
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvs_));
     glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)offsetof(Vertex, textureId_));
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, lighting_));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
   } else if constexpr (std::is_same_v<T, LodVertex>) {
     glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(LodVertex), (void*)offsetof(LodVertex, data_));
     glEnableVertexAttribArray(0);
