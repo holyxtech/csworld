@@ -38,7 +38,6 @@ std::array<Voxel, 6> MeshGenerator::get_adjacent_voxels(
   return adjacent;
 }
 
-
 void MeshGenerator::mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position, Voxel voxel) {
   float i = position[0], j = position[1], k = position[2];
   std::uint32_t seed = 0;
@@ -51,15 +50,15 @@ void MeshGenerator::mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position,
   i += r;
   k += r;
   switch (voxel) {
-  case Voxel::grass:
+  case Voxel::grass: {
     layer = static_cast<int>(IrregularTexture::standing_grass);
-    break;
-  case Voxel::roses:
+  } break;
+  case Voxel::roses: {
     layer = static_cast<int>(IrregularTexture::roses);
-    break;
-  case Voxel::sunflower:
+  } break;
+  case Voxel::sunflower: {
     layer = static_cast<int>(IrregularTexture::sunflower);
-    break;
+  } break;
   }
   mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::br, layer});
   mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), QuadCoord::tr, layer});

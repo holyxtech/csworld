@@ -5,21 +5,18 @@ layout (location = 1) in vec2 uvs;
 layout (location = 2) in int textureId;
 layout (location = 3) in float lighting;
 
-uniform mat4 uProjection;
-uniform mat4 uView;
+out VS_OUT {
+  vec3 worldPos;
+  vec3 worldNormal;
+} vs_out;
 
-out vec3 fragWorldPosition;
-out vec4 fragCameraPosition;
-out vec4 fragCameraNormal;
+uniform mat4 uProjection; // should be in UBO
+uniform mat4 uView; // should be in UBO
 
 void main() {
-  vec4 cameraPosition = uView * vec4(position, 1.0);
+  vec3 normal = vec3(0.f, 1.f, 0.f);
+  vs_out.worldPos = position;
+  vs_out.worldNormal = normal;
 
-  fragWorldPosition = position;
-  fragCameraPosition = cameraPosition;
-  
-  // for now we just assume the water is flat on the xz plane
-  fragCameraNormal = uView * vec4(0.f, 1.f, 0.f, 0.f);
-
-  gl_Position = uProjection * cameraPosition;
+  gl_Position = uProjection * uView * vec4(position, 1.0);
 }

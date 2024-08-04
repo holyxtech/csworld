@@ -6,6 +6,8 @@
 #include "voxel.h"
 
 namespace {
+  std::array<const char*, 1> search_dirs = {"/"};
+  bool shaders_included = false;
   std::string read_sfile(std::string path) {
     std::ifstream fs(path, std::ios::in);
 
@@ -15,53 +17,86 @@ namespace {
     }
     return std::string((std::istreambuf_iterator<char>(fs)), (std::istreambuf_iterator<char>()));
   }
-
-} // namespace
-
-namespace RenderUtils {
-  void preload_include(const std::string& path, const std::string& name) {
+  void include_shader(const std::string& path, const std::string& name) {
     auto source = read_sfile(path);
     glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, name.c_str(), -1, source.c_str());
   }
+  void include_all() {
+    include_shader(Options::instance()->getShaderPath("common.glsl"), "/common.glsl");
+    include_shader(Options::instance()->getShaderPath("shadow.glsl"), "/shadow.glsl");
+    include_shader(Options::instance()->getShaderPath("ssr.glsl"), "/ssr.glsl");
+    shaders_included = true;
+  }
+} // namespace
 
-  void create_shader(GLuint* shader, const std::string& vertex_shader_path, const std::string& fragment_shader_path) {
-    std::array<const char*, 1> search_dirs = {"/"};
-    auto vertex_shader_source = read_sfile(vertex_shader_path);
-    auto fragment_shader_source = read_sfile(fragment_shader_path);
-    const auto vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    auto* vertex_shader_source_cstr = vertex_shader_source.c_str();
-    glShaderSource(vertex_shader, 1, &vertex_shader_source_cstr, nullptr);
-    glCompileShaderIncludeARB(vertex_shader, search_dirs.size(), search_dirs.data(), nullptr);
+namespace RenderUtils {
+
+  GLuint compile_shader(const std::string& path, GLenum shader_type) {
+    auto shader_source = read_sfile(path);
+    const auto shader = glCreateShader(shader_type);
+    auto* c_str = shader_source.c_str();
+    glShaderSource(shader, 1, &c_str, nullptr);
+    glCompileShaderIncludeARB(shader, search_dirs.size(), search_dirs.data(), nullptr);
     GLint success;
     GLchar info[512];
-    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
-      glGetShaderInfoLog(vertex_shader, 512, nullptr, info);
-      std::cerr << "Failed to compile vertex shader: " << info << std::endl;
+      glGetShaderInfoLog(shader, 512, nullptr, info);
+      std::cerr << "Failed to compile shader at " << path << ": " << info << std::endl;
       throw std::runtime_error("Failed to initialize Renderer");
     }
-    const auto fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    auto* fragment_shader_source_cstr = fragment_shader_source.c_str();
-    glShaderSource(fragment_shader, 1, &fragment_shader_source_cstr, nullptr);
-    glCompileShaderIncludeARB(fragment_shader, search_dirs.size(), search_dirs.data(), nullptr);
-    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-      glGetShaderInfoLog(fragment_shader, 512, nullptr, info);
-      std::cerr << "Failed to compile fragment shader: " << info << std::endl;
-      throw std::runtime_error("Failed to initialize Renderer");
-    }
-    *shader = glCreateProgram();
-    glAttachShader(*shader, vertex_shader);
-    glAttachShader(*shader, fragment_shader);
-    glLinkProgram(*shader);
-    glGetProgramiv(*shader, GL_LINK_STATUS, &success);
-    if (!success) {
-      glGetProgramInfoLog(*shader, 512, nullptr, info);
-      std::cerr << "Failed to link shader program: " << info << std::endl;
-      throw std::runtime_error("Failed to initialize Renderer");
-    }
+    return shader;
+  }
+
+  GLuint create_shader(const std::string& vertex_shader_path, const std::string& geometry_shader_path, const std::string& fragment_shader_path) {
+    if (!shaders_included)
+      include_all();
+    GLuint vertex_shader = compile_shader(vertex_shader_path, GL_VERTEX_SHADER);
+    GLuint fragment_shader = compile_shader(fragment_shader_path, GL_FRAGMENT_SHADER);
+    GLuint geometry_shader = compile_shader(geometry_shader_path, GL_GEOMETRY_SHADER);
+    GLuint shader = glCreateProgram();
+    glAttachShader(shader, vertex_shader);
+    glAttachShader(shader, fragment_shader);
+    glAttachShader(shader, geometry_shader);
+    glLinkProgram(shader);
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
+    glDeleteShader(geometry_shader);
+    return shader;
+  }
+
+  GLuint create_shader(const std::string& vertex_shader_path, const std::string& fragment_shader_path) {
+    if (!shaders_included)
+      include_all();
+    GLuint vertex_shader = compile_shader(vertex_shader_path, GL_VERTEX_SHADER);
+    GLuint fragment_shader = compile_shader(fragment_shader_path, GL_FRAGMENT_SHADER);
+    GLuint shader = glCreateProgram();
+    glAttachShader(shader, vertex_shader);
+    glAttachShader(shader, fragment_shader);
+    glLinkProgram(shader);
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+    return shader;
+  }
+
+  std::vector<glm::vec4> get_frustum_corners_world_space(const glm::mat4& proj, const glm::mat4& view) {
+    const auto inv = glm::inverse(proj * view);
+    std::vector<glm::vec4> corners;
+    for (int x = 0; x < 2; ++x) {
+      for (int y = 0; y < 2; ++y) {
+        for (int z = 0; z < 2; ++z) {
+          const glm::vec4 pt =
+            inv *
+            glm::vec4(
+              2.0f * x - 1.0f,
+              2.0f * y - 1.0f,
+              2.0f * z - 1.0f,
+              1.0f);
+          corners.push_back(pt / pt.w);
+        }
+      }
+    }
+    return corners;
   }
 
 } // namespace RenderUtils

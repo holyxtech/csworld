@@ -27,6 +27,7 @@ public:
   void step();
   void draw(std::int64_t ms);
   void exit();
+  void set_player_controlled(bool controlled);
 
 private:
   struct WindowEvent {

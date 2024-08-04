@@ -1,23 +1,23 @@
 #include "sky.h"
-#include <string>
 #include <numbers>
+#include <string>
 #include "options.h"
 #include "render_utils.h"
 #include "renderer.h"
 #include "stb_image.h"
 
-glm::vec3 Sky::spherical_to_cartesian(float r, float theta, float phi) {
-  return glm::vec3(r * sin(theta) * sin(phi), r * cos(theta), -r * sin(theta) * cos(phi));
-}
+namespace {
+  glm::vec3 spherical_to_cartesian(float r, float theta, float phi) {
+    return glm::vec3(r * sin(theta) * sin(phi), r * cos(theta), -r * sin(theta) * cos(phi));
+  }
+} // namespace
 
 Sky::Sky() {
-  RenderUtils::create_shader(&shader_, Options::instance()->getShaderPath("sky.vs"), Options::instance()->getShaderPath("sky.fs"));
-  RenderUtils::create_shader(&cb_shader_, Options::instance()->getShaderPath("cb.vs"), Options::instance()->getShaderPath("cb.fs"));
+  shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("sky.vs"), Options::instance()->getShaderPath("sky.fs"));
+  cb_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("cb.vs"), Options::instance()->getShaderPath("cb.fs"));
 
   glGenTextures(1, &cube_texture_);
   glBindTexture(GL_TEXTURE_CUBE_MAP, cube_texture_);
-  glUseProgram(shader_);
-  glUniform1i(glGetUniformLocation(shader_, "skybox"), 1);
 
   std::vector<std::string> textures_faces = {
     "sky/pos_x.png",
@@ -145,14 +145,15 @@ void Sky::render(const Renderer& renderer) const {
     glUseProgram(shader_);
     auto transform_loc = glGetUniformLocation(shader_, "uTransform");
     glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
+    glBindTextureUnit(0, cube_texture_);
+    glUniform1i(glGetUniformLocation(shader_, "skybox"), 0);
     glBindVertexArray(vao_);
     glDrawArrays(GL_TRIANGLES, 0, 36);
   }
 
   {
     glUseProgram(cb_shader_);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, sun_texture_);
+    glBindTextureUnit(0, sun_texture_);
     GLint texture_loc = glGetUniformLocation(cb_shader_, "cbTexture");
     glUniform1i(texture_loc, 0);
     auto transform_loc = glGetUniformLocation(cb_shader_, "uTransform");
@@ -167,4 +168,12 @@ void Sky::render(const Renderer& renderer) const {
 
 GLuint Sky::get_texture() const {
   return cube_texture_;
+}
+
+const glm::vec3& Sky::get_sun_dir() const {
+  return sun_dir_;
+}
+
+void Sky::set_sun_dir(const glm::vec3& dir) {
+  sun_dir_ = dir;
 }

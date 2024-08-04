@@ -20,22 +20,25 @@ public:
   void consume_mesh_generator(MeshGenerator& mesh_generator);
   void consume_lod_mesh_generator(LodMeshGenerator& lod_mesh_generator);
   void consume_camera(const Camera& camera);
-  void set_highlight(Int3D& highlight);
+  void set_highlight(const Int3D& highlight);
   void render();
   const glm::mat4& get_view_matrix() const;
   const glm::mat4& get_projection_matrix() const;
   const glm::vec3 get_camera_world_position() const;
+  GLuint get_shadow_texture() const;
   const Sky& get_sky() const;
-  static float normalize_x(float x);
   const UIGraphics& get_ui_graphics() const;
 
-  static const GLuint window_width = 2560;
-  static const GLuint window_height = 1440;
-  static constexpr double region_far_plane = 100000.f;
+  static int window_width;
+  static int window_height;
+  static double aspect_ratio;
+  static double fov;
 
 private:
-  static const GLuint blur_texture_width_ = window_width / 8;
-  static const GLuint blur_texture_height_ = window_height / 8;
+  static constexpr double near_plane = .1;
+  static constexpr double far_plane = 1000.;
+
+  void shadow_map();
 
   GLuint main_framebuffer_;
   GLuint water_framebuffer_;
@@ -44,11 +47,9 @@ private:
   GLuint main_dbo_;
   GLuint water_cbo_;
   GLuint water_dbo_;
-  GLuint g_water_position_;
-  GLuint g_water_normal_;
+  GLuint water_camera_position_;
+  GLuint water_camera_normal_;
   GLuint quad_vao_;
-  GLuint quad_vbo_;
-  GLuint voxel_highlight_vbo_;
   GLuint voxel_highlight_vao_;
   std::array<GLuint, 2> composite_cbos_;
   std::array<GLuint, 2> pingpong_framebuffers_;
@@ -69,6 +70,23 @@ private:
   UIGraphics ui_graphics_;
   TerrainGraphics terrain_;
   GLFWwindow* window_;
+
+  // shadows
+  static constexpr int num_cascades = 3;
+  const double view_plane_depth_ratio = pow(far_plane / near_plane, 1. / num_cascades);
+  static constexpr int shadow_res = 1024;
+  GLuint shadow_fbo_;
+  GLuint shadow_texture_;
+  struct ShadowBlock {
+    glm::vec3 light_dir;
+    float far_plane;
+    glm::vec4 cascade_plane_distances[(num_cascades + 3) / 4];
+  };
+  GLuint shadow_block_ubo_;
+  GLuint light_space_matrices_ubo_;
+
+  GLuint blur_texture_width_ = window_width / 8;
+  GLuint blur_texture_height_ = window_height / 8;
 };
 
 #endif

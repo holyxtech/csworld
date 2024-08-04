@@ -17,9 +17,6 @@ enum class MeshKind {
   cubes,
   irregular,
   water,
-  lod1,
-  lod2,
-  lod3
 };
 
 template <MeshKind mesh_kind>
@@ -27,10 +24,7 @@ struct VertexKind {
   using type = std::conditional_t<
     mesh_kind == MeshKind::cubes,
     CubeVertex,
-    std::conditional_t<
-      (mesh_kind == MeshKind::irregular || mesh_kind == MeshKind::water),
-      Vertex,
-      LodVertex>>;
+    Vertex>;
 };
 
 class TerrainGraphics {
@@ -38,15 +32,12 @@ public:
   TerrainGraphics();
   void render(const Renderer& renderer) const;
   void render_water(const Renderer& renderer) const;
-  void render_lods(const Renderer& renderer) const;
+  void shadow_map(const Renderer& renderer) const;
   void create(const Location& loc, const MeshGenerator& mesh_generator);
-  void create(const Location& loc, LodLevel level, const LodMeshGenerator& lod_mesh_generator);
   void destroy(const Location& loc);
   void new_origin(const Location& loc);
 
 private:
-  static constexpr double lod_far_plane = 10000.;
-
   struct DrawArraysIndirectCommand {
     unsigned int count;
     unsigned int instance_count;
@@ -65,10 +56,10 @@ private:
     GLuint ibo;
     std::vector<DrawArraysIndirectCommand> commands;
     std::vector<CommandMetadata> commands_metadata;
-    int vbo_size = 0;
+    unsigned int vbo_size = 0;
     std::unordered_map<Location, std::size_t, LocationHash> loc_to_command_index;
     std::size_t first_unoccupied = 0;
-    GLuint loc_ssbo_;
+    GLuint loc_ssbo;
   };
 
   template <MeshKind mesh_kind>
@@ -95,14 +86,13 @@ private:
   GLuint normal_map1;
   GLuint normal_map2;
 
-  // LODS
-  MultiDrawHandle lod1_draw_handle_;
-  glm::mat4 lod_projection_;
-
+  // universal
   GLuint voxel_texture_array_;
-  GLuint lod_texture_array_;
-
   Location origin_;
+
+  // shadow map
+  GLuint cubes_shadow_shader_;
+  GLuint irregular_shadow_shader_;
 };
 
 #endif

@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <utility>
@@ -10,15 +11,18 @@
 #include "stb_image.h"
 #include "types.h"
 
+int Renderer::window_width = 2560;
+int Renderer::window_height = 1440;
+double Renderer::aspect_ratio = Renderer::window_width / static_cast<double>(Renderer::window_height);
+double Renderer::fov = glm::radians(45.);
+
 Renderer::Renderer(GLFWwindow* window, const UI& ui) : window_(window), ui_graphics_(window, ui) {
-  projection_ = glm::perspective(glm::radians(45.), 16 / 9., 0.1, region_far_plane);
+  projection_ = glm::perspective(fov, aspect_ratio, near_plane, far_plane);
 
-  RenderUtils::preload_include(Options::instance()->getShaderPath("ssr.glsl"), "/ssr.glsl");
-
-  RenderUtils::create_shader(&composite_shader_, Options::instance()->getShaderPath("composite.vs"), Options::instance()->getShaderPath("composite.fs"));
-  RenderUtils::create_shader(&voxel_highlight_shader_, Options::instance()->getShaderPath("voxel_highlight.vs"), Options::instance()->getShaderPath("voxel_highlight.fs"));
-  RenderUtils::create_shader(&blur_shader_, Options::instance()->getShaderPath("blur.vs"), Options::instance()->getShaderPath("blur.fs"));
-  RenderUtils::create_shader(&final_shader_, Options::instance()->getShaderPath("final.vs"), Options::instance()->getShaderPath("final.fs"));
+  composite_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("composite.vs"), Options::instance()->getShaderPath("composite.fs"));
+  voxel_highlight_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("voxel_highlight.vs"), Options::instance()->getShaderPath("voxel_highlight.fs"));
+  blur_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("blur.vs"), Options::instance()->getShaderPath("blur.fs"));
+  final_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("final.vs"), Options::instance()->getShaderPath("final.fs"));
 
   float voxel_highlight_vertices[] = {
     0.0f, 0.0f, 1.0f,
@@ -34,11 +38,12 @@ Renderer::Renderer(GLFWwindow* window, const UI& ui) : window_(window), ui_graph
     4, 5, 5, 6, 6, 7, 7, 4,
     0, 4, 1, 5, 2, 6, 3, 7};
   GLuint voxel_highlight_ebo;
+  GLuint voxel_highlight_vbo;
   glGenVertexArrays(1, &voxel_highlight_vao_);
-  glGenBuffers(1, &voxel_highlight_vbo_);
+  glGenBuffers(1, &voxel_highlight_vbo);
   glGenBuffers(1, &voxel_highlight_ebo);
   glBindVertexArray(voxel_highlight_vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, voxel_highlight_vbo_);
+  glBindBuffer(GL_ARRAY_BUFFER, voxel_highlight_vbo);
   glBufferData(GL_ARRAY_BUFFER, sizeof(voxel_highlight_vertices), voxel_highlight_vertices, GL_STATIC_DRAW);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, voxel_highlight_ebo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
@@ -52,9 +57,10 @@ Renderer::Renderer(GLFWwindow* window, const UI& ui) : window_(window), ui_graph
     -1.0f, 1.0f,
     1.0f, 1.0f,
     1.0f, -1.0f};
-  glGenBuffers(1, &quad_vbo_);
+  GLuint quad_vbo;
+  glGenBuffers(1, &quad_vbo);
   glGenVertexArrays(1, &quad_vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, quad_vbo_);
+  glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
   glBindVertexArray(quad_vao_);
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
   glEnableVertexAttribArray(0);
@@ -78,10 +84,12 @@ Renderer::Renderer(GLFWwindow* window, const UI& ui) : window_(window), ui_graph
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, dbo, 0);
   };
   set_up_framebuffers(main_framebuffer_, main_cbo_, main_dbo_);
+  glBindFramebuffer(GL_FRAMEBUFFER, main_framebuffer_);
+
   set_up_framebuffers(water_framebuffer_, water_cbo_, water_dbo_);
   glBindFramebuffer(GL_FRAMEBUFFER, water_framebuffer_);
-  std::array<std::reference_wrapper<GLuint>, 2> g_bufs = {std::ref(g_water_position_), std::ref(g_water_normal_)};
-  for (size_t i = 0; i < 2; ++i) {
+  std::array<std::reference_wrapper<GLuint>, 2> g_bufs = {std::ref(water_camera_position_), std::ref(water_camera_normal_)};
+  for (std::size_t i = 0; i < 2; ++i) {
     auto& g_buf = g_bufs[i].get();
     glGenTextures(1, &g_buf);
     glBindTexture(GL_TEXTURE_2D, g_buf);
@@ -98,7 +106,7 @@ Renderer::Renderer(GLFWwindow* window, const UI& ui) : window_(window), ui_graph
   glGenFramebuffers(1, &composite_framebuffer_);
   glBindFramebuffer(GL_FRAMEBUFFER, composite_framebuffer_);
   glGenTextures(2, composite_cbos_.data());
-  for (size_t i = 0; i < 2; ++i) {
+  for (std::size_t i = 0; i < 2; ++i) {
     glBindTexture(GL_TEXTURE_2D, composite_cbos_[i]);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_width, window_height, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -114,7 +122,7 @@ Renderer::Renderer(GLFWwindow* window, const UI& ui) : window_(window), ui_graph
 
   glGenFramebuffers(2, pingpong_framebuffers_.data());
   glGenTextures(2, pingpong_textures_.data());
-  for (size_t i = 0; i < 2; ++i) {
+  for (std::size_t i = 0; i < 2; ++i) {
     glBindFramebuffer(GL_FRAMEBUFFER, pingpong_framebuffers_[i]);
     glBindTexture(GL_TEXTURE_2D, pingpong_textures_[i]);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, blur_texture_width_, blur_texture_height_, 0, GL_RGBA, GL_FLOAT, NULL);
@@ -135,6 +143,46 @@ Renderer::Renderer(GLFWwindow* window, const UI& ui) : window_(window), ui_graph
   glUseProgram(composite_shader_);
   auto pixel_projection_loc = glGetUniformLocation(composite_shader_, "uPixelProjection");
   glUniformMatrix4fv(pixel_projection_loc, 1, GL_FALSE, glm::value_ptr(pixel_projection));
+
+  // shadows
+  glCreateBuffers(1, &light_space_matrices_ubo_);
+  glNamedBufferStorage(light_space_matrices_ubo_, sizeof(glm::mat4) * num_cascades, nullptr, GL_DYNAMIC_STORAGE_BIT);
+  glCreateBuffers(1, &shadow_block_ubo_);
+  ShadowBlock sb;
+  sb.far_plane = far_plane;
+  sb.light_dir = sky_.get_sun_dir();
+  double near = near_plane;
+  for (int i = 0; i < num_cascades; ++i) {
+    double far = near * view_plane_depth_ratio;
+    sb.cascade_plane_distances[i / 4][i % 4] = far;
+    near = far;
+  }
+  glNamedBufferStorage(shadow_block_ubo_, sizeof(ShadowBlock), &sb, GL_DYNAMIC_STORAGE_BIT);
+
+  glGenFramebuffers(1, &shadow_fbo_);
+  glGenTextures(1, &shadow_texture_);
+  glBindTexture(GL_TEXTURE_2D_ARRAY, shadow_texture_);
+  glTexImage3D(
+    GL_TEXTURE_2D_ARRAY,
+    0,
+    GL_DEPTH_COMPONENT32F,
+    shadow_res,
+    shadow_res,
+    num_cascades,
+    0,
+    GL_DEPTH_COMPONENT,
+    GL_FLOAT,
+    nullptr);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+  constexpr float border_color[] = {1.0f, 1.0f, 1.0f, 1.0f};
+  glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, border_color);
+  glBindFramebuffer(GL_FRAMEBUFFER, shadow_fbo_);
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadow_texture_, 0);
+  glDrawBuffer(GL_NONE);
+  glReadBuffer(GL_NONE);
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
@@ -167,7 +215,6 @@ void Renderer::consume_lod_mesh_generator(LodMeshGenerator& lod_mesh_generator) 
     auto& loc = diff.location;
     if (diff.kind == LodMeshGenerator::Diff::creation) {
       auto level = std::any_cast<const LodMeshGenerator::Diff::CreationData&>(diff.data).level;
-      terrain_.create(loc, level, lod_mesh_generator);
     }
   }
   lod_mesh_generator.clear_diffs();
@@ -179,74 +226,71 @@ void Renderer::consume_camera(const Camera& camera) {
 }
 
 void Renderer::render() {
-  glViewport(0, 0, window_width, window_height);
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
 
+  // uniform blocks
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, light_space_matrices_ubo_);
+  glBindBufferBase(GL_UNIFORM_BUFFER, 1, shadow_block_ubo_);
+
+  shadow_map();
+
+  glCullFace(GL_BACK);
+  glViewport(0, 0, window_width, window_height);
   glBindFramebuffer(GL_FRAMEBUFFER, water_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   terrain_.render_water(*this);
 
   glBindFramebuffer(GL_FRAMEBUFFER, main_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  terrain_.render_lods(*this);
-  sky_.render(*this);
-  glClear(GL_DEPTH_BUFFER_BIT);
   terrain_.render(*this);
+  sky_.render(*this);
 
   glDisable(GL_DEPTH_TEST);
   glBindFramebuffer(GL_FRAMEBUFFER, composite_framebuffer_);
   glUseProgram(composite_shader_);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, main_cbo_);
+  glBindTextureUnit(0, main_cbo_);
   glUniform1i(glGetUniformLocation(composite_shader_, "mainColor"), 0);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, main_dbo_);
+  glBindTextureUnit(1, main_dbo_);
   glUniform1i(glGetUniformLocation(composite_shader_, "mainDepth"), 1);
-  glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, water_cbo_);
+  glBindTextureUnit(2, water_cbo_);
   glUniform1i(glGetUniformLocation(composite_shader_, "waterColor"), 2);
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, water_dbo_);
+  glBindTextureUnit(3, water_dbo_);
   glUniform1i(glGetUniformLocation(composite_shader_, "waterDepth"), 3);
-  glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, g_water_position_);
-  glUniform1i(glGetUniformLocation(composite_shader_, "waterPosition"), 4);
-  glActiveTexture(GL_TEXTURE5);
-  glBindTexture(GL_TEXTURE_2D, g_water_normal_);
-  glUniform1i(glGetUniformLocation(composite_shader_, "waterNormal"), 5);
+  glBindTextureUnit(4, water_camera_position_);
+  glUniform1i(glGetUniformLocation(composite_shader_, "waterCameraPosition"), 4);
+  glBindTextureUnit(5, water_camera_normal_);
+  glUniform1i(glGetUniformLocation(composite_shader_, "waterCameraNormal"), 5);
   glBindVertexArray(quad_vao_);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 
   // apply bloom...
+  bool horizontal = true;
+  glNamedFramebufferReadBuffer(composite_framebuffer_, GL_COLOR_ATTACHMENT0 + 1);
+  glBlitNamedFramebuffer(
+    composite_framebuffer_, pingpong_framebuffers_[horizontal], 0, 0, window_width, window_height,
+    0, 0, blur_texture_width_, blur_texture_height_, GL_COLOR_BUFFER_BIT, GL_LINEAR);
   glUseProgram(blur_shader_);
   glViewport(0, 0, blur_texture_width_, blur_texture_height_);
   glActiveTexture(GL_TEXTURE6);
   glUniform1i(glGetUniformLocation(blur_shader_, "image"), 6);
-  bool horizontal = true, first_iteration = true;
-  int amount = 3;
-  for (int i = 0; i < amount; ++i) {
-    glBindFramebuffer(GL_FRAMEBUFFER, pingpong_framebuffers_[horizontal]);
-    glUniform1i(glGetUniformLocation(blur_shader_, "horizontal"), horizontal);
-    glBindTexture(GL_TEXTURE_2D, first_iteration ? composite_cbos_[1] : pingpong_textures_[!horizontal]);
+  for (int i = 0; i < 2; ++i) {
+    glBindFramebuffer(GL_FRAMEBUFFER, pingpong_framebuffers_[!horizontal]);
+    glUniform1i(glGetUniformLocation(blur_shader_, "horizontal"), !horizontal);
+    glBindTexture(GL_TEXTURE_2D, pingpong_textures_[horizontal]);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     horizontal = !horizontal;
-    first_iteration = false;
   }
-  glViewport(0, 0, window_width, window_height);
 
+  glViewport(0, 0, window_width, window_height);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glClear(GL_DEPTH_BUFFER_BIT);
   glUseProgram(final_shader_);
   glBindVertexArray(quad_vao_);
-  glActiveTexture(GL_TEXTURE7);
-  glBindTexture(GL_TEXTURE_2D, composite_cbos_[0]);
+  glBindTextureUnit(7, composite_cbos_[0]);
   glUniform1i(glGetUniformLocation(final_shader_, "scene"), 7);
-  glActiveTexture(GL_TEXTURE8);
-  glBindTexture(GL_TEXTURE_2D, pingpong_textures_[!horizontal]);
+  glBindTextureUnit(8, pingpong_textures_[horizontal]);
   glUniform1i(glGetUniformLocation(final_shader_, "bloom"), 8);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -265,6 +309,72 @@ void Renderer::render() {
   ui_graphics_.render();
 }
 
+void Renderer::shadow_map() {
+  double near = near_plane;
+  std::array<glm::mat4, num_cascades> light_space_matrices;
+  for (int i = 0; i < num_cascades; ++i) {
+    double far = near * view_plane_depth_ratio;
+    const auto proj = glm::perspective(
+      fov,
+      aspect_ratio,
+      near,
+      far);
+    near = far;
+
+    const auto corners = RenderUtils::get_frustum_corners_world_space(proj, view_);
+    glm::vec3 center = glm::vec3(0, 0, 0);
+    for (auto& v : corners) {
+      //std::cout<<glm::to_string(v)<<std::endl;
+      center += glm::vec3(v);
+    }
+    center /= corners.size();
+    auto& sun_dir = sky_.get_sun_dir();
+    const auto sun_view = glm::lookAt(
+      center + sun_dir,
+      center,
+      glm::vec3(0.0f, 1.0f, 0.0f));
+
+    float minX = std::numeric_limits<float>::max();
+    float maxX = std::numeric_limits<float>::lowest();
+    float minY = std::numeric_limits<float>::max();
+    float maxY = std::numeric_limits<float>::lowest();
+    float minZ = std::numeric_limits<float>::max();
+    float maxZ = std::numeric_limits<float>::lowest();
+    for (auto& v : corners) {
+      const auto trf = sun_view * v;
+      minX = std::min(minX, trf.x);
+      maxX = std::max(maxX, trf.x);
+      minY = std::min(minY, trf.y);
+      maxY = std::max(maxY, trf.y);
+      minZ = std::min(minZ, trf.z);
+      maxZ = std::max(maxZ, trf.z);
+    }
+    constexpr float zMult = 10.0f;
+    if (minZ < 0)
+      minZ *= zMult;
+    else
+      minZ /= zMult;
+    if (maxZ < 0)
+      maxZ /= zMult;
+    else
+      maxZ *= zMult;
+    //std::cout<<minX<<","<<maxX<<","<<minY<<","<<maxY<<","<<minZ<<","<<maxZ<<std::endl;
+    const glm::mat4 sun_proj = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
+    light_space_matrices[i] = sun_proj *sun_view;
+    const auto tmp = light_space_matrices[i] * glm::vec4(325.f,1.f,-35.f, 1.f);
+    //std::cout<<glm::to_string(tmp)<<std::endl;
+    //std::cout<<i<<": "<<glm::to_string(light_space_matrices[i])<<std::endl;
+  }
+
+  glNamedBufferSubData(light_space_matrices_ubo_, 0, sizeof(glm::mat4) * num_cascades, light_space_matrices.data());
+  glBindFramebuffer(GL_FRAMEBUFFER, shadow_fbo_);
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_TEXTURE_2D_ARRAY, shadow_texture_, 0);
+  glViewport(0, 0, shadow_res, shadow_res);
+  glClear(GL_DEPTH_BUFFER_BIT);
+  glCullFace(GL_FRONT);
+  terrain_.shadow_map(*this);
+}
+
 const glm::mat4& Renderer::get_projection_matrix() const {
   return projection_;
 }
@@ -273,12 +383,8 @@ const glm::mat4& Renderer::get_view_matrix() const {
   return view_;
 }
 
-void Renderer::set_highlight(Int3D& highlight) {
+void Renderer::set_highlight(const Int3D& highlight) {
   voxel_highlight_position_ = glm::dvec3(highlight[0], highlight[1], highlight[2]) - camera_offset_;
-}
-
-float Renderer::normalize_x(float x) {
-  return x * (window_height / static_cast<float>(window_width));
 }
 
 const Sky& Renderer::get_sky() const {
@@ -291,4 +397,8 @@ const glm::vec3 Renderer::get_camera_world_position() const {
 
 const UIGraphics& Renderer::get_ui_graphics() const {
   return ui_graphics_;
+}
+
+GLuint Renderer::get_shadow_texture() const {
+  return shadow_texture_;
 }

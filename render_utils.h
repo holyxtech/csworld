@@ -28,16 +28,17 @@ namespace RenderUtils {
     std::pair{"leaves", VT{CubeTexture::leaves}},
     std::pair{"sandstone", VT{CubeTexture::sandstone}},
     std::pair{"stone", VT{CubeTexture::stone}},
-    std::pair{"bricks", VT{CubeTexture::bricks}}
-  };
+    std::pair{"bricks", VT{CubeTexture::bricks}}};
   constexpr auto named_irregular_textures = std::array{
     std::pair{"standing_grass", VT{IrregularTexture::standing_grass}},
     std::pair{"roses", VT{IrregularTexture::roses}},
     std::pair{"sunflower", VT{IrregularTexture::sunflower}}};
   constexpr auto named_textures = join(named_cube_textures, named_irregular_textures);
 
-  void preload_include(const std::string& path, const std::string& name);
-  void create_shader(GLuint* shader, const std::string& vertex_shader_path, const std::string& fragment_shader_path);
+  GLuint create_shader(const std::string& vertex_shader_path, const std::string& fragment_shader_path);
+  GLuint create_shader(const std::string& vertex_shader_path, const std::string& geometry_shader_path, const std::string& fragment_shader_path);
+  std::vector<glm::vec4> get_frustum_corners_world_space(const glm::mat4& proj, const glm::mat4& view);
+
 } // namespace RenderUtils
 
 #endif

@@ -129,10 +129,15 @@ int main(int argc, char* argv[]) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && esc_released) {
       esc_released = false;
       mouse_locked = !mouse_locked;
-      if (mouse_locked)
+      if (mouse_locked) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-      else
+        sim.set_player_controlled(true);
+        auto& cursor_pos = Input::instance()->get_cursor_pos();
+        Input::instance()->set_prev_cursor_pos(cursor_pos[0], cursor_pos[1]);
+      } else {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        sim.set_player_controlled(false);
+      }
     }
 
     auto end = std::chrono::high_resolution_clock::now();

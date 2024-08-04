@@ -2,6 +2,7 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <thread>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -153,7 +154,7 @@ void Sim::step() {
     auto& camera_pos = camera_.get_position();
     player.set_position(camera_pos[0], camera_pos[1], camera_pos[2]);
     auto ray = Region::raycast(camera_);
-    ray_collision_ = Int3D{INT_MAX, INT_MAX, INT_MAX};
+    ray_collision_ = Int3D{std::numeric_limits<int>::max(), std::numeric_limits<int>::max(), std::numeric_limits<int>::max()};
     for (auto& coord : ray) {
       auto loc = Region::location_from_global_coords(coord[0], coord[1], coord[2]);
       if (region_.has_chunk(loc) && region_.get_voxel(coord[0], coord[1], coord[2]) != Voxel::empty) {
@@ -376,4 +377,8 @@ void Sim::draw(std::int64_t ms) {
 void Sim::exit() {
   ready_to_mesh_ = true;
   cv_.notify_one();
+}
+
+void Sim::set_player_controlled(bool controlled) {
+  player_controlled_ = controlled;
 }
