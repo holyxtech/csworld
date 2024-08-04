@@ -1,6 +1,6 @@
 Standard cmake with targets client and server.
 
-Tested under linux only so far.
+Tested on Linux + Windows. You'll have to figure out how to generate the flatbuffer files, and there will be other problems too. A nice easy build experience is a work in progress (at this time it "works on my machine")
 
 Required Dependencies for building are the following 'development' packages:
 - asio
@@ -10,8 +10,8 @@ Required Dependencies for building are the following 'development' packages:
 - boost
 - glfw
 - glew
-
-The build should prompt you if any of the packages required are not installed.
+- nuklear
+- sqlite3
 
 NOTE: 
 The client is going to expect path info as the first argument 
