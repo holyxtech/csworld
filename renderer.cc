@@ -15,6 +15,10 @@ int Renderer::window_width = 2560;
 int Renderer::window_height = 1440;
 double Renderer::aspect_ratio = Renderer::window_width / static_cast<double>(Renderer::window_height);
 double Renderer::fov = glm::radians(45.);
+int Renderer::shadow_res = 4096;
+GLuint Renderer::blur_texture_width = Renderer::window_width / 8;
+GLuint Renderer::blur_texture_height = Renderer::window_height / 8;
+std::array<float, Renderer::num_cascades> Renderer::cascade_far_planes = {10, 100, 1000};
 
 Renderer::Renderer(GLFWwindow* window, const UI& ui) : window_(window), ui_graphics_(window, ui) {
   projection_ = glm::perspective(fov, aspect_ratio, near_plane, far_plane);
@@ -125,7 +129,7 @@ Renderer::Renderer(GLFWwindow* window, const UI& ui) : window_(window), ui_graph
   for (std::size_t i = 0; i < 2; ++i) {
     glBindFramebuffer(GL_FRAMEBUFFER, pingpong_framebuffers_[i]);
     glBindTexture(GL_TEXTURE_2D, pingpong_textures_[i]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, blur_texture_width_, blur_texture_height_, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, blur_texture_width, blur_texture_height, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -151,14 +155,10 @@ Renderer::Renderer(GLFWwindow* window, const UI& ui) : window_(window), ui_graph
   ShadowBlock sb;
   sb.far_plane = far_plane;
   sb.light_dir = sky_.get_sun_dir();
-  double near = near_plane;
   for (int i = 0; i < num_cascades; ++i) {
-    double far = near * view_plane_depth_ratio;
-    sb.cascade_plane_distances[i / 4][i % 4] = far;
-    near = far;
+    sb.cascade_plane_distances[i / 4][i % 4] = cascade_far_planes[i];
   }
   glNamedBufferStorage(shadow_block_ubo_, sizeof(ShadowBlock), &sb, GL_DYNAMIC_STORAGE_BIT);
-
   glGenFramebuffers(1, &shadow_fbo_);
   glGenTextures(1, &shadow_texture_);
   glBindTexture(GL_TEXTURE_2D_ARRAY, shadow_texture_);
@@ -270,9 +270,9 @@ void Renderer::render() {
   glNamedFramebufferReadBuffer(composite_framebuffer_, GL_COLOR_ATTACHMENT0 + 1);
   glBlitNamedFramebuffer(
     composite_framebuffer_, pingpong_framebuffers_[horizontal], 0, 0, window_width, window_height,
-    0, 0, blur_texture_width_, blur_texture_height_, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    0, 0, blur_texture_width, blur_texture_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
   glUseProgram(blur_shader_);
-  glViewport(0, 0, blur_texture_width_, blur_texture_height_);
+  glViewport(0, 0, blur_texture_width, blur_texture_height);
   glActiveTexture(GL_TEXTURE6);
   glUniform1i(glGetUniformLocation(blur_shader_, "image"), 6);
   for (int i = 0; i < 2; ++i) {
@@ -312,8 +312,9 @@ void Renderer::render() {
 void Renderer::shadow_map() {
   double near = near_plane;
   std::array<glm::mat4, num_cascades> light_space_matrices;
+
   for (int i = 0; i < num_cascades; ++i) {
-    double far = near * view_plane_depth_ratio;
+    double far = cascade_far_planes[i];
     const auto proj = glm::perspective(
       fov,
       aspect_ratio,
@@ -324,31 +325,27 @@ void Renderer::shadow_map() {
     const auto corners = RenderUtils::get_frustum_corners_world_space(proj, view_);
     glm::vec3 center = glm::vec3(0, 0, 0);
     for (auto& v : corners) {
-      //std::cout<<glm::to_string(v)<<std::endl;
-      center += glm::vec3(v);
+      center += v;
     }
     center /= corners.size();
     auto& sun_dir = sky_.get_sun_dir();
+
     const auto sun_view = glm::lookAt(
       center + sun_dir,
       center,
       glm::vec3(0.0f, 1.0f, 0.0f));
 
-    float minX = std::numeric_limits<float>::max();
-    float maxX = std::numeric_limits<float>::lowest();
-    float minY = std::numeric_limits<float>::max();
-    float maxY = std::numeric_limits<float>::lowest();
-    float minZ = std::numeric_limits<float>::max();
-    float maxZ = std::numeric_limits<float>::lowest();
-    for (auto& v : corners) {
-      const auto trf = sun_view * v;
-      minX = std::min(minX, trf.x);
-      maxX = std::max(maxX, trf.x);
-      minY = std::min(minY, trf.y);
-      maxY = std::max(maxY, trf.y);
-      minZ = std::min(minZ, trf.z);
-      maxZ = std::max(maxZ, trf.z);
+    float radius = 0;
+    for (auto& corner : corners) {
+      float distance_from_center = glm::length(corner - center);
+      radius = std::max(radius, distance_from_center);
     }
+    radius = std::ceil(radius);
+
+    glm::vec3 max_sphere = glm::vec3(radius);
+    glm::vec3 min_sphere = -glm::vec3(radius);
+    float minZ = min_sphere.z;
+    float maxZ = max_sphere.z;
     constexpr float zMult = 10.0f;
     if (minZ < 0)
       minZ *= zMult;
@@ -358,12 +355,17 @@ void Renderer::shadow_map() {
       maxZ /= zMult;
     else
       maxZ *= zMult;
-    //std::cout<<minX<<","<<maxX<<","<<minY<<","<<maxY<<","<<minZ<<","<<maxZ<<std::endl;
-    const glm::mat4 sun_proj = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
-    light_space_matrices[i] = sun_proj *sun_view;
-    const auto tmp = light_space_matrices[i] * glm::vec4(325.f,1.f,-35.f, 1.f);
-    //std::cout<<glm::to_string(tmp)<<std::endl;
-    //std::cout<<i<<": "<<glm::to_string(light_space_matrices[i])<<std::endl;
+    glm::mat4 sun_proj = glm::ortho(min_sphere.x, max_sphere.x, min_sphere.y, max_sphere.y, minZ, maxZ);
+
+    glm::vec4 light_space_world_origin = sun_proj * sun_view * glm::vec4(0.f, 0.f, 0.f, 1.f);
+    glm::vec4 texel_space_world_origin = light_space_world_origin * shadow_res / 2.f;
+    glm::vec4 rounded = glm::round(texel_space_world_origin);
+    glm::vec4 rounded_difference = (rounded - texel_space_world_origin) * 2.f / shadow_res;
+    rounded_difference.z = 0.f;
+    rounded_difference.w = 0.f;
+    sun_proj[3] += rounded_difference;
+
+    light_space_matrices[i] = sun_proj * sun_view;
   }
 
   glNamedBufferSubData(light_space_matrices_ubo_, 0, sizeof(glm::mat4) * num_cascades, light_space_matrices.data());
@@ -371,7 +373,7 @@ void Renderer::shadow_map() {
   glFramebufferTexture(GL_FRAMEBUFFER, GL_TEXTURE_2D_ARRAY, shadow_texture_, 0);
   glViewport(0, 0, shadow_res, shadow_res);
   glClear(GL_DEPTH_BUFFER_BIT);
-  glCullFace(GL_FRONT);
+  //glCullFace(GL_FRONT);
   terrain_.shadow_map(*this);
 }
 

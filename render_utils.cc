@@ -79,9 +79,9 @@ namespace RenderUtils {
     return shader;
   }
 
-  std::vector<glm::vec4> get_frustum_corners_world_space(const glm::mat4& proj, const glm::mat4& view) {
+  std::vector<glm::vec3> get_frustum_corners_world_space(const glm::mat4& proj, const glm::mat4& view) {
     const auto inv = glm::inverse(proj * view);
-    std::vector<glm::vec4> corners;
+    std::vector<glm::vec3> corners;
     for (int x = 0; x < 2; ++x) {
       for (int y = 0; y < 2; ++y) {
         for (int z = 0; z < 2; ++z) {

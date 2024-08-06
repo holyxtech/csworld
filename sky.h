@@ -33,7 +33,7 @@ private:
   GLuint cb_vbo_;
   GLuint sun_texture_;
 
-  glm::vec3 sun_dir_ = glm::vec3(1.f,1.f,0.f);
+  glm::vec3 sun_dir_;
 };
 
 #endif

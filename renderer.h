@@ -28,13 +28,12 @@ public:
   GLuint get_shadow_texture() const;
   const Sky& get_sky() const;
   const UIGraphics& get_ui_graphics() const;
-
   static int window_width;
   static int window_height;
-  static double aspect_ratio;
-  static double fov;
 
 private:
+  static double aspect_ratio;
+  static double fov;
   static constexpr double near_plane = .1;
   static constexpr double far_plane = 1000.;
 
@@ -73,8 +72,7 @@ private:
 
   // shadows
   static constexpr int num_cascades = 3;
-  const double view_plane_depth_ratio = pow(far_plane / near_plane, 1. / num_cascades);
-  static constexpr int shadow_res = 1024;
+  static int shadow_res;
   GLuint shadow_fbo_;
   GLuint shadow_texture_;
   struct ShadowBlock {
@@ -84,9 +82,10 @@ private:
   };
   GLuint shadow_block_ubo_;
   GLuint light_space_matrices_ubo_;
+  static std::array<float,3> cascade_far_planes;
 
-  GLuint blur_texture_width_ = window_width / 8;
-  GLuint blur_texture_height_ = window_height / 8;
+  static GLuint blur_texture_width;
+  static GLuint blur_texture_height;
 };
 
 #endif

@@ -131,11 +131,11 @@ TerrainGraphics::TerrainGraphics() {
 
   // shadow map setup
   cubes_shadow_shader_ = RenderUtils::create_shader(
-    Options::instance()->getShaderPath("terrain_shadow.vs"), Options::instance()->getShaderPath("shadow.gs"),
-    Options::instance()->getShaderPath("depth.fs"));
+    Options::instance()->getShaderPath("terrain_shadow.vs"), Options::instance()->getShaderPath("terrain_shadow.gs"),
+    Options::instance()->getShaderPath("terrain_shadow.fs"));
   irregular_shadow_shader_ = RenderUtils::create_shader(
-    Options::instance()->getShaderPath("irregular_shadow.vs"), Options::instance()->getShaderPath("shadow.gs"),
-    Options::instance()->getShaderPath("depth.fs"));
+    Options::instance()->getShaderPath("irregular_shadow.vs"), Options::instance()->getShaderPath("irregular_shadow.gs"),
+    Options::instance()->getShaderPath("irregular_shadow.fs"));
 }
 
 void TerrainGraphics::create(const Location& loc, const MeshGenerator& mesh_generator) {
@@ -290,6 +290,8 @@ void TerrainGraphics::shadow_map(const Renderer& renderer) const {
   glMultiDrawArraysIndirect(GL_TRIANGLES, 0, cubes_draw_handle_.commands.size(), 0);
 
   glUseProgram(irregular_shadow_shader_);
+  glBindTextureUnit(0, voxel_texture_array_);
+  glUniform1i(glGetUniformLocation(irregular_shadow_shader_, "textureArray"), 0);
   glBindVertexArray(irregular_draw_handle_.vao);
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, irregular_draw_handle_.ibo);
   glMultiDrawArraysIndirect(GL_TRIANGLES, 0, irregular_draw_handle_.commands.size(), 0);

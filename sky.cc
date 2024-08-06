@@ -132,6 +132,8 @@ Sky::Sky() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   }
+
+  sun_dir_ = glm::normalize(glm::vec3(1.f, 2.1f, -1.5f));
 }
 
 void Sky::render(const Renderer& renderer) const {
@@ -157,7 +159,14 @@ void Sky::render(const Renderer& renderer) const {
     GLint texture_loc = glGetUniformLocation(cb_shader_, "cbTexture");
     glUniform1i(texture_loc, 0);
     auto transform_loc = glGetUniformLocation(cb_shader_, "uTransform");
-    auto transform = p * glm::mat4(glm::mat3(v));
+
+    glm::vec3 originalDirection = glm::vec3(1, 0, 0);
+    glm::vec3 targetDirection = glm::normalize(sun_dir_);
+    glm::vec3 rotationAxis = glm::cross(originalDirection, targetDirection);
+    float angle = acos(glm::dot(originalDirection, targetDirection));
+    glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), angle, rotationAxis);
+
+    auto transform = p * glm::mat4(glm::mat3(v)) * rotationMatrix;
     glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
     glBindVertexArray(cb_vao_);
     glDrawArrays(GL_TRIANGLES, 0, 6);

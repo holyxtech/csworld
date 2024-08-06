@@ -6,13 +6,14 @@
 in VS_OUT {
     vec3 worldPos;
     vec3 worldNormal;
+    vec4 cameraPos;
+    vec4 cameraNormal;
 } fs_in;
 
 layout (location = 0) out vec4 color;
 layout (location = 1) out vec4 gCameraPosition;
 layout (location = 2) out vec4 gCameraNormal;
 
-uniform mat4 uView; // should be in UBO
 uniform sampler2D normalMap1;
 uniform sampler2D normalMap2;
 uniform vec3 cameraWorldPosition;
@@ -25,9 +26,8 @@ const vec2 normalMap2Scroll = vec2(-0.25,-0.2);
 const float specularStrength = 0.5;
 
 void main() {
-  gCameraPosition = uView * vec4(fs_in.worldPos, 1.f);
-  vec4 cameraNormal = uView * vec4(fs_in.worldNormal, 0.f);
-  gCameraNormal = vec4(cameraNormal.xyz, 1.f);
+  gCameraPosition = fs_in.cameraPos;
+  gCameraNormal = vec4(fs_in.cameraNormal.xyz, 1.f);
 
   vec3 fragWorldPosition = fs_in.worldPos;
   float xOffset = mod(fragWorldPosition.x + time * normalMap1Scroll.x, normalMapWidth) / normalMapWidth;

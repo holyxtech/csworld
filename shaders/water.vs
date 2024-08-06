@@ -8,6 +8,8 @@ layout (location = 3) in float lighting;
 out VS_OUT {
   vec3 worldPos;
   vec3 worldNormal;
+  vec4 cameraPos;
+  vec4 cameraNormal;
 } vs_out;
 
 uniform mat4 uProjection; // should be in UBO
@@ -17,6 +19,8 @@ void main() {
   vec3 normal = vec3(0.f, 1.f, 0.f);
   vs_out.worldPos = position;
   vs_out.worldNormal = normal;
-
+  vs_out.cameraPos = uView * vec4(position, 1.f);
+  vs_out.cameraNormal = uView * vec4(normal, 0.f);
   gl_Position = uProjection * uView * vec4(position, 1.0);
+
 }
