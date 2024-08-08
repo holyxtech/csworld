@@ -22,7 +22,7 @@ namespace {
 } // namespace
 
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
-    : window_(window), tcp_client_(tcp_client), renderer_(window, ui_) {
+    : window_(window), tcp_client_(tcp_client), renderer_(window, ui_, camera_) {
 
   std::array<double, 3> starting_pos{4230249, 316, -1220386};
   // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
@@ -334,7 +334,7 @@ void Sim::draw(std::int64_t ms) {
     if (glfwGetKey(window_, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
       camera_.set_base_translation_speed(3);
     } else {
-      camera_.set_base_translation_speed(0.1);
+      camera_.set_base_translation_speed(0.2);
     }
 
     camera_.scale_translation_speed(ms * frame_rate_target / 1000.0);

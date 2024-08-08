@@ -73,6 +73,7 @@ set(projectIncludeDirs
 	${PROJECT_SOURCE_DIR}/fbs
 )
 include_directories(${projectIncludeDirs})
+include_directories(${PROJECT_SOURCE_DIR}/ext/cy)
 
 configure_file(config.h.in "${CMAKE_SOURCE_DIR}/config.h")
 

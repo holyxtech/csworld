@@ -18,9 +18,10 @@ double Renderer::fov = glm::radians(45.);
 int Renderer::shadow_res = 4096;
 GLuint Renderer::blur_texture_width = Renderer::window_width / 8;
 GLuint Renderer::blur_texture_height = Renderer::window_height / 8;
-std::array<float, Renderer::num_cascades> Renderer::cascade_far_planes = {10, 100, 1000};
+std::array<float, Renderer::num_cascades> Renderer::cascade_far_planes = {40, 200, 1000};
 
-Renderer::Renderer(GLFWwindow* window, const UI& ui) : window_(window), ui_graphics_(window, ui) {
+Renderer::Renderer(GLFWwindow* window, const UI& ui, const Camera& camera)
+    : window_(window), ui_graphics_(window, ui), camera_(camera) {
   projection_ = glm::perspective(fov, aspect_ratio, near_plane, far_plane);
 
   composite_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("composite.vs"), Options::instance()->getShaderPath("composite.fs"));
@@ -230,23 +231,23 @@ void Renderer::render() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
 
-  // uniform blocks
-  glBindBufferBase(GL_UNIFORM_BUFFER, 0, light_space_matrices_ubo_);
-  glBindBufferBase(GL_UNIFORM_BUFFER, 1, shadow_block_ubo_);
-
   shadow_map();
 
-  glCullFace(GL_BACK);
+  sky_.generate_sky_lut(*this);
+
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, light_space_matrices_ubo_);
+  glBindBufferBase(GL_UNIFORM_BUFFER, 1, shadow_block_ubo_);
   glViewport(0, 0, window_width, window_height);
   glBindFramebuffer(GL_FRAMEBUFFER, water_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   terrain_.render_water(*this);
-
   glBindFramebuffer(GL_FRAMEBUFFER, main_framebuffer_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   terrain_.render(*this);
+
   sky_.render(*this);
 
+  glViewport(0, 0, window_width, window_height);
   glDisable(GL_DEPTH_TEST);
   glBindFramebuffer(GL_FRAMEBUFFER, composite_framebuffer_);
   glUseProgram(composite_shader_);
@@ -368,12 +369,15 @@ void Renderer::shadow_map() {
     light_space_matrices[i] = sun_proj * sun_view;
   }
 
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, light_space_matrices_ubo_);
+
   glNamedBufferSubData(light_space_matrices_ubo_, 0, sizeof(glm::mat4) * num_cascades, light_space_matrices.data());
+
   glBindFramebuffer(GL_FRAMEBUFFER, shadow_fbo_);
-  glFramebufferTexture(GL_FRAMEBUFFER, GL_TEXTURE_2D_ARRAY, shadow_texture_, 0);
+
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadow_texture_, 0);
   glViewport(0, 0, shadow_res, shadow_res);
   glClear(GL_DEPTH_BUFFER_BIT);
-  //glCullFace(GL_FRONT);
   terrain_.shadow_map(*this);
 }
 
@@ -393,7 +397,7 @@ const Sky& Renderer::get_sky() const {
   return sky_;
 }
 
-const glm::vec3 Renderer::get_camera_world_position() const {
+const glm::vec3& Renderer::get_camera_world_position() const {
   return camera_world_position_;
 }
 
@@ -403,4 +407,8 @@ const UIGraphics& Renderer::get_ui_graphics() const {
 
 GLuint Renderer::get_shadow_texture() const {
   return shadow_texture_;
+}
+
+const Camera& Renderer::get_camera() const {
+  return camera_;
 }

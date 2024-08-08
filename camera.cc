@@ -11,6 +11,10 @@ const glm::vec3& Camera::get_front() const {
   return front_;
 }
 
+const glm::vec3& Camera::get_up() const {
+  return up_;
+};
+
 const glm::dvec3& Camera::get_position() const {
   return position_;
 }

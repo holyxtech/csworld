@@ -11,7 +11,12 @@ layout (std140, binding = 1) uniform ShadowBlock
     uniform vec4 cascadePlaneDistances[(numCascades + 3) / 4];
 };
 
+const float shadowMagnitude = 0.7;
+
 float ShadowCalculation(vec3 worldPos, vec3 worldNormal, vec3 cameraPos) {
+    if (dot(worldNormal, lightDir) <= 0)
+        return shadowMagnitude;
+
     // select cascade layer
     float depthValue = abs(cameraPos.z);
 
@@ -39,25 +44,26 @@ float ShadowCalculation(vec3 worldPos, vec3 worldNormal, vec3 cameraPos) {
         return 0.0;
 
     // calculate bias (based on depth map resolution and slope)
-/*     vec3 normal = normalize(worldNormal);
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    vec3 normal = normalize(worldNormal);
+/*     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     const float biasModifier = 0.5f;
     if (layer == numCascades)
         bias *= 1 / (farPlane * biasModifier);
     else
-        bias *= 1 / (cascadePlaneDistances[layer/4][layer%4] * biasModifier); */
+        bias *= 1 / (cascadePlaneDistances[layer/4][layer%4] * biasModifier);
+ */
 
-    float bias = 0.0001;
+    float bias = 0.0005;
  
     // PCF
     float shadow = 0.0;
     float shadowDepth = texture(shadowMap, vec3(projCoords.xy, layer)).r;
-    //shadow += (currentDepth - bias) > shadowDepth ? 0.7 : 0.0;
+    shadow += (currentDepth - bias) > shadowDepth ? 0.7 : 0.0;
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
     for (int x = -1; x <= 1; ++x) {
         for (int y = -1; y <= 1; ++y) {
             float pcfDepth = texture(shadowMap, vec3(projCoords.xy + vec2(x, y) * texelSize, layer)).r;
-            shadow += (currentDepth - bias) > pcfDepth ? 0.7 : 0.0;        
+            shadow += (currentDepth - bias) > pcfDepth ? shadowMagnitude : 0.0;
         }    
     }
     shadow /= 9.0;

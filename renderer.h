@@ -16,7 +16,7 @@
 
 class Renderer {
 public:
-  Renderer(GLFWwindow* window, const UI& ui);
+  Renderer(GLFWwindow* window, const UI& ui, const Camera& camera);
   void consume_mesh_generator(MeshGenerator& mesh_generator);
   void consume_lod_mesh_generator(LodMeshGenerator& lod_mesh_generator);
   void consume_camera(const Camera& camera);
@@ -24,19 +24,19 @@ public:
   void render();
   const glm::mat4& get_view_matrix() const;
   const glm::mat4& get_projection_matrix() const;
-  const glm::vec3 get_camera_world_position() const;
+  const glm::vec3& get_camera_world_position() const;
   GLuint get_shadow_texture() const;
   const Sky& get_sky() const;
   const UIGraphics& get_ui_graphics() const;
+  const Camera& get_camera() const;
   static int window_width;
   static int window_height;
-
-private:
   static double aspect_ratio;
   static double fov;
   static constexpr double near_plane = .1;
   static constexpr double far_plane = 1000.;
-
+  bool move_sun = false;
+private:
   void shadow_map();
 
   GLuint main_framebuffer_;
@@ -69,6 +69,7 @@ private:
   UIGraphics ui_graphics_;
   TerrainGraphics terrain_;
   GLFWwindow* window_;
+  const Camera& camera_;
 
   // shadows
   static constexpr int num_cascades = 3;
@@ -82,7 +83,7 @@ private:
   };
   GLuint shadow_block_ubo_;
   GLuint light_space_matrices_ubo_;
-  static std::array<float,3> cascade_far_planes;
+  static std::array<float, 3> cascade_far_planes;
 
   static GLuint blur_texture_width;
   static GLuint blur_texture_height;

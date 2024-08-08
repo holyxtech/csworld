@@ -273,10 +273,6 @@ void TerrainGraphics::render(const Renderer& renderer, const MultiDrawHandle& md
   glUniform1i(glGetUniformLocation(mdh.shader, "shadowMap"), 0);
   glBindTextureUnit(1, voxel_texture_array_);
   glUniform1i(glGetUniformLocation(mdh.shader, "textureArray"), 1);
-  const Sky& sky = renderer.get_sky();
-  GLuint sky_texture = sky.get_texture();
-  glBindTextureUnit(2, sky_texture);
-  glUniform1i(glGetUniformLocation(mdh.shader, "skybox"), 2);
 
   glBindVertexArray(mdh.vao);
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
@@ -317,9 +313,6 @@ void TerrainGraphics::render_water(const Renderer& renderer) const {
 
   glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_world_position));
 
-  const Sky& sky = renderer.get_sky();
-  GLuint texture = sky.get_texture();
-  glBindTextureUnit(0, texture);
   glUniform1i(glGetUniformLocation(mdh.shader, "skybox"), 0);
 
   // normal maps

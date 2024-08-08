@@ -34,6 +34,7 @@ namespace RenderUtils {
   GLuint compile_shader(const std::string& path, GLenum shader_type) {
     auto shader_source = read_sfile(path);
     const auto shader = glCreateShader(shader_type);
+
     auto* c_str = shader_source.c_str();
     glShaderSource(shader, 1, &c_str, nullptr);
     glCompileShaderIncludeARB(shader, search_dirs.size(), search_dirs.data(), nullptr);
@@ -45,6 +46,20 @@ namespace RenderUtils {
       std::cerr << "Failed to compile shader at " << path << ": " << info << std::endl;
       throw std::runtime_error("Failed to initialize Renderer");
     }
+    return shader;
+  }
+
+  GLuint create_shader(const std::string& compute_shader_path) {
+    if (!shaders_included)
+      include_all();
+    GLuint compute_shader = compile_shader(compute_shader_path, GL_COMPUTE_SHADER);
+    GLuint shader = glCreateProgram();
+    
+    glAttachShader(shader, compute_shader);
+    
+    glLinkProgram(shader);
+    glDeleteShader(compute_shader);
+    
     return shader;
   }
 
