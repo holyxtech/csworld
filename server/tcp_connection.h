@@ -5,10 +5,10 @@
 #endif
 #include <boost/bind/bind.hpp>
 #include <asio.hpp>
-#include "../readerwriterqueue.h"
+#include "readerwriterqueue.h"
 #include "types.h"
 #include <array>
-#include "../common.h"
+#include "common.h"
 
 using asio::ip::tcp;
 

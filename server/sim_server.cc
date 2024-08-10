@@ -2,9 +2,9 @@
 #include <SDKDDKVer.h>
 #endif
 #include "sim_server.h"
-#include "../fbs/common_generated.h"
-#include "../fbs/request_generated.h"
-#include "../fbs/update_generated.h"
+#include "common_generated.h"
+#include "request_generated.h"
+#include "update_generated.h"
 
 SimServer::SimServer(TCPServer& tcp_server) : tcp_server_(tcp_server) {}
 

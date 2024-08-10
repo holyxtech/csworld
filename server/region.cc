@@ -1,6 +1,6 @@
 #include "region.h"
 #include <iostream>
-#include "../common.h"
+#include "common.h"
 
 Chunk& Region::get_chunk(Location loc) {
   return chunks_.at(loc);

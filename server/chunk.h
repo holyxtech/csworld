@@ -4,7 +4,7 @@
 #include <array>
 #include <unordered_set>
 #include <vector>
-#include "../common.h"
+#include "common.h"
 #include "types.h"
 
 class Chunk {

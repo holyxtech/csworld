@@ -7,8 +7,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "../common.h"
-#include "../config.h" // Include the configured constants
+#include "common.h"
+#include "config.h" // Include the configured constants
 #include "stb_image_write.h"
 
 WorldGenerator::Image WorldGenerator::get_image(

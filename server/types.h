@@ -9,7 +9,7 @@
 #include <map>
 #include <utility>
 #include <vector>
-#include "../common.h"
+#include "common.h"
 
 using Location = std::array<int, 3>;
 using Location2D = std::array<int, 2>;

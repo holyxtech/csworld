@@ -9,8 +9,8 @@
 #include <vector>
 #include <asio.hpp>
 #include <boost/bind/bind.hpp>
-#include "../config.h"
-#include "../readerwriterqueue.h"
+#include "config.h"
+#include "readerwriterqueue.h"
 #include "chunk.h"
 #include "sim_server.h"
 #include "tcp_server.h"

@@ -41,14 +41,18 @@ else()
 endif()
 
 # Sources
-file(GLOB PROJECT_SOURCE_FILES
-	 "*.cc"
-	 "*.c"
+file(GLOB PROJECT_SOURCE_FILES_CLIENT
+	 "client/*.cc"
+	 "client/*.c"
+     "common/common.cc"
 )
 set(projectSources
-	${PROJECT_SOURCE_FILES}
+	${PROJECT_SOURCE_FILES_CLIENT}
 )
-file(GLOB PROJECT_SOURCE_FILES_SERVER "server/*.cc")
+file(GLOB PROJECT_SOURCE_FILES_SERVER 
+    "server/*.cc"
+    "common/common.cc"
+)
 set(projectSourcesServer
 	${PROJECT_SOURCE_FILES_SERVER}
 )
@@ -57,27 +61,32 @@ file(GLOB_RECURSE CFILES "${CMAKE_SOURCE_DIR}/*.c")
 SET_SOURCE_FILES_PROPERTIES(${CFILES} PROPERTIES LANGUAGE CXX )
 
 # Generate flatbuffer headers 
-#add_custom_target(
-#	delete_generated_fbs 
-#	ALL
-#	COMMAND rm -f ${PROJECT_SOURCE_DIR}/fbs/*.h
-#)
-#add_custom_target(
-#	generate_fbs 
-#	ALL
-#	COMMAND flatc -o ${PROJECT_SOURCE_DIR}/fbs --cpp ${PROJECT_SOURCE_DIR}/fbs/*.fbs
-#	DEPENDS delete_generated_fbs
-#)
+file(GLOB FBS_FILES ${PROJECT_SOURCE_DIR}/fbs/*.fbs)
+set(GENERATED_FILES ${PROJECT_SOURCE_DIR}/fbs/generated_fbs.stamp)
 
-set(projectIncludeDirs
-	${PROJECT_SOURCE_DIR}/fbs
+add_custom_command(
+    OUTPUT ${GENERATED_FILES}
+    COMMAND flatc -o ${PROJECT_SOURCE_DIR}/fbs --cpp ${FBS_FILES}
+    COMMAND ${CMAKE_COMMAND} -E touch ${GENERATED_FILES} # touch a file to mark as up-to-date
+    DEPENDS ${FBS_FILES}
+    COMMENT "Generating FlatBuffers files"
 )
-include_directories(${projectIncludeDirs})
-include_directories(${PROJECT_SOURCE_DIR}/ext/cy)
 
-configure_file(config.h.in "${CMAKE_SOURCE_DIR}/config.h")
+add_custom_target(
+    generate_fbs
+    ALL
+    DEPENDS ${GENERATED_FILES}
+)
+
+include_directories(${CMAKE_SOURCE_DIR}/ext/cy)
+include_directories(${CMAKE_SOURCE_DIR}/common)
+include_directories(${CMAKE_SOURCE_DIR}/fbs)
+
+# Obviously this won't work in production
+configure_file(common/config.h.in "${CMAKE_SOURCE_DIR}/common/config.h")
 
 add_executable(client ${projectSources})
+add_dependencies(client generate_fbs)
 target_link_libraries(
     client PRIVATE
     glfw            
@@ -87,6 +96,7 @@ target_link_libraries(
 )
 
 add_executable(server ${projectSourcesServer})
+add_dependencies(server generate_fbs)
 target_link_libraries(
     server PRIVATE
     CURL::libcurl
