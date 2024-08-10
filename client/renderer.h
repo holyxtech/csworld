@@ -35,7 +35,7 @@ public:
   static double fov;
   static constexpr double near_plane = .1;
   static constexpr double far_plane = 1000.;
-  bool ao = true;
+
 private:
   void shadow_map();
   void ssao();

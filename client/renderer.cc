@@ -330,7 +330,6 @@ void Renderer::render() {
   glUniform1i(glGetUniformLocation(composite_shader_, "waterCameraNormal"), 5);
   glBindTextureUnit(6, ssao_blur_cbo_);
   glUniform1i(glGetUniformLocation(composite_shader_, "ssao"), 6);
-  glUniform1i(glGetUniformLocation(composite_shader_, "ao"), ao);
   glBindVertexArray(quad_vao_);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 

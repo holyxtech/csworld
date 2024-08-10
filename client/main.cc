@@ -107,14 +107,11 @@ int main(int argc, char* argv[]) {
       auto end = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
       if (duration.count() >= 16) {
-        sim.step();
+        sim.step(duration.count());
         start = std::chrono::high_resolution_clock::now();
       }
     }
   });
-
-  bool mouse_locked = true;
-  bool esc_released = true;
 
   auto start = std::chrono::high_resolution_clock::now();
   while (!quit) {
@@ -122,23 +119,6 @@ int main(int argc, char* argv[]) {
 
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
       quit = true;
-
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE)
-      esc_released = true;
-
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && esc_released) {
-      esc_released = false;
-      mouse_locked = !mouse_locked;
-      if (mouse_locked) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        sim.set_player_controlled(true);
-        auto& cursor_pos = Input::instance()->get_cursor_pos();
-        Input::instance()->set_prev_cursor_pos(cursor_pos[0], cursor_pos[1]);
-      } else {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        sim.set_player_controlled(false);
-      }
-    }
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

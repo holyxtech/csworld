@@ -1,0 +1,26 @@
+#ifndef USER_CONTROLLER_H
+#define USER_CONTROLLER_H
+
+#include <memory>
+#include "readerwriterqueue.h"
+//#include "sim.h"
+
+class Sim;
+
+class UserController {
+public:
+
+  UserController(Sim& sim) : sim_(sim) {}
+  virtual void move_camera() = 0;
+  virtual void process_inputs() = 0;
+
+  std::unique_ptr<UserController> get_next_controller() {
+    return std::move(next_controller_);
+  }
+
+protected:
+  Sim& sim_;
+  std::unique_ptr<UserController> next_controller_;
+};
+
+#endif

@@ -20,16 +20,10 @@
 #include "ui.h"
 #include "world.h"
 #include "world_generator.h"
+#include "user_controller.h"
 
 class Sim {
 public:
-  Sim(GLFWwindow* window, TCPClient& tcp_client);
-  void step();
-  void draw(std::int64_t ms);
-  void exit();
-  void set_player_controlled(bool controlled);
-
-private:
   struct WindowEvent {
     enum Kind {
       enable_cursor,
@@ -37,6 +31,38 @@ private:
     };
     Kind kind;
   };
+  Sim(GLFWwindow* window, TCPClient& tcp_client);
+  void step(std::int64_t ms);
+  void draw(std::int64_t ms);
+  void exit();
+  void set_player_controlled(bool controlled);
+  Region& get_region();
+  UI& get_ui();
+  Camera& get_camera();
+  MeshGenerator& get_mesh_generator();
+  Renderer& get_renderer();
+  std::mutex& get_camera_mutex();
+  std::mutex& get_mesh_mutex();
+  GLFWwindow* get_window();
+  Int3D& get_ray_collision();
+  moodycamel::ReaderWriterQueue<WindowEvent>& get_window_events();
+
+  static constexpr int render_min_y_offset = -2;
+  static constexpr int render_max_y_offset = 2;
+  static constexpr int region_distance = 8; // if region_distance == 2 it breaks (placement/removal)
+  static constexpr int section_distance = region_distance + 2;
+  static constexpr int max_sections = 2 * 4 * section_distance * section_distance;
+  static constexpr int frame_rate_target = 60;
+  static constexpr int max_chunks_to_stream_per_step = 5;
+    
+private:
+/*   struct WindowEvent {
+    enum Kind {
+      enable_cursor,
+      disable_cursor,
+    };
+    Kind kind;
+  }; */
   
   void request_sections(std::vector<Location2D>& locs);
   void stream_chunks();
@@ -53,7 +79,9 @@ private:
   Camera camera_;
   UI ui_;
   DbManager db_manager_;
+  std::unique_ptr<UserController> user_controller_;
 
+  std::mutex controller_mutex_;
   std::mutex mutex_;
   std::mutex mesh_mutex_;
   std::mutex camera_mutex_;
@@ -67,13 +95,7 @@ private:
   bool player_controlled_ = true;
   std::uint64_t step_ = 0;
 
-  static constexpr int render_min_y_offset = -2;
-  static constexpr int render_max_y_offset = 2;
-  static constexpr int region_distance = 8; // if region_distance == 2 it breaks (placement/removal)
-  static constexpr int section_distance = region_distance + 2;
-  static constexpr int max_sections = 2 * 4 * section_distance * section_distance;
-  static constexpr int frame_rate_target = 60;
-  static constexpr int max_chunks_to_stream_per_step = 5;
+
 };
 
 #endif

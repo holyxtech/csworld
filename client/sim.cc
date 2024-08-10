@@ -7,23 +7,26 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "common_generated.h"
-#include "request_generated.h"
-#include "update_generated.h"
 #include "chunk.h"
 #include "common.h"
+#include "common_generated.h"
+#include "first_person_controller.h"
 #include "input.h"
 #include "item.h"
 #include "readerwriterqueue.h"
+#include "request_generated.h"
 #include "section.h"
+#include "update_generated.h"
 
 namespace {
 
 } // namespace
 
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
-    : window_(window), tcp_client_(tcp_client), renderer_(window, ui_, camera_) {
-
+    : window_(window),
+      tcp_client_(tcp_client),
+      renderer_(window, ui_, camera_) {
+  user_controller_ = std::make_unique<FirstPersonController>(*this);
   std::array<double, 3> starting_pos{4230249, 316, -1220386};
   // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
   // starting_pos[1] = 530;
@@ -100,7 +103,7 @@ void Sim::stream_chunks() {
   }
 }
 
-void Sim::step() {
+void Sim::step(std::int64_t ms) {
   bool new_sections = false;
   Message message;
   auto& q = tcp_client_.get_queue();
@@ -186,100 +189,11 @@ void Sim::step() {
 
   player.set_last_location(loc);
 
-  auto& mouse_button_events = Input::instance()->get_mouse_button_events();
-  MouseButtonEvent event;
-  success = mouse_button_events.try_dequeue(event);
-  while (success) {
-    if (!player_controlled_) {
-      success = mouse_button_events.try_dequeue(event);
-      continue;
-    }
-
-    if (event.button == GLFW_MOUSE_BUTTON_LEFT && event.action == GLFW_PRESS) {
-      {
-        std::unique_lock<std::mutex> lock(camera_mutex_);
-        region_.raycast_remove(camera_);
-      }
-    } else if (event.button == GLFW_MOUSE_BUTTON_RIGHT && event.action == GLFW_PRESS) {
-      {
-        std::unique_lock<std::mutex> lock(camera_mutex_);
-        auto item = ui_.get_active_item();
-        if (item.has_value()) {
-          auto voxel = ItemUtils::item_to_voxel.at(item.value());
-          region_.raycast_place(camera_, voxel);
-        }
-      }
-    }
-    success = mouse_button_events.try_dequeue(event);
+  user_controller_->process_inputs();
+  {
+    std::unique_lock<std::mutex> lock(controller_mutex_);
+    user_controller_ = user_controller_->get_next_controller();
   }
-  auto& key_button_events = Input::instance()->get_key_button_events();
-  KeyButtonEvent key_button_event;
-  success = key_button_events.try_dequeue(key_button_event);
-  while (success) {
-    if (key_button_event.action != GLFW_PRESS) {
-      success = key_button_events.try_dequeue(key_button_event);
-      continue;
-    }
-
-    if (key_button_event.key == GLFW_KEY_I) {
-      bool inv_open = ui_.is_inv_open();
-      ui_.set_inv_open(!inv_open);
-      if (inv_open)
-        window_events_.enqueue(WindowEvent{WindowEvent::disable_cursor});
-      else
-        window_events_.enqueue(WindowEvent{WindowEvent::enable_cursor});
-    }
-
-    if (ui_.is_inv_open() && key_button_event.key >= GLFW_KEY_0 && key_button_event.key <= GLFW_KEY_9) {
-      auto& ui_graphics = renderer_.get_ui_graphics();
-      auto hovering = ui_graphics.get_hovering();
-      if (hovering.has_value()) {
-        std::size_t index = key_button_event.key > GLFW_KEY_0 ? key_button_event.key - GLFW_KEY_1 : UI::action_bar_size - 1;
-        ui_.action_bar_assign(index, hovering.value());
-      }
-    }
-
-    if (!player_controlled_) {
-      success = key_button_events.try_dequeue(key_button_event);
-      continue;
-    }
-
-    if (key_button_event.key >= GLFW_KEY_0 && key_button_event.key <= GLFW_KEY_9) {
-      std::size_t index = key_button_event.key > GLFW_KEY_0 ? key_button_event.key - GLFW_KEY_1 : UI::action_bar_size - 1;
-      ui_.action_bar_select(index);
-    } else if (key_button_event.key == GLFW_KEY_P) {
-      std::cout << "Player at (" << static_cast<long long>(pos[0]) << "," << static_cast<long long>(pos[1]) << "," << static_cast<long long>(pos[2]) << ")" << std::endl;
-      camera_.print();
-    } else if (key_button_event.key == GLFW_KEY_C) {
-      camera_.set_position(glm::dvec3{4230225.256719, 311.122231, -1220227.127904});
-      camera_.set_orientation(-41.5007, -12);
-    } else if (key_button_event.key == GLFW_KEY_M) {
-      std::unique_lock<std::mutex> lock(mesh_mutex_);
-      auto& meshes = mesh_generator_.get_meshes();
-      float sum = 0;
-      int smallest = 0;
-      int biggest = 0;
-      for (auto& [loc, mesh] : meshes) {
-        int size = mesh.size();
-        std::cout<<size<<std::endl;        
-        sum += size;
-        if (size < smallest)
-          smallest = size;
-        if (size > biggest)
-          biggest = size;
-      }
-      std::cout << "Num meshes: " << meshes.size() << std::endl;
-      std::cout << "Average size: " << sum / meshes.size() << std::endl;
-      std::cout << "Smallest mesh: " << smallest << std::endl;
-      std::cout << "Biggest mesh: " << biggest << std::endl;
-    } else if (key_button_event.key == GLFW_KEY_O) {
-      renderer_.ao = !renderer_.ao;
-    }
-
-    success = key_button_events.try_dequeue(key_button_event);
-  }
-
-  ui_.clear_actions();
 
   {
     {
@@ -335,58 +249,23 @@ void Sim::draw(std::int64_t ms) {
     switch (event.kind) {
     case WindowEvent::disable_cursor: {
       glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-      player_controlled_ = true;
       auto& cursor_pos = Input::instance()->get_cursor_pos();
       Input::instance()->set_prev_cursor_pos(cursor_pos[0], cursor_pos[1]);
     } break;
     case WindowEvent::enable_cursor: {
       glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-      player_controlled_ = false;
     } break;
     }
     success = window_events_.try_dequeue(event);
   }
-
-  if (player_controlled_) {
+  {
+    std::unique_lock<std::mutex> lock(controller_mutex_);
+    user_controller_->move_camera();
+  }
+  {
     std::unique_lock<std::mutex> lock(camera_mutex_);
-    auto& cursor_pos = Input::instance()->get_cursor_pos();
-    auto& prev_cursor_pos = Input::instance()->get_prev_cursor_pos();
-
-    if (cursor_pos[0] != prev_cursor_pos[0] || cursor_pos[1] != prev_cursor_pos[1]) {
-      camera_.pan(cursor_pos[0] - prev_cursor_pos[0], prev_cursor_pos[1] - cursor_pos[1]);
-      Input::instance()->set_prev_cursor_pos(cursor_pos[0], cursor_pos[1]);
-    }
-    renderer_.set_highlight(ray_collision_);
-
-    if (glfwGetKey(window_, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-      camera_.set_base_translation_speed(3);
-    } else {
-      camera_.set_base_translation_speed(0.2);
-    }
-
-
-    camera_.scale_translation_speed(ms * frame_rate_target / 1000.0);
-    camera_.scale_rotation_speed(ms * frame_rate_target / 1000.0);
-
-    if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS) {
-      camera_.move_forward();
-    } else if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS) {
-      camera_.move_backward();
-    }
-    if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS) {
-      camera_.move_up();
-    } else if (glfwGetKey(window_, GLFW_KEY_X) == GLFW_PRESS) {
-      camera_.move_down();
-    }
-
-    if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS) {
-      camera_.move_left();
-    } else if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS) {
-      camera_.move_right();
-    }
     renderer_.consume_camera(camera_);
   }
-
   {
     std::unique_lock<std::mutex> lock(mutex_);
     bool suc = mesh_mutex_.try_lock();
@@ -397,16 +276,8 @@ void Sim::draw(std::int64_t ms) {
       mesh_mutex_.unlock();
     }
   }
-   cv_.notify_one();
-  /*   GLuint query;
-  glGenQueries(1, &query);
-  glBeginQuery(GL_TIME_ELAPSED, query);  */
+  cv_.notify_one();
   renderer_.render();
-/*    glEndQuery(GL_TIME_ELAPSED);
-  GLuint64 elapsedTime;
-  glGetQueryObjectui64v(query, GL_QUERY_RESULT, &elapsedTime);
-  std::cout << "Time taken: " << (elapsedTime / 1000000.0) << " ms" << std::endl;
-  glDeleteQueries(1, &query) */;
 }
 
 void Sim::exit() {
@@ -417,3 +288,14 @@ void Sim::exit() {
 void Sim::set_player_controlled(bool controlled) {
   player_controlled_ = controlled;
 }
+
+Region& Sim::get_region() { return region_; }
+UI& Sim::get_ui() { return ui_; }
+Camera& Sim::get_camera() { return camera_; }
+MeshGenerator& Sim::get_mesh_generator() { return mesh_generator_; }
+Renderer& Sim::get_renderer() { return renderer_; }
+std::mutex& Sim::get_camera_mutex() { return camera_mutex_; }
+std::mutex& Sim::get_mesh_mutex() { return mesh_mutex_; }
+GLFWwindow* Sim::get_window() { return window_; }
+Int3D& Sim::get_ray_collision() { return ray_collision_; }
+moodycamel::ReaderWriterQueue<Sim::WindowEvent>& Sim::get_window_events() { return window_events_; }

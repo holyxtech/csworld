@@ -14,7 +14,6 @@ uniform sampler2D waterCameraPosition;
 uniform sampler2D waterCameraNormal;
 uniform sampler2D ssao;
 uniform mat4 uPixelProjection;
-uniform bool ao;
 
 void main() {
   ivec2 texcoord = ivec2(floor(gl_FragCoord.xy));
@@ -25,13 +24,7 @@ void main() {
 
     
   if (fragMainDepth.r <= fragWaterDepth.r) {
-    color = fragMainColor;
-   if (ao)
-      color = fragMainColor * (AmbientOcclusion);
-    else
-      color = fragMainColor; 
-    //color = vec4(AmbientOcclusion, 0, 0, 1.f);
-    //color = vec4(AmbientOcclusion, AmbientOcclusion, AmbientOcclusion, 1.f);
+    color = fragMainColor * (AmbientOcclusion);
   } else {
     vec3 pos = texelFetch(waterCameraPosition, texcoord, 0).rgb;
     vec3 normal = texelFetch(waterCameraNormal, texcoord, 0).rgb;  
