@@ -7,17 +7,10 @@
 class Camera {
 public:
   Camera();
-  void pan(float xoff, float yoff);
-  void move_forward();
-  void move_backward();
-  void move_up();
-  void move_down();
-  void move_left();
-  void move_right();
-  void turn_left();
-  void turn_right();
   void print() const;
   void set_orientation(float yaw, float pitch);
+  float get_yaw() const;
+  float get_pitch() const;
 
   glm::mat4 get_view(glm::dvec3 camera_offset) const;
   const glm::dvec3& get_position() const;
@@ -28,9 +21,8 @@ public:
   void scale_translation_speed(float scale);
   void scale_rotation_speed(float scale);
   void set_base_translation_speed(float base_translation_speed);
-  
 
-private:
+protected:
   void update_orientation();
 
   glm::dvec3 position_;

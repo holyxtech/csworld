@@ -14,20 +14,24 @@
 #include "ui_graphics.h"
 #include "world.h"
 
+class Sim;
+
 class Renderer {
 public:
-  Renderer(GLFWwindow* window, const UI& ui, const Camera& camera);
+  Renderer(Sim& sim);
   void consume_mesh_generator(MeshGenerator& mesh_generator);
   void consume_lod_mesh_generator(LodMeshGenerator& lod_mesh_generator);
   void consume_camera(const Camera& camera);
   void set_highlight(const Int3D& highlight);
-  void render();
+  void render_scene();
+  void render_voxel_highlight();
+  //void render();
   const glm::mat4& get_view_matrix() const;
   const glm::mat4& get_projection_matrix() const;
   const glm::vec3& get_camera_world_position() const;
   GLuint get_shadow_texture() const;
   const Sky& get_sky() const;
-  const UIGraphics& get_ui_graphics() const;
+  UIGraphics& get_ui_graphics();
   const Camera& get_camera() const;
   static int window_width;
   static int window_height;
@@ -39,7 +43,6 @@ public:
 private:
   void shadow_map();
   void ssao();
-  
 
   GLuint composite_shader_;
   GLuint voxel_highlight_shader_;
@@ -79,8 +82,7 @@ private:
   Sky sky_;
   UIGraphics ui_graphics_;
   TerrainGraphics terrain_;
-  GLFWwindow* window_;
-  const Camera& camera_;
+  Sim& sim_;
 
   // ssao
   GLuint ssao_shader_;
@@ -90,7 +92,6 @@ private:
   GLuint ssao_blur_fbo_;
   GLuint ssao_blur_cbo_;
   GLuint ssao_noise_texture_;
-  
 
   // shadows
   static constexpr int num_cascades = 3;

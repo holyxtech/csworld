@@ -28,50 +28,6 @@ glm::mat4 Camera::get_view(glm::dvec3 camera_offset) const {
   return glm::lookAt(adjusted_pos, adjusted_pos + front_, up_);
 }
 
-void Camera::pan(float xoff, float yoff) {
-  yaw_ += xoff * pan_sensitivity_;
-  pitch_ += yoff * pan_sensitivity_;
-
-  if (pitch_ > 89.0f)
-    pitch_ = 89.0f;
-  if (pitch_ < -89.0f)
-    pitch_ = -89.0f;
-
-  update_orientation();
-}
-
-void Camera::move_forward() {
-  position_ += front_ * translation_speed_;
-}
-void Camera::move_backward() {
-  position_ -= front_ * translation_speed_;
-}
-
-void Camera::move_up() {
-  position_ += glm::vec3(0, 1, 0) * translation_speed_;
-}
-void Camera::move_down() {
-  position_ -= glm::vec3(0, 1, 0) * translation_speed_;
-}
-
-void Camera::move_left() {
-  glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), front_));
-  position_ -= right * translation_speed_;
-}
-
-void Camera::move_right() {
-  glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), front_));
-  position_ += right * translation_speed_;
-}
-void Camera::turn_left() {
-  yaw_ -= rotation_speed_;
-  update_orientation();
-}
-void Camera::turn_right() {
-  yaw_ += rotation_speed_;
-  update_orientation();
-}
-
 void Camera::update_orientation() {
   front_.x = cos(glm::radians(yaw_)) * cos(glm::radians(pitch_));
   front_.y = sin(glm::radians(pitch_));
@@ -98,8 +54,8 @@ glm::vec3 Camera::get_world_position(glm::dvec3 camera_offset) const {
 }
 
 void Camera::print() const {
-  std::cout<<"Camera at "<<glm::to_string(position_)<<std::endl;
-  std::cout<<"Yaw: "<<yaw_<<", Pitch: "<<pitch_<<std::endl;
+  std::cout << "Camera at " << glm::to_string(position_) << std::endl;
+  std::cout << "Yaw: " << yaw_ << ", Pitch: " << pitch_ << std::endl;
 }
 
 void Camera::set_orientation(float yaw, float pitch) {
@@ -107,3 +63,6 @@ void Camera::set_orientation(float yaw, float pitch) {
   pitch_ = pitch;
   update_orientation();
 }
+
+float Camera::get_yaw() const { return yaw_; }
+float Camera::get_pitch() const { return pitch_; }

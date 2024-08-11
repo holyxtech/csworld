@@ -3,18 +3,19 @@
 
 #include <memory>
 #include "readerwriterqueue.h"
-//#include "sim.h"
+// #include "sim.h"
 
 class Sim;
 
 class UserController {
 public:
-
   UserController(Sim& sim) : sim_(sim) {}
   virtual void move_camera() = 0;
   virtual void process_inputs() = 0;
 
   std::unique_ptr<UserController> get_next_controller() {
+    if (next_controller_ == nullptr)
+      return nullptr;
     return std::move(next_controller_);
   }
 

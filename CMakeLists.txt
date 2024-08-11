@@ -44,14 +44,14 @@ endif()
 file(GLOB PROJECT_SOURCE_FILES_CLIENT
 	 "client/*.cc"
 	 "client/*.c"
-     "common/common.cc"
+     "common/*.cc"
 )
 set(projectSources
 	${PROJECT_SOURCE_FILES_CLIENT}
 )
 file(GLOB PROJECT_SOURCE_FILES_SERVER 
     "server/*.cc"
-    "common/common.cc"
+    "common/*.cc"
 )
 set(projectSourcesServer
 	${PROJECT_SOURCE_FILES_SERVER}
@@ -72,10 +72,11 @@ add_custom_command(
     COMMENT "Generating FlatBuffers files"
 )
 
+file(GLOB GENERATED_HEADERS ${PROJECT_SOURCE_DIR}/fbs/*_generated.h)
+
 add_custom_target(
     generate_fbs
-    ALL
-    DEPENDS ${GENERATED_FILES}
+    DEPENDS ${GENERATED_HEADERS} ${GENERATED_FILES}
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/ext/cy)

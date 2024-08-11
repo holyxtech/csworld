@@ -21,7 +21,6 @@ void main() {
   vec4 fragWaterDepth = texelFetch(waterDepth, texcoord, 0);
   vec4 fragMainColor = texelFetch(mainColor, texcoord, 0);
   float AmbientOcclusion = texelFetch(ssao, texcoord, 0).r;
-
     
   if (fragMainDepth.r <= fragWaterDepth.r) {
     color = fragMainColor * (AmbientOcclusion);

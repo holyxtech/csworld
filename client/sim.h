@@ -7,8 +7,10 @@
 #include <unordered_set>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include "build_render_mode.h"
 #include "camera.h"
 #include "db_manager.h"
+#include "first_person_render_mode.h"
 #include "lod_loader.h"
 #include "lod_mesh_generator.h"
 #include "mesh_generator.h"
@@ -18,12 +20,22 @@
 #include "renderer.h"
 #include "tcp_client.h"
 #include "ui.h"
+#include "user_controller.h"
 #include "world.h"
 #include "world_generator.h"
-#include "user_controller.h"
 
 class Sim {
 public:
+  struct RenderModes {
+    RenderModes() {
+      first_person = std::make_shared<FirstPersonRenderMode>();
+      build = std::make_shared<BuildRenderMode>();
+      cur = first_person;
+    }
+    std::shared_ptr<RenderMode> cur;
+    std::shared_ptr<FirstPersonRenderMode> first_person;
+    std::shared_ptr<BuildRenderMode> build;
+  };
   struct WindowEvent {
     enum Kind {
       enable_cursor,
@@ -35,7 +47,7 @@ public:
   void step(std::int64_t ms);
   void draw(std::int64_t ms);
   void exit();
-  void set_player_controlled(bool controlled);
+
   Region& get_region();
   UI& get_ui();
   Camera& get_camera();
@@ -46,6 +58,8 @@ public:
   GLFWwindow* get_window();
   Int3D& get_ray_collision();
   moodycamel::ReaderWriterQueue<WindowEvent>& get_window_events();
+  std::shared_ptr<FirstPersonRenderMode> get_first_person_render_mode();
+  RenderModes& get_render_modes();
 
   static constexpr int render_min_y_offset = -2;
   static constexpr int render_max_y_offset = 2;
@@ -54,16 +68,10 @@ public:
   static constexpr int max_sections = 2 * 4 * section_distance * section_distance;
   static constexpr int frame_rate_target = 60;
   static constexpr int max_chunks_to_stream_per_step = 5;
-    
+
 private:
-/*   struct WindowEvent {
-    enum Kind {
-      enable_cursor,
-      disable_cursor,
-    };
-    Kind kind;
-  }; */
-  
+  RenderModes render_modes_;
+
   void request_sections(std::vector<Location2D>& locs);
   void stream_chunks();
 
@@ -76,7 +84,6 @@ private:
   MeshGenerator mesh_generator_;
   LodMeshGenerator lod_mesh_generator_;
   Renderer renderer_;
-  Camera camera_;
   UI ui_;
   DbManager db_manager_;
   std::unique_ptr<UserController> user_controller_;
@@ -94,8 +101,6 @@ private:
   moodycamel::ReaderWriterQueue<WindowEvent> window_events_;
   bool player_controlled_ = true;
   std::uint64_t step_ = 0;
-
-
 };
 
 #endif

@@ -1,10 +1,19 @@
-#include "inventory_controller.h"
+#include "build_controller.h"
 #include <memory>
 #include "first_person_controller.h"
 #include "input.h"
 
-void InventoryController::move_camera() {}
-void InventoryController::process_inputs() {
+void BuildController::move_camera() {
+  auto& camera_mutex = sim_.get_camera_mutex();
+  auto& camera = sim_.get_render_modes().build->get_camera();
+  std::unique_lock<std::mutex> lock(camera_mutex);
+  auto& cursor_pos = Input::instance()->get_cursor_pos();
+  auto& prev_cursor_pos = Input::instance()->get_prev_cursor_pos();
+  if (cursor_pos[0] != prev_cursor_pos[0] || cursor_pos[1] != prev_cursor_pos[1]) {
+    Input::instance()->set_prev_cursor_pos(cursor_pos[0], cursor_pos[1]);
+  }
+}
+void BuildController::process_inputs() {
   auto& ui = sim_.get_ui();
   auto& renderer = sim_.get_renderer();
   auto& window_events = sim_.get_window_events();
@@ -25,21 +34,13 @@ void InventoryController::process_inputs() {
       continue;
     }
 
-    if (key_button_event.key == GLFW_KEY_I) {
-      ui.set_inv_open(false);
-      window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::disable_cursor});
+    if (key_button_event.key == GLFW_KEY_F) {
+      auto& modes = sim_.get_render_modes();
+      modes.cur = modes.first_person;
       next_controller_ = std::make_unique<FirstPersonController>(sim_);
       return;
     }
 
-    if (key_button_event.key >= GLFW_KEY_0 && key_button_event.key <= GLFW_KEY_9) {
-      auto& ui_graphics = renderer.get_ui_graphics();
-      auto hovering = ui_graphics.get_hovering();
-      if (hovering.has_value()) {
-        std::size_t index = key_button_event.key > GLFW_KEY_0 ? key_button_event.key - GLFW_KEY_1 : UI::action_bar_size - 1;
-        ui.action_bar_assign(index, hovering.value());
-      }
-    }
     success = key_button_events.try_dequeue(key_button_event);
   }
 }

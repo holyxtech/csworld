@@ -18,24 +18,22 @@
 #include "section.h"
 #include "update_generated.h"
 
-namespace {
-
-} // namespace
-
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window),
       tcp_client_(tcp_client),
-      renderer_(window, ui_, camera_) {
+      renderer_(*this) {
   user_controller_ = std::make_unique<FirstPersonController>(*this);
+
   std::array<double, 3> starting_pos{4230249, 316, -1220386};
   // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
   // starting_pos[1] = 530;
 
   {
     std::unique_lock<std::mutex> lock(camera_mutex_);
-    camera_.set_position(glm::dvec3{starting_pos[0], starting_pos[1], starting_pos[2]});
-    camera_.set_position(glm::dvec3{4230225.256719, 311.122231, -1220227.127904});
-    camera_.set_orientation(-41.5007, -12);
+    auto& camera = get_camera();
+    camera.set_position(glm::dvec3{starting_pos[0], starting_pos[1], starting_pos[2]});
+    camera.set_position(glm::dvec3{4230225.256719, 311.122231, -1220227.127904});
+    camera.set_orientation(-41.5007, -12);
   }
 
   auto& player = region_.get_player();
@@ -156,9 +154,9 @@ void Sim::step(std::int64_t ms) {
   auto& player = region_.get_player();
   {
     std::unique_lock<std::mutex> lock(camera_mutex_);
-    auto& camera_pos = camera_.get_position();
+    auto& camera_pos = get_camera().get_position();
     player.set_position(camera_pos[0], camera_pos[1], camera_pos[2]);
-    auto ray = Region::raycast(camera_);
+    auto ray = Region::raycast(get_camera());
     ray_collision_ = Int3D{std::numeric_limits<int>::max(), std::numeric_limits<int>::max(), std::numeric_limits<int>::max()};
     for (auto& coord : ray) {
       auto loc = Region::location_from_global_coords(coord[0], coord[1], coord[2]);
@@ -192,7 +190,9 @@ void Sim::step(std::int64_t ms) {
   user_controller_->process_inputs();
   {
     std::unique_lock<std::mutex> lock(controller_mutex_);
-    user_controller_ = user_controller_->get_next_controller();
+    auto next_controller = user_controller_->get_next_controller();
+    if (next_controller != nullptr)
+      user_controller_ = std::move(next_controller);
   }
 
   {
@@ -264,7 +264,7 @@ void Sim::draw(std::int64_t ms) {
   }
   {
     std::unique_lock<std::mutex> lock(camera_mutex_);
-    renderer_.consume_camera(camera_);
+    renderer_.consume_camera(get_camera());
   }
   {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -277,7 +277,8 @@ void Sim::draw(std::int64_t ms) {
     }
   }
   cv_.notify_one();
-  renderer_.render();
+  render_modes_.cur->render(renderer_);
+  // renderer_.render();
 }
 
 void Sim::exit() {
@@ -285,13 +286,12 @@ void Sim::exit() {
   cv_.notify_one();
 }
 
-void Sim::set_player_controlled(bool controlled) {
-  player_controlled_ = controlled;
-}
-
 Region& Sim::get_region() { return region_; }
 UI& Sim::get_ui() { return ui_; }
-Camera& Sim::get_camera() { return camera_; }
+Camera& Sim::get_camera() {
+  auto& camera = render_modes_.cur->get_camera();
+  return camera;
+}
 MeshGenerator& Sim::get_mesh_generator() { return mesh_generator_; }
 Renderer& Sim::get_renderer() { return renderer_; }
 std::mutex& Sim::get_camera_mutex() { return camera_mutex_; }
@@ -299,3 +299,5 @@ std::mutex& Sim::get_mesh_mutex() { return mesh_mutex_; }
 GLFWwindow* Sim::get_window() { return window_; }
 Int3D& Sim::get_ray_collision() { return ray_collision_; }
 moodycamel::ReaderWriterQueue<Sim::WindowEvent>& Sim::get_window_events() { return window_events_; }
+std::shared_ptr<FirstPersonRenderMode> Sim::get_first_person_render_mode() { return render_modes_.first_person; }
+Sim::RenderModes& Sim::get_render_modes() { return render_modes_; }

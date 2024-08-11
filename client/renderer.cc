@@ -9,6 +9,7 @@
 #include <glm/gtc/random.hpp>
 #include "options.h"
 #include "render_utils.h"
+#include "sim.h"
 #include "stb_image.h"
 #include "types.h"
 
@@ -27,8 +28,8 @@ GLuint Renderer::blur_texture_width = Renderer::window_width / 8;
 GLuint Renderer::blur_texture_height = Renderer::window_height / 8;
 std::array<float, Renderer::num_cascades> Renderer::cascade_far_planes = {40, 200, 1000};
 
-Renderer::Renderer(GLFWwindow* window, const UI& ui, const Camera& camera)
-    : window_(window), ui_graphics_(window, ui), camera_(camera) {
+Renderer::Renderer(Sim& sim)
+    : sim_(sim), ui_graphics_(sim.get_window(), sim.get_ui()) {
   projection_ = glm::perspective(fov, aspect_ratio, near_plane, far_plane);
 
   composite_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("composite.vs"), Options::instance()->getShaderPath("composite.fs"));
@@ -214,11 +215,11 @@ Renderer::Renderer(GLFWwindow* window, const UI& ui, const Camera& camera)
     ssaoKernel[i] = sample;
     // std::cout<<sample<<std::endl;
   }
-  /* std::random_device rd; 
-  std::mt19937 rng(rd()); 
+  /* std::random_device rd;
+  std::mt19937 rng(rd());
   std::shuffle(ssaoKernel.begin(), ssaoKernel.end(), rng); */
   glUseProgram(ssao_shader_);
-  
+
   glUniform3fv(glGetUniformLocation(ssao_shader_, "samples"), num_kernels, &ssaoKernel[0][0]);
 
   std::vector<glm::vec3> ssaoNoise;
@@ -279,7 +280,7 @@ void Renderer::consume_camera(const Camera& camera) {
   camera_world_position_ = camera.get_world_position(camera_offset_);
 }
 
-void Renderer::render() {
+void Renderer::render_scene() {
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
@@ -362,18 +363,8 @@ void Renderer::render() {
   glDrawArrays(GL_TRIANGLES, 0, 6);
 
   // UI
-  glDisable(GL_DEPTH_TEST);
-  glEnable(GL_BLEND);
-  glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo_);
-  glUseProgram(voxel_highlight_shader_);
-  glBindTextureUnit(0, main_dbo_);
-  glUniform1i(glGetUniformLocation(voxel_highlight_shader_, "depth"), 0);
-  auto transform_loc = glGetUniformLocation(voxel_highlight_shader_, "model");
-  glm::mat4 transform = glm::translate(glm::mat4(1.f), voxel_highlight_position_);// * glm::scale(glm::mat4(1.f), glm::vec3(1.001));
-  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
-  glBindVertexArray(voxel_highlight_vao_);
-  glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
-  ui_graphics_.render();
+
+  //ui_graphics_.render();
 }
 
 void Renderer::ssao() {
@@ -411,18 +402,32 @@ void Renderer::ssao() {
   glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
+void Renderer::render_voxel_highlight() {
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo_);
+  glUseProgram(voxel_highlight_shader_);
+  glBindTextureUnit(0, main_dbo_);
+  glUniform1i(glGetUniformLocation(voxel_highlight_shader_, "depth"), 0);
+  auto transform_loc = glGetUniformLocation(voxel_highlight_shader_, "model");
+  glm::mat4 transform = glm::translate(glm::mat4(1.f), voxel_highlight_position_); // * glm::scale(glm::mat4(1.f), glm::vec3(1.001));
+  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
+  glBindVertexArray(voxel_highlight_vao_);
+  glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
+}
+
 void Renderer::shadow_map() {
-  double near = near_plane;
+  double near_distance = near_plane;
   std::array<glm::mat4, num_cascades> light_space_matrices;
 
   for (int i = 0; i < num_cascades; ++i) {
-    double far = cascade_far_planes[i];
+    double far_distance = cascade_far_planes[i];
     const auto proj = glm::perspective(
       fov,
       aspect_ratio,
-      near,
-      far);
-    near = far;
+      near_distance,
+      far_distance);
+    near_distance = far_distance;
 
     const auto corners = RenderUtils::get_frustum_corners_world_space(proj, view_);
     glm::vec3 center = glm::vec3(0, 0, 0);
@@ -499,7 +504,7 @@ const glm::vec3& Renderer::get_camera_world_position() const {
   return camera_world_position_;
 }
 
-const UIGraphics& Renderer::get_ui_graphics() const {
+UIGraphics& Renderer::get_ui_graphics() {
   return ui_graphics_;
 }
 
@@ -508,5 +513,5 @@ GLuint Renderer::get_shadow_texture() const {
 }
 
 const Camera& Renderer::get_camera() const {
-  return camera_;
+  return sim_.get_camera();
 }

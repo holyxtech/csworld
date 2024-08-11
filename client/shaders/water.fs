@@ -21,9 +21,9 @@ uniform float time;
 
 const float normalMapWidth = 8;
 const float normalMapHeight = 8;
-const vec2 normalMap1Scroll = vec2(0.2,0.25);
-const vec2 normalMap2Scroll = vec2(-0.25,-0.2);
-const float specularStrength = 0.5;
+const vec2 normalMap1Scroll = vec2(0.2,0.25) / vec2(3);
+const vec2 normalMap2Scroll = vec2(-0.25,-0.2) / vec2(3);
+const float specularStrength = 0.1;
 
 void main() {
   gCameraPosition = fs_in.cameraPos;
@@ -41,7 +41,7 @@ void main() {
   // err...
   vec3 lightDir = normalize(vec3(0.f,1.f,0.f));
   vec3 lightColor = vec3(1.f,1.f,1.f);
-  color = vec4(0.f,0.0,0.8,1.f);
+  color = vec4(0.1f,0.4,0.8,.2f);
 
   // diffuse
   float diff = max(dot(normal, lightDir), 0.0);

@@ -30,5 +30,4 @@ void DisabledController::process_inputs() {
 
     success = key_button_events.try_dequeue(key_button_event);
   }
-  next_controller_ = std::make_unique<DisabledController>(sim_, std::move(previous_controller_));
 }

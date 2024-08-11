@@ -1,3 +1,4 @@
+#include "build_controller.h"
 #include "first_person_controller.h"
 #include "disabled_controller.h"
 #include "input.h"
@@ -6,10 +7,10 @@
 void FirstPersonController::move_camera() {
   auto window = sim_.get_window();
   auto& camera_mutex = sim_.get_camera_mutex();
-  auto& camera = sim_.get_camera();
   auto& renderer = sim_.get_renderer();
   auto& ray_collision = sim_.get_ray_collision();
   auto& window_events = sim_.get_window_events();
+  auto& camera = sim_.get_first_person_render_mode()->get_camera();
 
   std::unique_lock<std::mutex> lock(camera_mutex);
   auto& cursor_pos = Input::instance()->get_cursor_pos();
@@ -97,6 +98,15 @@ void FirstPersonController::process_inputs() {
       return;
     }
 
+    if (key_button_event.key == GLFW_KEY_B) {
+      auto& modes = sim_.get_render_modes();
+      auto build_mode = modes.build;
+      build_mode->seed_camera(modes.first_person->get_camera());
+      modes.cur = build_mode;
+      next_controller_ = std::make_unique<BuildController>(sim_);
+      return;
+    }
+
     if (key_button_event.key == GLFW_KEY_ESCAPE) {
       window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::enable_cursor});
       next_controller_ = std::make_unique<DisabledController>(sim_, std::make_unique<FirstPersonController>(sim_));
@@ -117,5 +127,4 @@ void FirstPersonController::process_inputs() {
     success = key_button_events.try_dequeue(key_button_event);
   }
   ui.clear_actions();
-  next_controller_ = std::make_unique<FirstPersonController>(sim_);
 }
