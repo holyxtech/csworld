@@ -1,5 +1,5 @@
-#include "build_controller.h"
 #include "first_person_controller.h"
+#include "build_controller.h"
 #include "disabled_controller.h"
 #include "input.h"
 #include "inventory_controller.h"
@@ -103,6 +103,7 @@ void FirstPersonController::process_inputs() {
       auto build_mode = modes.build;
       build_mode->seed_camera(modes.first_person->get_camera());
       modes.cur = build_mode;
+      window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::enable_cursor});
       next_controller_ = std::make_unique<BuildController>(sim_);
       return;
     }

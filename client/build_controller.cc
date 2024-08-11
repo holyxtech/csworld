@@ -4,6 +4,7 @@
 #include "input.h"
 
 void BuildController::move_camera() {
+  auto window = sim_.get_window();
   auto& camera_mutex = sim_.get_camera_mutex();
   auto& camera = sim_.get_render_modes().build->get_camera();
   std::unique_lock<std::mutex> lock(camera_mutex);
@@ -11,6 +12,26 @@ void BuildController::move_camera() {
   auto& prev_cursor_pos = Input::instance()->get_prev_cursor_pos();
   if (cursor_pos[0] != prev_cursor_pos[0] || cursor_pos[1] != prev_cursor_pos[1]) {
     Input::instance()->set_prev_cursor_pos(cursor_pos[0], cursor_pos[1]);
+  }
+
+  camera.scale_translation_speed(16.6 * Sim::frame_rate_target / 1000.0);
+  camera.scale_rotation_speed(16.6 * Sim::frame_rate_target / 1000.0);
+
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+    camera.move_forward();
+  } else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+    camera.move_backward();
+  }
+  if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+    camera.move_up();
+  } else if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
+    camera.move_down();
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+    camera.move_left();
+  } else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+    camera.move_right();
   }
 }
 void BuildController::process_inputs() {
@@ -37,6 +58,7 @@ void BuildController::process_inputs() {
     if (key_button_event.key == GLFW_KEY_F) {
       auto& modes = sim_.get_render_modes();
       modes.cur = modes.first_person;
+      window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::disable_cursor});
       next_controller_ = std::make_unique<FirstPersonController>(sim_);
       return;
     }

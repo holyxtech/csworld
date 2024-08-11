@@ -38,14 +38,14 @@ void Camera::update_orientation() {
   up_ = glm::normalize(glm::cross(front_, right));
 }
 
-void Camera::scale_translation_speed(float scale) {
+void Camera::scale_translation_speed(double scale) {
   translation_speed_ = base_translation_speed_ * scale;
 }
-void Camera::scale_rotation_speed(float scale) {
+void Camera::scale_rotation_speed(double scale) {
   rotation_speed_ = base_rotation_speed_ * scale;
 }
 
-void Camera::set_base_translation_speed(float base_translation_speed) {
+void Camera::set_base_translation_speed(double base_translation_speed) {
   base_translation_speed_ = base_translation_speed;
 }
 
@@ -58,11 +58,11 @@ void Camera::print() const {
   std::cout << "Yaw: " << yaw_ << ", Pitch: " << pitch_ << std::endl;
 }
 
-void Camera::set_orientation(float yaw, float pitch) {
+void Camera::set_orientation(double yaw, double pitch) {
   yaw_ = yaw;
   pitch_ = pitch;
   update_orientation();
 }
 
-float Camera::get_yaw() const { return yaw_; }
-float Camera::get_pitch() const { return pitch_; }
+double Camera::get_yaw() const { return yaw_; }
+double Camera::get_pitch() const { return pitch_; }
