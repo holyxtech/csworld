@@ -3,15 +3,14 @@
 
 void Input::mouse_button_callback(int button, int action, int mods) {
   mouse_button_events_.enqueue(MouseButtonEvent{button, action, mods});
+  if (action == GLFW_PRESS)
+    pressed_mouse_buttons_[button] = true;
+  else if (action == GLFW_RELEASE)
+    pressed_mouse_buttons_[button] = false;
 }
 
 void Input::key_callback(GLFWwindow* window, int key, int action) {
   key_button_events_.enqueue(KeyButtonEvent{key, action});
-
-  if (action == GLFW_PRESS)
-    pressed_keys_[key] = true;
-  else if (action == GLFW_RELEASE)
-    pressed_keys_[key] = false;
 }
 
 void Input::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -49,6 +48,6 @@ moodycamel::ReaderWriterQueue<KeyButtonEvent>& Input::get_key_button_events() {
   return key_button_events_;
 }
 
-bool Input::is_key_pressed(int key) const {
-  return pressed_keys_[key];
+bool Input::is_mouse_button_pressed(int button) const {
+  return pressed_mouse_buttons_[button];
 }

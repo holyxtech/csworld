@@ -19,10 +19,6 @@ private:
   double noise(double x, double y) const;
   void load_features(Section& section);
   void build_tree(Section& section, int x, int y, int z);
-//  void insert_into_features(int x, int y, int z, Voxel voxel);
-
-//  std::unordered_map<Location, std::vector<std::pair<int, Voxel>>, LocationHash> features_;
-//  std::unordered_set<Location2D, Location2DHash> sections_populated_;
 
   osn_context* ctx_;
   static constexpr int octaves_ = 4;

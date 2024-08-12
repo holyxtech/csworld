@@ -38,12 +38,41 @@ void BuildController::process_inputs() {
   auto& ui = sim_.get_ui();
   auto& renderer = sim_.get_renderer();
   auto& window_events = sim_.get_window_events();
+  auto& world_editor = sim_.get_world_editor();
+  auto& camera_mutex = sim_.get_camera_mutex();
+  auto& camera = sim_.get_render_modes().build->get_camera();
+
+  // check held left mouse
+  bool left_pressed = Input::instance()->is_mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT);
+  if (left_pressed) {
+    // get ray collision at mouse pos
+
+    auto [mouse_x, mouse_y] = Input::instance()->get_cursor_pos();
+    float ndc_x = (2.0f * mouse_x) / Renderer::window_width - 1.0f;
+    float ndc_y = 1.0f - (2.0f * mouse_y) / Renderer::window_height;
+    glm::dvec4 ndc_space_pos(ndc_x, ndc_y, -1.0f, 1.0f);
+    glm::dmat4 inverted_projection = glm::inverse(renderer.get_projection_matrix());
+    // this is the position on the near plane with these mouse coordinates
+    auto view_space_pos = inverted_projection * ndc_space_pos;
+    if (view_space_pos.w != 0)
+      view_space_pos /= view_space_pos.w;
+    auto inverted_view = glm::inverse(camera.get_raw_view());
+    glm::dvec3 world_space_pos = inverted_view * view_space_pos;
+    glm::dvec3 direction = glm::normalize(world_space_pos - camera.get_position());
+    world_editor.raise(world_space_pos, direction);
+  }
 
   auto& mouse_button_events = Input::instance()->get_mouse_button_events();
-  MouseButtonEvent event;
-  bool success = mouse_button_events.try_dequeue(event);
+  MouseButtonEvent mouse_button_event;
+  bool success = mouse_button_events.try_dequeue(mouse_button_event);
   while (success) {
-    success = mouse_button_events.try_dequeue(event);
+    if (mouse_button_event.action == GLFW_RELEASE) {
+      if (mouse_button_event.button == GLFW_MOUSE_BUTTON_LEFT) {
+        world_editor.reset();
+      }
+    }
+
+    success = mouse_button_events.try_dequeue(mouse_button_event);
   }
 
   auto& key_button_events = Input::instance()->get_key_button_events();

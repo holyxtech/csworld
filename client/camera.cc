@@ -23,6 +23,10 @@ void Camera::set_position(glm::dvec3 position) {
   position_ = position;
 }
 
+glm::dmat4 Camera::get_raw_view() const {
+  return glm::lookAt(position_, position_ + glm::dvec3(front_), glm::dvec3(up_));
+}
+
 glm::mat4 Camera::get_view(glm::dvec3 camera_offset) const {
   glm::vec3 adjusted_pos = position_ - camera_offset;
   return glm::lookAt(adjusted_pos, adjusted_pos + front_, up_);

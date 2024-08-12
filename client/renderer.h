@@ -37,8 +37,8 @@ public:
   static int window_height;
   static double aspect_ratio;
   static double fov;
-  static constexpr double near_plane = .1;
-  static constexpr double far_plane = 1000.;
+  static double near_plane;
+  static double far_plane;
 
 private:
   void shadow_map();

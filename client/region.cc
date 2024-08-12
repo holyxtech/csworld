@@ -6,36 +6,19 @@
 #include <optional>
 #include <queue>
 
-// Why does this crash if I set it to 8192?
 int Region::max_sz = 512;
 int Region::max_sz_internal = Region::max_sz * 2;
-
-namespace {
-  const std::array<Location, 26> covering_origin = []() {
-    std::array<Location, 26> covering;
-    int i = 0;
-    for (int x = -1; x <= 1; ++x) {
-      for (int y = -1; y <= 1; ++y) {
-        for (int z = -1; z <= 1; ++z) {
-          if (x == 0 && y == 0 && z == 0)
-            continue;
-          covering[i++] = Location{x, y, z};
-        }
-      }
-    }
-    return covering;
-  }();
-} // namespace
 
 std::unordered_map<Location, Chunk, LocationHash>& Region::get_chunks() {
   return chunks_;
 }
 
-const Chunk& Region::get_chunk(Location loc) const {
+
+const Chunk& Region::get_chunk(const Location& loc) const {
   return chunks_.at(loc);
 }
 
-bool Region::has_chunk(Location loc) const {
+bool Region::has_chunk(const Location& loc) const {
   return chunks_.contains(loc);
 }
 
@@ -49,12 +32,14 @@ std::array<const Chunk*, 6> Region::get_adjacent_chunks(const Location& loc) con
     &chunks_.at(Location{loc[0], loc[1], loc[2] + 1})};
 }
 
-std::array<Location, 26> Region::get_covering_locations(const Location& loc) const {
-  std::array<Location, 26> covering;
-  int i = 0;
-  for (auto& cov : covering_origin)
-    covering[i++] = Location{loc[0] + cov[0], loc[1] + cov[1], loc[2] + cov[2]};
-  return covering;
+std::array<Location, 6> Region::get_adjacent_locations(const Location& loc) const {
+  return std::array{
+    Location{loc[0] - 1, loc[1], loc[2]},
+    Location{loc[0] + 1, loc[1], loc[2]},
+    Location{loc[0], loc[1] - 1, loc[2]},
+    Location{loc[0], loc[1] + 1, loc[2]},
+    Location{loc[0], loc[1], loc[2] - 1},
+    Location{loc[0], loc[1], loc[2] + 1}};
 }
 
 void Region::delete_furthest_chunk(const Location& loc) {
@@ -75,7 +60,6 @@ void Region::delete_furthest_chunk(const Location& loc) {
         to_delete = &location;
       }
     }
-
     chunk_to_delete->set_flag(Chunk::Flags::DELETED);
     diffs_.emplace_back(Diff{*to_delete, Diff::deletion});
     chunks_sent_.erase(*to_delete);
@@ -92,11 +76,12 @@ void Region::add_chunk(Chunk&& chunk) {
   auto loc = chunk.get_location();
   chunks_.insert({loc, std::move(chunk)});
 
-  auto adjacent = get_covering_locations(loc);
+
+  auto adjacent = get_adjacent_locations(loc);
 
   for (auto& location : adjacent) {
     if (!adjacents_missing_.contains(location))
-      adjacents_missing_.insert({location, 25});
+      adjacents_missing_.insert({location, 5});
     else
       --adjacents_missing_[location];
 
@@ -110,7 +95,7 @@ void Region::add_chunk(Chunk&& chunk) {
   }
 
   if (!adjacents_missing_.contains(loc)) {
-    adjacents_missing_.insert({loc, 26});
+    adjacents_missing_.insert({loc, 6});
   } else if (
     adjacents_missing_[loc] == 0 &&
     !chunks_.at(loc).check_flag(Chunk::Flags::EMPTY)) {
@@ -127,7 +112,8 @@ void Region::clear_diffs() {
     auto& loc = diff.location;
     if (diff.kind == Region::Diff::deletion) {
       chunks_.erase(loc);
-      auto adjacent = get_covering_locations(loc);
+      // std::cout<<"deleting at "<<loc<<std::endl;
+      auto adjacent = get_adjacent_locations(loc);
       for (auto& location : adjacent) {
         ++adjacents_missing_[location];
       }
@@ -154,8 +140,9 @@ void Region::clear_diffs() {
     for (int i = 0; i < to_remove; ++i) {
       auto& location = loaded_locations[i];
       chunks_.erase(location);
+      // std::cout<<"removing at "<<location<<std::endl;
 
-      auto adjacent = get_covering_locations(loaded_locations[i]);
+      auto adjacent = get_adjacent_locations(loaded_locations[i]);
       for (auto& location : adjacent) {
         ++adjacents_missing_[location];
       }
@@ -165,30 +152,41 @@ void Region::clear_diffs() {
   diffs_.clear();
 }
 
-Location Region::location_from_global_coords(int x, int y, int z) {
+Location Region::location_from_global_coord(int x, int y, int z) {
+  return location_from_global_coord(Int3D{x, y, z});
+}
+Location Region::location_from_global_coord(const Int3D& coord) {
   return Location{
-    static_cast<int>(std::floor(static_cast<double>(x) / Chunk::sz_x)),
-    static_cast<int>(std::floor(static_cast<double>(y) / Chunk::sz_y)),
-    static_cast<int>(std::floor(static_cast<double>(z) / Chunk::sz_z)),
+    static_cast<int>(std::floor(static_cast<double>(coord[0]) / Chunk::sz_x)),
+    static_cast<int>(std::floor(static_cast<double>(coord[1]) / Chunk::sz_y)),
+    static_cast<int>(std::floor(static_cast<double>(coord[2]) / Chunk::sz_z)),
   };
 }
 
-Voxel Region::get_voxel(int x, int y, int z) const {
-  auto location = location_from_global_coords(x, y, z);
+Voxel Region::get_voxel(const Int3D& coord) const {
+  auto location = location_from_global_coord(coord);
   const auto& chunk = chunks_.at(location);
   return chunk.get_voxel(
-    ((x % Chunk::sz_x) + Chunk::sz_x) % Chunk::sz_x,
-    ((y % Chunk::sz_y) + Chunk::sz_y) % Chunk::sz_y,
-    ((z % Chunk::sz_z) + Chunk::sz_z) % Chunk::sz_z);
+    ((coord[0] % Chunk::sz_x) + Chunk::sz_x) % Chunk::sz_x,
+    ((coord[1] % Chunk::sz_y) + Chunk::sz_y) % Chunk::sz_y,
+    ((coord[2] % Chunk::sz_z) + Chunk::sz_z) % Chunk::sz_z);
+}
+
+Voxel Region::get_voxel(int x, int y, int z) const {
+  return get_voxel(Int3D{x, y, z});
 }
 
 void Region::set_voxel(int x, int y, int z, Voxel voxel) {
-  auto location = location_from_global_coords(x, y, z);
+  set_voxel(Int3D{x, y, z}, voxel);
+}
+
+void Region::set_voxel(const Int3D& coord, Voxel voxel) {
+  auto location = location_from_global_coord(coord);
   auto& chunk = chunks_.at(location);
   return chunk.set_voxel(
-    ((x % Chunk::sz_x) + Chunk::sz_x) % Chunk::sz_x,
-    ((y % Chunk::sz_y) + Chunk::sz_y) % Chunk::sz_y,
-    ((z % Chunk::sz_z) + Chunk::sz_z) % Chunk::sz_z,
+    ((coord[0] % Chunk::sz_x) + Chunk::sz_x) % Chunk::sz_x,
+    ((coord[1] % Chunk::sz_y) + Chunk::sz_y) % Chunk::sz_y,
+    ((coord[2] % Chunk::sz_z) + Chunk::sz_z) % Chunk::sz_z,
     voxel);
 }
 
@@ -197,20 +195,18 @@ Player& Region::get_player() {
 }
 
 // Credit: https://github.com/francisengelmann/fast_voxel_traversal
-std::vector<Int3D> Region::raycast(const Camera& camera) {
-  auto& pos = camera.get_position();
+std::vector<Int3D> Region::raycast(const glm::dvec3& pos, const glm::dvec3& dir, int num_voxels) {
   std::vector<Int3D> visited_voxels;
+  visited_voxels.reserve(num_voxels);
 
   Int3D current_voxel{
     static_cast<int>(std::floor(pos[0])),
     static_cast<int>(std::floor(pos[1])),
     static_cast<int>(std::floor(pos[2]))};
 
-  auto& ray = camera.get_front();
-
-  double stepX = (ray[0] >= 0) ? 1 : -1;
-  double stepY = (ray[1] >= 0) ? 1 : -1;
-  double stepZ = (ray[2] >= 0) ? 1 : -1;
+  double stepX = (dir[0] >= 0) ? 1 : -1;
+  double stepY = (dir[1] >= 0) ? 1 : -1;
+  double stepZ = (dir[2] >= 0) ? 1 : -1;
 
   double next_voxel_boundary_x = (current_voxel[0] + stepX);
   double next_voxel_boundary_y = (current_voxel[1] + stepY);
@@ -222,19 +218,18 @@ std::vector<Int3D> Region::raycast(const Camera& camera) {
     ++next_voxel_boundary_y;
   if (stepZ < 0)
     ++next_voxel_boundary_z;
-  double tMaxX = (ray[0] != 0) ? (next_voxel_boundary_x - pos[0]) / ray[0] : DBL_MAX;
-  double tMaxY = (ray[1] != 0) ? (next_voxel_boundary_y - pos[1]) / ray[1] : DBL_MAX;
-  double tMaxZ = (ray[2] != 0) ? (next_voxel_boundary_z - pos[2]) / ray[2] : DBL_MAX;
+  double tMaxX = (dir[0] != 0) ? (next_voxel_boundary_x - pos[0]) / dir[0] : DBL_MAX;
+  double tMaxY = (dir[1] != 0) ? (next_voxel_boundary_y - pos[1]) / dir[1] : DBL_MAX;
+  double tMaxZ = (dir[2] != 0) ? (next_voxel_boundary_z - pos[2]) / dir[2] : DBL_MAX;
 
-  double tDeltaX = (ray[0] != 0) ? 1 / ray[0] * stepX : DBL_MAX;
-  double tDeltaY = (ray[1] != 0) ? 1 / ray[1] * stepY : DBL_MAX;
-  double tDeltaZ = (ray[2] != 0) ? 1 / ray[2] * stepZ : DBL_MAX;
+  double tDeltaX = (dir[0] != 0) ? 1 / dir[0] * stepX : DBL_MAX;
+  double tDeltaY = (dir[1] != 0) ? 1 / dir[1] * stepY : DBL_MAX;
+  double tDeltaZ = (dir[2] != 0) ? 1 / dir[2] * stepZ : DBL_MAX;
 
   visited_voxels.push_back(current_voxel);
 
-  int limit = 50;
   int i = 0;
-  while (i++ < limit) {
+  while (i++ < num_voxels-1) {
     if (tMaxX < tMaxY) {
       if (tMaxX < tMaxZ) {
         current_voxel[0] += stepX;
@@ -259,7 +254,7 @@ std::vector<Int3D> Region::raycast(const Camera& camera) {
 
 void Region::update_adjacent_chunks(const Int3D& coord) {
   std::unordered_set<Location, LocationHash> dirty;
-  auto loc = location_from_global_coords(coord[0], coord[1], coord[2]);
+  auto loc = location_from_global_coord(coord);
   auto local = Chunk::to_local(coord);
   if (local[0] == 0) {
     dirty.insert(Location{loc[0] - 1, loc[1], loc[2]});
@@ -283,11 +278,30 @@ void Region::update_adjacent_chunks(const Int3D& coord) {
   }
 }
 
-void Region::raycast_place(const Camera& camera, Voxel voxel) {
-  auto visited = raycast(camera);
+bool Region::get_first_of_kind(
+  const std::vector<Int3D>& visited, Int3D& coord, Voxel& voxel,
+  std::function<bool(Voxel v)> kind_test) const {
+  for (auto& v : visited) {
+    auto loc = location_from_global_coord(v);
+    if (!chunks_.contains(loc))
+      continue;
+
+    auto voxel_at_v = get_voxel(v);
+    if (kind_test(voxel_at_v)) {
+      voxel = voxel_at_v;
+      coord = v;
+      return true;
+    }
+  }
+  return false;
+}
+
+void Region::raycast_place(const glm::dvec3& pos, const glm::dvec3& dir, Voxel voxel, int num_voxels) {
+  auto visited = raycast(pos, dir, num_voxels);
   for (int i = 0; i < visited.size(); ++i) {
     auto coord = visited[i];
-    auto loc = location_from_global_coords(coord[0], coord[1], coord[2]);
+
+    auto loc = location_from_global_coord(coord);
     if (chunks_.contains(loc)) {
       auto& chunk = chunks_.at(loc);
       auto local = Chunk::to_local(coord);
@@ -296,7 +310,7 @@ void Region::raycast_place(const Camera& camera, Voxel voxel) {
         if (i == 0)
           return;
         auto coord = visited[i - 1];
-        auto loc = location_from_global_coords(coord[0], coord[1], coord[2]);
+        auto loc = location_from_global_coord(coord);
         if (chunks_.contains(loc) && adjacents_missing_[loc] == 0 &&
             !chunks_.at(loc).check_flag(Chunk::Flags::DELETED)) {
           auto& chunk = chunks_.at(loc);
@@ -320,10 +334,10 @@ void Region::raycast_place(const Camera& camera, Voxel voxel) {
 }
 
 void Region::raycast_remove(const Camera& camera) {
-  auto visited = raycast(camera);
+  auto visited = raycast(camera.get_position(), camera.get_front());
   for (int i = 0; i < visited.size(); ++i) {
     auto coord = visited[i];
-    auto loc = location_from_global_coords(coord[0], coord[1], coord[2]);
+    auto loc = location_from_global_coord(coord);
     if (chunks_sent_.contains(loc) && adjacents_missing_[loc] == 0) {
       auto& chunk = chunks_.at(loc);
       auto local = Chunk::to_local(coord);

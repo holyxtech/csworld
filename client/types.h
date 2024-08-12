@@ -32,6 +32,7 @@ enum QuadCorner {
 };
 
 using Location2D = std::array<int, 2>;
+using Int2D = Location2D;
 
 class Location {
 public:

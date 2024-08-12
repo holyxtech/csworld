@@ -23,6 +23,7 @@
 #include "user_controller.h"
 #include "world.h"
 #include "world_generator.h"
+#include "world_editor.h"
 
 class Sim {
 public:
@@ -60,18 +61,17 @@ public:
   moodycamel::ReaderWriterQueue<WindowEvent>& get_window_events();
   std::shared_ptr<FirstPersonRenderMode> get_first_person_render_mode();
   RenderModes& get_render_modes();
+  WorldEditor& get_world_editor();
 
   static constexpr int render_min_y_offset = -2;
   static constexpr int render_max_y_offset = 2;
-  static constexpr int region_distance = 8; // if region_distance == 2 it breaks (placement/removal)
-  static constexpr int section_distance = region_distance + 2;
+  static constexpr int region_distance = 4;
+  static constexpr int section_distance = region_distance + 3;
   static constexpr int max_sections = 2 * 4 * section_distance * section_distance;
   static constexpr int frame_rate_target = 60;
   static constexpr int max_chunks_to_stream_per_step = 5;
 
 private:
-  RenderModes render_modes_;
-
   void request_sections(std::vector<Location2D>& locs);
   void stream_chunks();
 
@@ -81,12 +81,14 @@ private:
   LodLoader lod_loader_;
   World world_;
   WorldGenerator world_generator_;
+  WorldEditor world_editor_;
   MeshGenerator mesh_generator_;
   LodMeshGenerator lod_mesh_generator_;
   Renderer renderer_;
   UI ui_;
   DbManager db_manager_;
   std::unique_ptr<UserController> user_controller_;
+  RenderModes render_modes_;
 
   std::mutex controller_mutex_;
   std::mutex mutex_;

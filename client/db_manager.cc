@@ -52,11 +52,13 @@ std::optional<Chunk> DbManager::load_chunk_if_exists(const Location& loc) {
   if (rc == SQLITE_ROW) {
     const unsigned char* data = static_cast<const unsigned char*>(sqlite3_column_blob(stmt, 0));
     int data_size = sqlite3_column_bytes(stmt, 0);
-    return Chunk(loc, data, data_size);
+    auto chunk = Chunk(loc, data, data_size);
+    sqlite3_finalize(stmt);
+    return chunk;
   } else {
+    sqlite3_finalize(stmt);
     return {};
   }
-  sqlite3_finalize(stmt);
 }
 
 void DbManager::save_chunk(const Chunk& chunk) {

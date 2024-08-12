@@ -107,7 +107,7 @@ Common::LandCover Section::get_landcover(int x, int z) const {
 }
 
 void Section::insert_into_features(int x, int y, int z, Voxel voxel) {
-  auto location = Region::location_from_global_coords(x, y, z);
+  auto location = Region::location_from_global_coord(x, y, z);
   auto& location_features = features_[location];
   int idx = Chunk::get_index(Chunk::to_local(Int3D{x, y, z}));
   location_features.emplace_back(std::make_pair(idx, voxel));

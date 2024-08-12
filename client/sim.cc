@@ -21,7 +21,8 @@
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window),
       tcp_client_(tcp_client),
-      renderer_(*this) {
+      renderer_(*this),
+      world_editor_(region_) {
   user_controller_ = std::make_unique<FirstPersonController>(*this);
 
   std::array<double, 3> starting_pos{4230249, 316, -1220386};
@@ -71,13 +72,13 @@ void Sim::stream_chunks() {
   auto& pos = player.get_position();
   auto loc = Chunk::pos_to_loc(pos);
 
-  std::array<std::pair<int, int>, 3> column_modifiers = {{
+  const std::array<std::pair<int, int>, 3> column_modifiers = {{
     {1, 0},  // right
     {0, 1},  // up
     {-1, 0}, // left
   }};
 
-  for (int r = 0; r < region_distance; ++r) {
+  for (int r = 0; r <= region_distance; ++r) {
     Location column = Location{loc[0] - r, loc[1], loc[2] - r};
     stream_column(column);
     if (num_new_chunks == max_chunks_to_stream_per_step)
@@ -156,10 +157,10 @@ void Sim::step(std::int64_t ms) {
     std::unique_lock<std::mutex> lock(camera_mutex_);
     auto& camera_pos = get_camera().get_position();
     player.set_position(camera_pos[0], camera_pos[1], camera_pos[2]);
-    auto ray = Region::raycast(get_camera());
+    auto ray = Region::raycast(get_camera().get_position(), get_camera().get_front());
     ray_collision_ = Int3D{std::numeric_limits<int>::max(), std::numeric_limits<int>::max(), std::numeric_limits<int>::max()};
     for (auto& coord : ray) {
-      auto loc = Region::location_from_global_coords(coord[0], coord[1], coord[2]);
+      auto loc = Region::location_from_global_coord(coord);
       if (region_.has_chunk(loc) && region_.get_voxel(coord[0], coord[1], coord[2]) != Voxel::empty) {
         ray_collision_ = coord;
         break;
@@ -301,3 +302,4 @@ Int3D& Sim::get_ray_collision() { return ray_collision_; }
 moodycamel::ReaderWriterQueue<Sim::WindowEvent>& Sim::get_window_events() { return window_events_; }
 std::shared_ptr<FirstPersonRenderMode> Sim::get_first_person_render_mode() { return render_modes_.first_person; }
 Sim::RenderModes& Sim::get_render_modes() { return render_modes_; }
+WorldEditor& Sim::get_world_editor() { return world_editor_; }

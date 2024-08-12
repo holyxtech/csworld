@@ -76,7 +76,7 @@ void FirstPersonController::process_inputs() {
         auto item = ui.get_active_item();
         if (item.has_value()) {
           auto voxel = ItemUtils::item_to_voxel.at(item.value());
-          region.raycast_place(camera, voxel);
+          region.raycast_place(camera.get_position(), camera.get_front(), voxel);
         }
       }
     }

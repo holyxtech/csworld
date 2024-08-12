@@ -13,6 +13,7 @@ public:
   double get_pitch() const;
 
   glm::mat4 get_view(glm::dvec3 camera_offset) const;
+  glm::dmat4 get_raw_view() const;
   const glm::dvec3& get_position() const;
   const glm::vec3& get_front() const;
   const glm::vec3& get_up() const;

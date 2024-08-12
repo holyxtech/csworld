@@ -31,7 +31,7 @@ public:
   static constexpr int defacto_vertices_per_mesh = 80000;
   static constexpr int defacto_vertices_per_irregular_mesh = 2500;
   static constexpr int defacto_vertices_per_water_mesh = 3000;
-
+  static constexpr int f = sizeof(CubeVertex);
 private:
   enum class Axis {
     x,

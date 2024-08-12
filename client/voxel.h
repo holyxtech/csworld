@@ -1,11 +1,16 @@
 #ifndef VOXEL_H
 #define VOXEL_H
 
+#include <bitset>
 #include <cstdint>
 
+/*
+  The boundary markers are really for the sake of meshing
+  They shouldn't be used or extended for gameplay logic
+*/
 enum class Voxel {
   empty,
-  
+
   WATER_LOWER,
   water_full,
   WATER_UPPER,
@@ -36,6 +41,7 @@ namespace vops {
   bool is_opaque(Voxel v);
   bool is_partially_opaque(Voxel v);
   bool is_cube(Voxel v);
+  bool is_earthen(Voxel v);
 } // namespace vops
 
 enum class CubeTexture {
