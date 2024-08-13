@@ -7,11 +7,11 @@
 
 class DisabledController : public UserController {
 public:
-  DisabledController(Sim& sim, std::unique_ptr<UserController> previous_controller)
-      : UserController(sim),
-        previous_controller_(std::move(previous_controller)) {}
+  DisabledController(Sim& sim, std::unique_ptr<UserController> previous_controller);
   void move_camera() override;
   void process_inputs() override;
+  void init() override;
+  void end() override;
 
 private:
   std::unique_ptr<UserController> previous_controller_;

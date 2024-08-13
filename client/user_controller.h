@@ -12,6 +12,8 @@ public:
   UserController(Sim& sim) : sim_(sim) {}
   virtual void move_camera() = 0;
   virtual void process_inputs() = 0;
+  virtual void init() = 0;
+  virtual void end() = 0;
 
   std::unique_ptr<UserController> get_next_controller() {
     if (next_controller_ == nullptr)

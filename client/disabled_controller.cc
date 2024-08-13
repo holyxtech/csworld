@@ -2,6 +2,15 @@
 #include "first_person_controller.h"
 #include "input.h"
 
+DisabledController::DisabledController(Sim& sim, std::unique_ptr<UserController> previous_controller)
+    : UserController(sim), previous_controller_(std::move(previous_controller)) {
+}
+void DisabledController::init() {
+  auto& window_events = sim_.get_window_events();
+  window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::enable_cursor});
+}
+void DisabledController::end() {}
+
 void DisabledController::move_camera() {}
 void DisabledController::process_inputs() {
   auto& window_events = sim_.get_window_events();
@@ -23,7 +32,6 @@ void DisabledController::process_inputs() {
     }
 
     if (key_button_event.key == GLFW_KEY_ESCAPE) {
-      window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::disable_cursor});
       next_controller_ = std::move(previous_controller_);
       return;
     }

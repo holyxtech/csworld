@@ -6,9 +6,11 @@
 
 class InventoryController : public UserController {
 public:
-  InventoryController(Sim& sim) : UserController(sim) {}
+  InventoryController(Sim& sim);
   void move_camera() override;
   void process_inputs() override;
+  void init() override;
+  void end() override;
 };
 
 #endif

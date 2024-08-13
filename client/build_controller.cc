@@ -3,6 +3,20 @@
 #include "first_person_controller.h"
 #include "input.h"
 
+BuildController::BuildController(Sim& sim) : UserController(sim) {
+}
+void BuildController::end() {
+  
+}
+void BuildController::init() {
+  auto& modes = sim_.get_render_modes();
+  auto& window_events = sim_.get_window_events();
+  auto build_mode = modes.build;
+  build_mode->seed_camera(modes.first_person->get_camera());
+  modes.cur = build_mode;
+  window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::enable_cursor});
+}
+
 void BuildController::move_camera() {
   auto window = sim_.get_window();
   auto& camera_mutex = sim_.get_camera_mutex();
@@ -57,7 +71,7 @@ void BuildController::process_inputs() {
     auto inverted_view = glm::inverse(camera.get_raw_view());
     glm::dvec3 world_space_pos = inverted_view * view_space_pos;
     glm::dvec3 direction = glm::normalize(world_space_pos - camera.get_position());
-    //world_editor.raise(world_space_pos, direction);
+    // world_editor.raise(world_space_pos, direction);
   }
 
   auto& mouse_button_events = Input::instance()->get_mouse_button_events();
@@ -83,9 +97,6 @@ void BuildController::process_inputs() {
     }
 
     if (key_button_event.key == GLFW_KEY_F) {
-      auto& modes = sim_.get_render_modes();
-      modes.cur = modes.first_person;
-      window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::disable_cursor});
       next_controller_ = std::make_unique<FirstPersonController>(sim_);
       return;
     }

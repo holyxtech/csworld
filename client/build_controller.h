@@ -6,10 +6,11 @@
 
 class BuildController : public UserController {
 public:
-  BuildController(Sim& sim)
-      : UserController(sim) {}
+  BuildController(Sim& sim);
   void move_camera() override;
   void process_inputs() override;
+  void init() override;
+  void end() override;
 };
 
 #endif

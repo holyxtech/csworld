@@ -4,6 +4,18 @@
 #include "input.h"
 #include "inventory_controller.h"
 
+FirstPersonController::FirstPersonController(Sim& sim) : UserController(sim) {
+}
+void FirstPersonController::end() {
+  
+}
+void FirstPersonController::init() {
+  auto& window_events = sim_.get_window_events();
+  auto& modes = sim_.get_render_modes();
+  modes.cur = modes.first_person;
+  window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::disable_cursor});
+}
+
 void FirstPersonController::move_camera() {
   auto window = sim_.get_window();
   auto& camera_mutex = sim_.get_camera_mutex();
@@ -92,24 +104,16 @@ void FirstPersonController::process_inputs() {
     }
 
     if (key_button_event.key == GLFW_KEY_I) {
-      ui.set_inv_open(true);
-      window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::enable_cursor});
       next_controller_ = std::make_unique<InventoryController>(sim_);
       return;
     }
 
     if (key_button_event.key == GLFW_KEY_B) {
-      auto& modes = sim_.get_render_modes();
-      auto build_mode = modes.build;
-      build_mode->seed_camera(modes.first_person->get_camera());
-      modes.cur = build_mode;
-      window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::enable_cursor});
       next_controller_ = std::make_unique<BuildController>(sim_);
       return;
     }
 
     if (key_button_event.key == GLFW_KEY_ESCAPE) {
-      window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::enable_cursor});
       next_controller_ = std::make_unique<DisabledController>(sim_, std::make_unique<FirstPersonController>(sim_));
       return;
     }

@@ -3,6 +3,18 @@
 #include "first_person_controller.h"
 #include "input.h"
 
+InventoryController::InventoryController(Sim& sim) : UserController(sim) {
+}
+void InventoryController::init() {
+  auto& ui = sim_.get_ui();
+  auto& window_events = sim_.get_window_events();
+  ui.set_inv_open(true);
+  window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::enable_cursor});
+}
+void InventoryController::end() {
+  auto& ui = sim_.get_ui();
+  ui.set_inv_open(false);
+}
 void InventoryController::move_camera() {}
 void InventoryController::process_inputs() {
   auto& ui = sim_.get_ui();
@@ -25,9 +37,8 @@ void InventoryController::process_inputs() {
       continue;
     }
 
-    if (key_button_event.key == GLFW_KEY_I) {
-      ui.set_inv_open(false);
-      window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::disable_cursor});
+    if (key_button_event.key == GLFW_KEY_I ||
+        key_button_event.key == GLFW_KEY_ESCAPE) {
       next_controller_ = std::make_unique<FirstPersonController>(sim_);
       return;
     }
