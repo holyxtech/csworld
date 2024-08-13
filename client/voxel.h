@@ -37,6 +37,7 @@ enum class Voxel {
 };
 
 namespace vops {
+  bool is_empty(Voxel v);
   bool is_water(Voxel v);
   bool is_opaque(Voxel v);
   bool is_partially_opaque(Voxel v);

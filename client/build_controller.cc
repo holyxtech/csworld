@@ -45,8 +45,6 @@ void BuildController::process_inputs() {
   // check held left mouse
   bool left_pressed = Input::instance()->is_mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT);
   if (left_pressed) {
-    // get ray collision at mouse pos
-
     auto [mouse_x, mouse_y] = Input::instance()->get_cursor_pos();
     float ndc_x = (2.0f * mouse_x) / Renderer::window_width - 1.0f;
     float ndc_y = 1.0f - (2.0f * mouse_y) / Renderer::window_height;
@@ -59,7 +57,7 @@ void BuildController::process_inputs() {
     auto inverted_view = glm::inverse(camera.get_raw_view());
     glm::dvec3 world_space_pos = inverted_view * view_space_pos;
     glm::dvec3 direction = glm::normalize(world_space_pos - camera.get_position());
-    world_editor.raise(world_space_pos, direction);
+    //world_editor.raise(world_space_pos, direction);
   }
 
   auto& mouse_button_events = Input::instance()->get_mouse_button_events();

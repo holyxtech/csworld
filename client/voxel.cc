@@ -16,7 +16,9 @@ namespace {
 } // namespace
 
 namespace vops {
-  // Mesh tests
+  bool is_empty(Voxel v) {
+    return v == Voxel::empty;
+  }
   bool is_water(Voxel v) {
     return v < Voxel::WATER_UPPER && v > Voxel::WATER_LOWER;
   }
@@ -29,8 +31,6 @@ namespace vops {
   bool is_cube(Voxel v) {
     return v > Voxel::CUBE_LOWER;
   }
-
-  // Gameplay tests
   bool is_earthen(Voxel v) {
     return earthen_voxels.test(static_cast<int>(v));
   }

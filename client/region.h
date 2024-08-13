@@ -25,6 +25,7 @@ public:
 
   Player& get_player();
   const Chunk& get_chunk(const Location& loc) const;
+  Chunk& get_chunk(const Location& loc);
   bool has_chunk(const Location& loc) const;
   std::unordered_map<Location, Chunk, LocationHash>& get_chunks();
   void add_chunk(Chunk&& chunk);
@@ -41,10 +42,15 @@ public:
   static Location location_from_global_coord(const Int3D& coord);
   const std::unordered_set<Location, LocationHash> get_updated_since_reset() const;
   void reset_updated_since_reset();
+  void signal_chunk_update(const Location& loc);
 
   static std::vector<Int3D> raycast(const glm::dvec3& pos, const glm::dvec3& dir, int num_voxels = 50);
   bool get_first_of_kind(
-    const std::vector<Int3D>& visited, Int3D& coord, Voxel& voxel, std::function<bool(Voxel v)> kind_test) const;
+    const glm::dvec3& pos, const glm::dvec3& dir, int max_tries, Int3D& coord, Voxel& voxel,
+    const std::function<bool(Voxel v)>& kind_test) const;
+  bool get_until_kind(
+    const glm::dvec3& pos, const glm::dvec3& dir, int max_tries, std::vector<Voxel>& voxels,
+    const std::function<bool(Voxel v)>& kind_test) const;
 
   static int max_sz;
 

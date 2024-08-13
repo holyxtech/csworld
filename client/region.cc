@@ -13,8 +13,10 @@ std::unordered_map<Location, Chunk, LocationHash>& Region::get_chunks() {
   return chunks_;
 }
 
-
 const Chunk& Region::get_chunk(const Location& loc) const {
+  return chunks_.at(loc);
+}
+Chunk& Region::get_chunk(const Location& loc) {
   return chunks_.at(loc);
 }
 
@@ -75,7 +77,6 @@ void Region::chunk_to_mesh_generator(const Location& loc) {
 void Region::add_chunk(Chunk&& chunk) {
   auto loc = chunk.get_location();
   chunks_.insert({loc, std::move(chunk)});
-
 
   auto adjacent = get_adjacent_locations(loc);
 
@@ -229,7 +230,7 @@ std::vector<Int3D> Region::raycast(const glm::dvec3& pos, const glm::dvec3& dir,
   visited_voxels.push_back(current_voxel);
 
   int i = 0;
-  while (i++ < num_voxels-1) {
+  while (i++ < num_voxels - 1) {
     if (tMaxX < tMaxY) {
       if (tMaxX < tMaxZ) {
         current_voxel[0] += stepX;
@@ -279,12 +280,14 @@ void Region::update_adjacent_chunks(const Int3D& coord) {
 }
 
 bool Region::get_first_of_kind(
-  const std::vector<Int3D>& visited, Int3D& coord, Voxel& voxel,
-  std::function<bool(Voxel v)> kind_test) const {
+  const glm::dvec3& pos, const glm::dvec3& dir, int max_tries, Int3D& coord, Voxel& voxel,
+  const std::function<bool(Voxel v)>& kind_test) const {
+
+  auto visited = raycast(pos, dir, max_tries);
   for (auto& v : visited) {
     auto loc = location_from_global_coord(v);
     if (!chunks_.contains(loc))
-      continue;
+      return false;
 
     auto voxel_at_v = get_voxel(v);
     if (kind_test(voxel_at_v)) {
@@ -292,6 +295,23 @@ bool Region::get_first_of_kind(
       coord = v;
       return true;
     }
+  }
+  return false;
+}
+
+bool Region::get_until_kind(
+  const glm::dvec3& pos, const glm::dvec3& dir, int max_tries, std::vector<Voxel>& voxels,
+  const std::function<bool(Voxel v)>& kind_test) const {
+  auto visited = raycast(pos, dir, max_tries);
+  for (auto& v : visited) {
+    auto loc = location_from_global_coord(v);
+    if (!chunks_.contains(loc))
+      return false;
+    auto voxel_at_v = get_voxel(v);
+    if (kind_test(voxel_at_v)) {
+      return true;
+    }
+    voxels.emplace_back(voxel_at_v);
   }
   return false;
 }
@@ -359,4 +379,9 @@ const std::unordered_set<Location, LocationHash> Region::get_updated_since_reset
 
 void Region::reset_updated_since_reset() {
   updated_since_reset_.clear();
+}
+
+void Region::signal_chunk_update(const Location& loc) {
+  diffs_.emplace_back(Diff{loc, Diff::creation});
+  updated_since_reset_.insert(loc);
 }
