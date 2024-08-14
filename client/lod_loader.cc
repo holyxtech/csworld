@@ -20,7 +20,7 @@ void LodLoader::create_lods(const Chunk& chunk) {
       --adjacents_missing_[location];
 
     if (adjacents_missing_[location] == 0 && lods_.contains(location)) {
-      diffs_.emplace_back(Diff{location, Diff::creation});
+      diffs_.emplace_back(location, Diff::creation);
     }
   }
 
@@ -28,7 +28,7 @@ void LodLoader::create_lods(const Chunk& chunk) {
     adjacents_missing_.insert({loc, 6});
   } else if (
     adjacents_missing_[loc] == 0) {
-    diffs_.emplace_back(Diff{loc, Diff::creation});
+    diffs_.emplace_back(loc, Diff::creation);
   }
 }
 

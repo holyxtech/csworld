@@ -9,6 +9,12 @@
 #include "renderer.h"
 #include "stb_image.h"
 
+glm::ivec2 Sky::transmittance_lut_size = glm::ivec2(1024, 256);
+glm::ivec2 Sky::multiscattering_lut_size = {256, 256};
+glm::ivec2 Sky::sky_lut_size = {512, 256};
+glm::vec3 Sky::sun_dir = glm::normalize(glm::vec3(5.f, 2.04f, 1.f));
+glm::vec3 Sky::sun_radiance = glm::vec3(.08f, .3f, 1.f);
+
 namespace {
   glm::vec3 spherical_to_cartesian(float r, float theta, float phi) {
     return glm::vec3(r * sin(theta) * sin(phi), r * cos(theta), -r * sin(theta) * cos(phi));
@@ -49,12 +55,6 @@ namespace {
   }
 
 } // namespace
-
-glm::ivec2 Sky::transmittance_lut_size = glm::ivec2(1024, 256);
-glm::ivec2 Sky::multiscattering_lut_size = {256, 256};
-glm::ivec2 Sky::sky_lut_size = {512, 256};
-glm::vec3 Sky::sun_dir = glm::normalize(glm::vec3(5.f, 2.04f, 1.f));
-glm::vec3 Sky::sun_radiance = glm::vec3(.08f, .3f, 1.f);
 
 Sky::Sky() {
   cb_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("cb.vs"), Options::instance()->getShaderPath("cb.fs"));
@@ -132,12 +132,12 @@ Sky::Sky() {
   /* float theta = std::numbers::pi / 2 - 0.01;
   float phi = std::numbers::pi / 2 - 0.01; */
 
-  mesh.emplace_back(CBVertex{spherical_to_cartesian(1, theta, std::numbers::pi - phi), QuadCoord::tl});
-  mesh.emplace_back(CBVertex{spherical_to_cartesian(1, theta, phi), QuadCoord::tr});
-  mesh.emplace_back(CBVertex{spherical_to_cartesian(1, std::numbers::pi - theta, phi), QuadCoord::br});
-  mesh.emplace_back(CBVertex{spherical_to_cartesian(1, theta, std::numbers::pi - phi), QuadCoord::tl});
-  mesh.emplace_back(CBVertex{spherical_to_cartesian(1, std::numbers::pi - theta, phi), QuadCoord::br});
-  mesh.emplace_back(CBVertex{spherical_to_cartesian(1, std::numbers::pi - theta, std::numbers::pi - phi), QuadCoord::bl});
+  mesh.emplace_back(spherical_to_cartesian(1, theta, std::numbers::pi - phi), QuadCoord::tl);
+  mesh.emplace_back(spherical_to_cartesian(1, theta, phi), QuadCoord::tr);
+  mesh.emplace_back(spherical_to_cartesian(1, std::numbers::pi - theta, phi), QuadCoord::br);
+  mesh.emplace_back(spherical_to_cartesian(1, theta, std::numbers::pi - phi), QuadCoord::tl);
+  mesh.emplace_back(spherical_to_cartesian(1, std::numbers::pi - theta, phi), QuadCoord::br);
+  mesh.emplace_back(spherical_to_cartesian(1, std::numbers::pi - theta, std::numbers::pi - phi), QuadCoord::bl);
 
   glGenVertexArrays(1, &cb_vao_);
   glGenBuffers(1, &cb_vbo_);

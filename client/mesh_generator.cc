@@ -61,34 +61,34 @@ void MeshGenerator::mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position,
   } break;
   }
   auto normal = glm::normalize(glm::vec3(1, 0, 1));
-  mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::bl, layer});
+  mesh.emplace_back(glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer);
+  mesh.emplace_back(glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, layer);
+  mesh.emplace_back(glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer);
+  mesh.emplace_back(glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer);
+  mesh.emplace_back(glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer);
+  mesh.emplace_back(glm::vec3(i, j, k + 1), normal, QuadCoord::bl, layer);
   normal = -normal;
-  mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), normal, QuadCoord::bl, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer});
+  mesh.emplace_back(glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer);
+  mesh.emplace_back(glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer);
+  mesh.emplace_back(glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, layer);
+  mesh.emplace_back(glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer);
+  mesh.emplace_back(glm::vec3(i, j, k + 1), normal, QuadCoord::bl, layer);
+  mesh.emplace_back(glm::vec3(i, j + 1, k + 1), normal, QuadCoord::tl, layer);
   // cross
   normal = glm::normalize(glm::vec3(-1, 0, 1));
-  mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, layer});
+  mesh.emplace_back(glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer);
+  mesh.emplace_back(glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, layer);
+  mesh.emplace_back(glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer);
+  mesh.emplace_back(glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer);
+  mesh.emplace_back(glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer);
+  mesh.emplace_back(glm::vec3(i, j, k), normal, QuadCoord::bl, layer);
   normal = -normal;
-  mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i, j, k), normal, QuadCoord::bl, layer});
-  mesh.emplace_back(Vertex{glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer});
+  mesh.emplace_back(glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer);
+  mesh.emplace_back(glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer);
+  mesh.emplace_back(glm::vec3(i + 1, j + 1, k + 1), normal, QuadCoord::tr, layer);
+  mesh.emplace_back(glm::vec3(i + 1, j, k + 1), normal, QuadCoord::br, layer);
+  mesh.emplace_back(glm::vec3(i, j, k), normal, QuadCoord::bl, layer);
+  mesh.emplace_back(glm::vec3(i, j + 1, k), normal, QuadCoord::tl, layer);
 }
 
 void MeshGenerator::mesh_water(std::vector<Vertex>& mesh, glm::vec3& position, Voxel voxel, std::array<Voxel, 6>& adjacent) {
@@ -105,53 +105,53 @@ void MeshGenerator::mesh_water(std::vector<Vertex>& mesh, glm::vec3& position, V
   int textureId = static_cast<int>(CubeTexture::water);
 
   /*   if (!vops::is_opaque(adjacent[nx]) && !vops::is_water(adjacent[nx])) {
-      mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i, j + height, k + 1), QuadCoord::tl, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i, j + height, k), QuadCoord::tr, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::bl, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i, j + height, k + 1), QuadCoord::tl, textureId});
-    }
+      mesh.emplace_back(glm::vec3(i, j, k), QuadCoord::br, textureId);
+      mesh.emplace_back(glm::vec3(i, j + height, k + 1), QuadCoord::tl, textureId);
+      mesh.emplace_back(glm::vec3(i, j + height, k), QuadCoord::tr, textureId);
+      mesh.emplace_back(glm::vec3(i, j, k), QuadCoord::br, textureId);
+      mesh.emplace_back(glm::vec3(i, j, k + 1), QuadCoord::bl, textureId);
+      mesh.emplace_back(glm::vec3(i, j + height, k + 1), QuadCoord::tl, textureId);
+
     if (!vops::is_opaque(adjacent[px]) && !vops::is_water(adjacent[px])) {
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::bl, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k), QuadCoord::tl, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k + 1), QuadCoord::tr, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::bl, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k + 1), QuadCoord::tr, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::br, textureId});
-    }
+      mesh.emplace_back(glm::vec3(i + 1, j, k), QuadCoord::bl, textureId);
+      mesh.emplace_back(glm::vec3(i + 1, j + height, k), QuadCoord::tl, textureId);
+      mesh.emplace_back(glm::vec3(i + 1, j + height, k + 1), QuadCoord::tr, textureId);
+      mesh.emplace_back(glm::vec3(i + 1, j, k), QuadCoord::bl, textureId);
+      mesh.emplace_back(glm::vec3(i + 1, j + height, k + 1), QuadCoord::tr, textureId);
+      mesh.emplace_back(glm::vec3(i + 1, j, k + 1), QuadCoord::br, textureId);
+
     if (!vops::is_opaque(adjacent[ny]) && !vops::is_water(adjacent[ny])) {
-      mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::tr, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::tl, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::br, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::tl, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::bl, textureId});
+      mesh.emplace_back(glm::vec3(i, j, k), QuadCoord::br, textureId);
+      mesh.emplace_back(glm::vec3(i + 1, j, k + 1), QuadCoord::tr, textureId);
+      mesh.emplace_back(glm::vec3(i, j, k + 1), QuadCoord::tl, textureId);
+      mesh.emplace_back(glm::vec3(i, j, k), QuadCoord::br, textureId);
+      mesh.emplace_back(glm::vec3(i + 1, j, k), QuadCoord::tl, textureId);
+      mesh.emplace_back(glm::vec3(i + 1, j, k + 1), QuadCoord::bl, textureId);
     } */
   if (!vops::is_opaque(adjacent[py]) && !vops::is_water(adjacent[py])) {
     auto normal = glm::vec3(0, 1, 0);
-    mesh.emplace_back(Vertex{glm::vec3(i, j + height, k), normal, QuadCoord::br, textureId});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k + 1), normal, QuadCoord::tl, textureId});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k), normal, QuadCoord::tr, textureId});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + height, k), normal, QuadCoord::br, textureId});
-    mesh.emplace_back(Vertex{glm::vec3(i, j + height, k + 1), normal, QuadCoord::bl, textureId});
-    mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k + 1), normal, QuadCoord::tl, textureId});
+    mesh.emplace_back(glm::vec3(i, j + height, k), normal, QuadCoord::br, textureId);
+    mesh.emplace_back(glm::vec3(i + 1, j + height, k + 1), normal, QuadCoord::tl, textureId);
+    mesh.emplace_back(glm::vec3(i + 1, j + height, k), normal, QuadCoord::tr, textureId);
+    mesh.emplace_back(glm::vec3(i, j + height, k), normal, QuadCoord::br, textureId);
+    mesh.emplace_back(glm::vec3(i, j + height, k + 1), normal, QuadCoord::bl, textureId);
+    mesh.emplace_back(glm::vec3(i + 1, j + height, k + 1), normal, QuadCoord::tl, textureId);
   }
   /*   if (!vops::is_opaque(adjacent[nz]) && !vops::is_water(adjacent[nz])) {
-      mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::bl, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i, j + height, k), QuadCoord::tl, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k), QuadCoord::tr, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i, j, k), QuadCoord::bl, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k), QuadCoord::tr, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k), QuadCoord::br, textureId});
+      mesh.emplace_back(glm::vec3(i, j, k), QuadCoord::bl, textureId});
+      mesh.emplace_back(glm::vec3(i, j + height, k), QuadCoord::tl, textureId});
+      mesh.emplace_back(glm::vec3(i + 1, j + height, k), QuadCoord::tr, textureId});
+      mesh.emplace_back(glm::vec3(i, j, k), QuadCoord::bl, textureId});
+      mesh.emplace_back(glm::vec3(i + 1, j + height, k), QuadCoord::tr, textureId});
+      mesh.emplace_back(glm::vec3(i + 1, j, k), QuadCoord::br, textureId});
     }
     if (!vops::is_opaque(adjacent[pz]) && !vops::is_water(adjacent[pz])) {
-      mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::br, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k + 1), QuadCoord::tl, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i, j + height, k + 1), QuadCoord::tr, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i, j, k + 1), QuadCoord::br, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j, k + 1), QuadCoord::bl, textureId});
-      mesh.emplace_back(Vertex{glm::vec3(i + 1, j + height, k + 1), QuadCoord::tl, textureId});
+      mesh.emplace_back(glm::vec3(i, j, k + 1), QuadCoord::br, textureId});
+      mesh.emplace_back(glm::vec3(i + 1, j + height, k + 1), QuadCoord::tl, textureId});
+      mesh.emplace_back(glm::vec3(i, j + height, k + 1), QuadCoord::tr, textureId});
+      mesh.emplace_back(glm::vec3(i, j, k + 1), QuadCoord::br, textureId});
+      mesh.emplace_back(glm::vec3(i + 1, j, k + 1), QuadCoord::bl, textureId});
+      mesh.emplace_back(glm::vec3(i + 1, j + height, k + 1), QuadCoord::tl, textureId});
     }*/
 }
 
@@ -194,52 +194,52 @@ void MeshGenerator::mesh_chunk(const Region& region, const Location& location) {
         auto& textures = reinterpret_cast<std::array<int, 6>&>(voxel_textures);
 
         if (adjacent[nx] < occluding_voxel_type) {
-          mesh.emplace_back(CubeVertex(x, y, z, nx, br, textures[nx]));
-          mesh.emplace_back(CubeVertex(x, y + 1, z + 1, nx, tl, textures[nx]));
-          mesh.emplace_back(CubeVertex(x, y + 1, z, nx, tr, textures[nx]));
-          mesh.emplace_back(CubeVertex(x, y, z, nx, br, textures[nx]));
-          mesh.emplace_back(CubeVertex(x, y, z + 1, nx, bl, textures[nx]));
-          mesh.emplace_back(CubeVertex(x, y + 1, z + 1, nx, tl, textures[nx]));
+          mesh.emplace_back(x, y, z, nx, br, textures[nx]);
+          mesh.emplace_back(x, y + 1, z + 1, nx, tl, textures[nx]);
+          mesh.emplace_back(x, y + 1, z, nx, tr, textures[nx]);
+          mesh.emplace_back(x, y, z, nx, br, textures[nx]);
+          mesh.emplace_back(x, y, z + 1, nx, bl, textures[nx]);
+          mesh.emplace_back(x, y + 1, z + 1, nx, tl, textures[nx]);
         }
         if (adjacent[px] < occluding_voxel_type) {
-          mesh.emplace_back(CubeVertex(x + 1, y, z, px, bl, textures[px]));
-          mesh.emplace_back(CubeVertex(x + 1, y + 1, z, px, tl, textures[px]));
-          mesh.emplace_back(CubeVertex(x + 1, y + 1, z + 1, px, tr, textures[px]));
-          mesh.emplace_back(CubeVertex(x + 1, y, z, px, bl, textures[px]));
-          mesh.emplace_back(CubeVertex(x + 1, y + 1, z + 1, px, tr, textures[px]));
-          mesh.emplace_back(CubeVertex(x + 1, y, z + 1, px, br, textures[px]));
+          mesh.emplace_back(x + 1, y, z, px, bl, textures[px]);
+          mesh.emplace_back(x + 1, y + 1, z, px, tl, textures[px]);
+          mesh.emplace_back(x + 1, y + 1, z + 1, px, tr, textures[px]);
+          mesh.emplace_back(x + 1, y, z, px, bl, textures[px]);
+          mesh.emplace_back(x + 1, y + 1, z + 1, px, tr, textures[px]);
+          mesh.emplace_back(x + 1, y, z + 1, px, br, textures[px]);
         }
         if (adjacent[ny] < occluding_voxel_type) {
-          mesh.emplace_back(CubeVertex(x, y, z, ny, br, textures[ny]));
-          mesh.emplace_back(CubeVertex(x + 1, y, z + 1, ny, tr, textures[ny]));
-          mesh.emplace_back(CubeVertex(x, y, z + 1, ny, tl, textures[ny]));
-          mesh.emplace_back(CubeVertex(x, y, z, ny, br, textures[ny]));
-          mesh.emplace_back(CubeVertex(x + 1, y, z, ny, tl, textures[ny]));
-          mesh.emplace_back(CubeVertex(x + 1, y, z + 1, ny, bl, textures[ny]));
+          mesh.emplace_back(x, y, z, ny, br, textures[ny]);
+          mesh.emplace_back(x + 1, y, z + 1, ny, tr, textures[ny]);
+          mesh.emplace_back(x, y, z + 1, ny, tl, textures[ny]);
+          mesh.emplace_back(x, y, z, ny, br, textures[ny]);
+          mesh.emplace_back(x + 1, y, z, ny, tl, textures[ny]);
+          mesh.emplace_back(x + 1, y, z + 1, ny, bl, textures[ny]);
         }
         if (adjacent[py] < occluding_voxel_type) {
-          mesh.emplace_back(CubeVertex(x, y + 1, z, py, br, textures[py]));
-          mesh.emplace_back(CubeVertex(x + 1, y + 1, z + 1, py, tl, textures[py]));
-          mesh.emplace_back(CubeVertex(x + 1, y + 1, z, py, tr, textures[py]));
-          mesh.emplace_back(CubeVertex(x, y + 1, z, py, br, textures[py]));
-          mesh.emplace_back(CubeVertex(x, y + 1, z + 1, py, bl, textures[py]));
-          mesh.emplace_back(CubeVertex(x + 1, y + 1, z + 1, py, tl, textures[py]));
+          mesh.emplace_back(x, y + 1, z, py, br, textures[py]);
+          mesh.emplace_back(x + 1, y + 1, z + 1, py, tl, textures[py]);
+          mesh.emplace_back(x + 1, y + 1, z, py, tr, textures[py]);
+          mesh.emplace_back(x, y + 1, z, py, br, textures[py]);
+          mesh.emplace_back(x, y + 1, z + 1, py, bl, textures[py]);
+          mesh.emplace_back(x + 1, y + 1, z + 1, py, tl, textures[py]);
         }
         if (adjacent[nz] < occluding_voxel_type) {
-          mesh.emplace_back(CubeVertex(x, y, z, nz, bl, textures[nz]));
-          mesh.emplace_back(CubeVertex(x, y + 1, z, nz, tl, textures[nz]));
-          mesh.emplace_back(CubeVertex(x + 1, y + 1, z, nz, tr, textures[nz]));
-          mesh.emplace_back(CubeVertex(x, y, z, nz, bl, textures[nz]));
-          mesh.emplace_back(CubeVertex(x + 1, y + 1, z, nz, tr, textures[nz]));
-          mesh.emplace_back(CubeVertex(x + 1, y, z, nz, br, textures[nz]));
+          mesh.emplace_back(x, y, z, nz, bl, textures[nz]);
+          mesh.emplace_back(x, y + 1, z, nz, tl, textures[nz]);
+          mesh.emplace_back(x + 1, y + 1, z, nz, tr, textures[nz]);
+          mesh.emplace_back(x, y, z, nz, bl, textures[nz]);
+          mesh.emplace_back(x + 1, y + 1, z, nz, tr, textures[nz]);
+          mesh.emplace_back(x + 1, y, z, nz, br, textures[nz]);
         }
         if (adjacent[pz] < occluding_voxel_type) {
-          mesh.emplace_back(CubeVertex(x, y, z + 1, pz, br, textures[pz]));
-          mesh.emplace_back(CubeVertex(x + 1, y + 1, z + 1, pz, tl, textures[pz]));
-          mesh.emplace_back(CubeVertex(x, y + 1, z + 1, pz, tr, textures[pz]));
-          mesh.emplace_back(CubeVertex(x, y, z + 1, pz, br, textures[pz]));
-          mesh.emplace_back(CubeVertex(x + 1, y, z + 1, pz, bl, textures[pz]));
-          mesh.emplace_back(CubeVertex(x + 1, y + 1, z + 1, pz, tl, textures[pz]));
+          mesh.emplace_back(x, y, z + 1, pz, br, textures[pz]);
+          mesh.emplace_back(x + 1, y + 1, z + 1, pz, tl, textures[pz]);
+          mesh.emplace_back(x, y + 1, z + 1, pz, tr, textures[pz]);
+          mesh.emplace_back(x, y, z + 1, pz, br, textures[pz]);
+          mesh.emplace_back(x + 1, y, z + 1, pz, bl, textures[pz]);
+          mesh.emplace_back(x + 1, y + 1, z + 1, pz, tl, textures[pz]);
         }
       }
     }
@@ -257,7 +257,7 @@ void MeshGenerator::consume_region(Region& region) {
     if (!origin_set_) {
       origin_ = loc;
       origin_set_ = true;
-      diffs_.emplace_back(Diff{origin_, Diff::origin});
+      diffs_.emplace_back(origin_, Diff::origin);
     }
 
     if (diff.kind == Region::Diff::creation) {
@@ -265,7 +265,7 @@ void MeshGenerator::consume_region(Region& region) {
       //      auto start = std::chrono::high_resolution_clock::now();
       random_seed_ = 0;
       mesh_chunk(region, loc);
-      diffs_.emplace_back(Diff{loc, Diff::creation});
+      diffs_.emplace_back(loc, Diff::creation);
 
       /*             auto end = std::chrono::high_resolution_clock::now();
 
@@ -275,7 +275,7 @@ void MeshGenerator::consume_region(Region& region) {
       /*     num_meshed++;
           total_duration += duration.count(); */
     } else if (diff.kind == Region::Diff::deletion) {
-      diffs_.emplace_back(Diff{loc, Diff::deletion});
+      diffs_.emplace_back(loc, Diff::deletion);
     }
   }
   /* if (num_meshed > 0)

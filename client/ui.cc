@@ -13,17 +13,17 @@ UI::UI() {
   for (; i < action_bar_size; ++i)
     action_bar_[i] = {};
   std::size_t index = 0;
-  actions_.emplace_back(Action{Action::new_active_item, Action::NewActiveItemData{action_bar_[index]}});
+  actions_.emplace_back(Action::new_active_item, Action::NewActiveItemData{action_bar_[index]});
   active_index_ = index;
 
   for (int i = 0; i < static_cast<int>(m.size()); ++i) {
-    inv_.emplace_back(i);
+    inv_.push_back(i);
   }
 }
 
 void UI::action_bar_select(std::size_t index) {
   active_index_ = index;
-  actions_.emplace_back(Action{Action::new_active_item, Action::NewActiveItemData{action_bar_[index]}});
+  actions_.emplace_back(Action::new_active_item, Action::NewActiveItemData{action_bar_[index]});
 }
 
 void UI::action_bar_assign(std::size_t index, Item item) {

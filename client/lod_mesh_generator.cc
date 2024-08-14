@@ -49,52 +49,52 @@ void LodMeshGenerator::mesh_chunk(LodLoader& lod_loader, const Location& locatio
         auto& textures = reinterpret_cast<std::array<int, 6>&>(voxel_textures);
 
         if (!vops::is_opaque(adjacent[nx])) {
-          mesh.emplace_back(LodVertex(x, y, z, nx, br, textures[nx]));
-          mesh.emplace_back(LodVertex(x, y + 1, z + 1, nx, tl, textures[nx]));
-          mesh.emplace_back(LodVertex(x, y + 1, z, nx, tr, textures[nx]));
-          mesh.emplace_back(LodVertex(x, y, z, nx, br, textures[nx]));
-          mesh.emplace_back(LodVertex(x, y, z + 1, nx, bl, textures[nx]));
-          mesh.emplace_back(LodVertex(x, y + 1, z + 1, nx, tl, textures[nx]));
+          mesh.emplace_back(x, y, z, nx, br, textures[nx]);
+          mesh.emplace_back(x, y + 1, z + 1, nx, tl, textures[nx]);
+          mesh.emplace_back(x, y + 1, z, nx, tr, textures[nx]);
+          mesh.emplace_back(x, y, z, nx, br, textures[nx]);
+          mesh.emplace_back(x, y, z + 1, nx, bl, textures[nx]);
+          mesh.emplace_back(x, y + 1, z + 1, nx, tl, textures[nx]);
         }
         if (!vops::is_opaque(adjacent[px])) {
-          mesh.emplace_back(LodVertex(x + 1, y, z, px, bl, textures[px]));
-          mesh.emplace_back(LodVertex(x + 1, y + 1, z, px, tl, textures[px]));
-          mesh.emplace_back(LodVertex(x + 1, y + 1, z + 1, px, tr, textures[px]));
-          mesh.emplace_back(LodVertex(x + 1, y, z, px, bl, textures[px]));
-          mesh.emplace_back(LodVertex(x + 1, y + 1, z + 1, px, tr, textures[px]));
-          mesh.emplace_back(LodVertex(x + 1, y, z + 1, px, br, textures[px]));
+          mesh.emplace_back(x + 1, y, z, px, bl, textures[px]);
+          mesh.emplace_back(x + 1, y + 1, z, px, tl, textures[px]);
+          mesh.emplace_back(x + 1, y + 1, z + 1, px, tr, textures[px]);
+          mesh.emplace_back(x + 1, y, z, px, bl, textures[px]);
+          mesh.emplace_back(x + 1, y + 1, z + 1, px, tr, textures[px]);
+          mesh.emplace_back(x + 1, y, z + 1, px, br, textures[px]);
         }
         if (!vops::is_opaque(adjacent[ny])) {
-          mesh.emplace_back(LodVertex(x, y, z, ny, br, textures[ny]));
-          mesh.emplace_back(LodVertex(x + 1, y, z + 1, ny, tr, textures[ny]));
-          mesh.emplace_back(LodVertex(x, y, z + 1, ny, tl, textures[ny]));
-          mesh.emplace_back(LodVertex(x, y, z, ny, br, textures[ny]));
-          mesh.emplace_back(LodVertex(x + 1, y, z, ny, tl, textures[ny]));
-          mesh.emplace_back(LodVertex(x + 1, y, z + 1, ny, bl, textures[ny]));
+          mesh.emplace_back(x, y, z, ny, br, textures[ny]);
+          mesh.emplace_back(x + 1, y, z + 1, ny, tr, textures[ny]);
+          mesh.emplace_back(x, y, z + 1, ny, tl, textures[ny]);
+          mesh.emplace_back(x, y, z, ny, br, textures[ny]);
+          mesh.emplace_back(x + 1, y, z, ny, tl, textures[ny]);
+          mesh.emplace_back(x + 1, y, z + 1, ny, bl, textures[ny]);
         }
         if (!vops::is_opaque(adjacent[py])) {
-          mesh.emplace_back(LodVertex(x, y + 1, z, py, br, textures[py]));
-          mesh.emplace_back(LodVertex(x + 1, y + 1, z + 1, py, tl, textures[py]));
-          mesh.emplace_back(LodVertex(x + 1, y + 1, z, py, tr, textures[py]));
-          mesh.emplace_back(LodVertex(x, y + 1, z, py, br, textures[py]));
-          mesh.emplace_back(LodVertex(x, y + 1, z + 1, py, bl, textures[py]));
-          mesh.emplace_back(LodVertex(x + 1, y + 1, z + 1, py, tl, textures[py]));
+          mesh.emplace_back(x, y + 1, z, py, br, textures[py]);
+          mesh.emplace_back(x + 1, y + 1, z + 1, py, tl, textures[py]);
+          mesh.emplace_back(x + 1, y + 1, z, py, tr, textures[py]);
+          mesh.emplace_back(x, y + 1, z, py, br, textures[py]);
+          mesh.emplace_back(x, y + 1, z + 1, py, bl, textures[py]);
+          mesh.emplace_back(x + 1, y + 1, z + 1, py, tl, textures[py]);
         }
         if (!vops::is_opaque(adjacent[nz])) {
-          mesh.emplace_back(LodVertex(x, y, z, nz, bl, textures[nz]));
-          mesh.emplace_back(LodVertex(x, y + 1, z, nz, tl, textures[nz]));
-          mesh.emplace_back(LodVertex(x + 1, y + 1, z, nz, tr, textures[nz]));
-          mesh.emplace_back(LodVertex(x, y, z, nz, bl, textures[nz]));
-          mesh.emplace_back(LodVertex(x + 1, y + 1, z, nz, tr, textures[nz]));
-          mesh.emplace_back(LodVertex(x + 1, y, z, nz, br, textures[nz]));
+          mesh.emplace_back(x, y, z, nz, bl, textures[nz]);
+          mesh.emplace_back(x, y + 1, z, nz, tl, textures[nz]);
+          mesh.emplace_back(x + 1, y + 1, z, nz, tr, textures[nz]);
+          mesh.emplace_back(x, y, z, nz, bl, textures[nz]);
+          mesh.emplace_back(x + 1, y + 1, z, nz, tr, textures[nz]);
+          mesh.emplace_back(x + 1, y, z, nz, br, textures[nz]);
         }
         if (!vops::is_opaque(adjacent[pz])) {
-          mesh.emplace_back(LodVertex(x, y, z + 1, pz, br, textures[pz]));
-          mesh.emplace_back(LodVertex(x + 1, y + 1, z + 1, pz, tl, textures[pz]));
-          mesh.emplace_back(LodVertex(x, y + 1, z + 1, pz, tr, textures[pz]));
-          mesh.emplace_back(LodVertex(x, y, z + 1, pz, br, textures[pz]));
-          mesh.emplace_back(LodVertex(x + 1, y, z + 1, pz, bl, textures[pz]));
-          mesh.emplace_back(LodVertex(x + 1, y + 1, z + 1, pz, tl, textures[pz]));
+          mesh.emplace_back(x, y, z + 1, pz, br, textures[pz]);
+          mesh.emplace_back(x + 1, y + 1, z + 1, pz, tl, textures[pz]);
+          mesh.emplace_back(x, y + 1, z + 1, pz, tr, textures[pz]);
+          mesh.emplace_back(x, y, z + 1, pz, br, textures[pz]);
+          mesh.emplace_back(x + 1, y, z + 1, pz, bl, textures[pz]);
+          mesh.emplace_back(x + 1, y + 1, z + 1, pz, tl, textures[pz]);
         }
       }
     }
@@ -107,7 +107,7 @@ void LodMeshGenerator::consume_lod_loader(LodLoader& lod_loader) {
     if (diff.kind == LodLoader::Diff::creation) {
       auto& loc = diff.location;
       mesh_chunk<LodLevel::lod1>(lod_loader, loc);
-      diffs_.emplace_back(Diff{Diff::creation, loc, Diff::CreationData{LodLevel::lod1}});
+      diffs_.emplace_back(Diff::creation, loc, Diff::CreationData{LodLevel::lod1});
     }
   }
   lod_loader.clear_diffs();

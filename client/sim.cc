@@ -134,7 +134,7 @@ void Sim::step(std::int64_t ms) {
         std::vector<Location2D> section_locs;
         section_locs.reserve(sections_.size());
         for (auto& [location, _] : sections_)
-          section_locs.emplace_back(location);
+          section_locs.push_back(location);
         auto& player = region_.get_player();
         auto& pos = player.get_position();
         auto loc = Chunk::pos_to_loc(pos);
@@ -183,7 +183,7 @@ void Sim::step(std::int64_t ms) {
       for (int z = -section_distance; z < section_distance; ++z) {
         auto location = Location2D{loc[0] + x, loc[2] + z};
         if (!(sections_.contains(location) || requested_sections_.contains(location)))
-          locs.emplace_back(location);
+          locs.push_back(location);
       }
     }
     if (locs.size() > 0)

@@ -72,8 +72,8 @@ void TerrainGraphics::set_up() {
   glBufferData(GL_ARRAY_BUFFER, mdh.vbo_size, nullptr, GL_STATIC_DRAW);
 
   for (int idx = 0; idx < buckets; ++idx) {
-    auto& command = mdh.commands.emplace_back(DrawArraysIndirectCommand{});
-    auto& metadata = mdh.commands_metadata.emplace_back(CommandMetadata{});
+    auto& command = mdh.commands.emplace_back();
+    auto& metadata = mdh.commands_metadata.emplace_back();
     command.count = 0;
     command.instance_count = 1;
     command.base_instance = 0;
