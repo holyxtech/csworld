@@ -6,8 +6,10 @@ Section::Section(const fbs_update::Section* section) {
   auto loc = section->location();
   location_ = Location2D{loc->x(), loc->y()};
   elevation_ = section->elevation();
+  subsection_elevations_.reserve(sz);
+  landcover_.reserve(Common::landcover_tiles_per_sector);
   for (int i = 0; i < Common::landcover_tiles_per_sector; ++i)
-    landcover_[i] = static_cast<Common::LandCover>(section->landcover()->Get(i));
+    landcover_.emplace_back(static_cast<Common::LandCover>(section->landcover()->Get(i)));
 }
 
 const Location2D& Section::get_location() const {
@@ -18,7 +20,7 @@ int Section::get_elevation() const {
   return elevation_;
 }
 
-const std::array<Common::LandCover, Common::landcover_tiles_per_sector>& Section::get_landcover() const {
+const std::vector<Common::LandCover>& Section::get_landcover() const {
   return landcover_;
 }
 
@@ -81,7 +83,7 @@ void Section::compute_subsection_elevations(std::unordered_map<Location2D, Secti
       float n_x1 = (1 - u_fade) * (a1 + vAAu * u + vAAv * iv) + u_fade * (a2 + vABu * iu + vABv * iv);
 
       int n_xy = (1 - v_fade) * n_x0 + v_fade * n_x1;
-      subsection_elevations_[x + sz_x * z] = n_xy;
+      subsection_elevations_.emplace_back(n_xy);
     }
   }
 
@@ -92,7 +94,7 @@ bool Section::has_subsection_elevations() const {
   return computed_subsection_elevations_;
 }
 
-const std::array<int, Section::sz>& Section::get_subsection_elevations() const {
+const std::vector<int>& Section::get_subsection_elevations() const {
   return subsection_elevations_;
 }
 
@@ -121,6 +123,6 @@ bool Section::is_features_loaded() const {
   return features_loaded_;
 }
 
-std::vector<std::pair<int,Voxel>>& Section::get_features(const Location& location) {
+std::vector<std::pair<int, Voxel>>& Section::get_features(const Location& location) {
   return features_[location];
 }

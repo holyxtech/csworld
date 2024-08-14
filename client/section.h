@@ -16,12 +16,12 @@ public:
   Section(const fbs_update::Section* section);
   const Location2D& get_location() const;
   int get_elevation() const;
-  const std::array<Common::LandCover, Common::landcover_tiles_per_sector>& get_landcover() const;
+  const std::vector<Common::LandCover>& get_landcover() const;
   Common::LandCover get_landcover(int x, int z) const;
   void set_elevation(int elevation);
   void compute_subsection_elevations(std::unordered_map<Location2D, Section, Location2DHash>& sections);
   bool has_subsection_elevations() const;
-  const std::array<int, sz>& get_subsection_elevations() const;
+  const std::vector<int>& get_subsection_elevations() const;
   int get_subsection_elevation(int x, int z) const;
   void insert_into_features(int x, int y, int z, Voxel voxel);
   void set_features_loaded(bool loaded);
@@ -31,9 +31,9 @@ public:
 private:
   Location2D location_;
   int elevation_;
-  std::array<Common::LandCover, Common::landcover_tiles_per_sector> landcover_;
+  std::vector<Common::LandCover> landcover_;
 
-  std::array<int, sz> subsection_elevations_;
+  std::vector<int> subsection_elevations_;
   bool computed_subsection_elevations_ = false;
 
   std::unordered_map<Location, std::vector<std::pair<int, Voxel>>, LocationHash> features_;

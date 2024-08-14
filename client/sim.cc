@@ -25,9 +25,10 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
       renderer_(*this),
       world_editor_(region_) {
 
-   user_controller_ = std::make_unique<FirstPersonController>(*this);
-  /* user_controller_ = std::make_unique<BuildController>(*this);
-  render_modes_.cur = render_modes_.build; */
+  // user_controller_ = std::make_unique<FirstPersonController>(*this);
+  user_controller_ = std::make_unique<BuildController>(*this);
+  user_controller_->init();
+  render_modes_.cur = render_modes_.build;
 
   std::array<double, 3> starting_pos{4230249, 316, -1220386};
   // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
@@ -39,7 +40,7 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     camera.set_position(glm::dvec3{starting_pos[0], starting_pos[1], starting_pos[2]});
     camera.set_position(glm::dvec3{4230225.256719, 311.122231, -1220227.127904});
     camera.set_orientation(-41.5007, -12);
-    //render_modes_.build->seed_camera(camera);
+    render_modes_.build->seed_camera(camera);
   }
 
   auto& player = region_.get_player();
@@ -125,8 +126,7 @@ void Sim::step(std::int64_t ms) {
         auto x = loc->x(), z = loc->y();
         auto location = Location2D{x, z};
         if (!sections_.contains(location)) {
-          auto section = Section(section_update);
-          sections_.insert({location, std::move(section)});
+          sections_.insert({location, Section(section_update)});
           requested_sections_.erase(location);
         }
       }
