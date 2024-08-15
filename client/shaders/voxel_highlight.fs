@@ -1,6 +1,6 @@
 #version 460 core
 
-uniform sampler2D depth;
+layout (binding = 0) uniform sampler2D depth;
 
 out vec4 color;
 
