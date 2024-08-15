@@ -63,14 +63,14 @@ void Region::delete_furthest_chunk(const Location& loc) {
       }
     }
     chunk_to_delete->set_flag(Chunk::Flags::DELETED);
-    diffs_.emplace_back(Diff{*to_delete, Diff::deletion});
+    diffs_.emplace_back(*to_delete, Diff::deletion);
     chunks_sent_.erase(*to_delete);
   }
 }
 
 void Region::chunk_to_mesh_generator(const Location& loc) {
   delete_furthest_chunk(loc);
-  diffs_.emplace_back(Diff{loc, Diff::creation});
+  diffs_.emplace_back(loc, Diff::creation);
   chunks_sent_.insert(loc);
 }
 
@@ -125,7 +125,7 @@ void Region::clear_diffs() {
     std::vector<Location> loaded_locations;
     for (auto& [location, _] : chunks_) {
       if (!chunks_sent_.contains(location))
-        loaded_locations.emplace_back(location);
+        loaded_locations.push_back(location);
     }
 
     auto& player_location_ = player_.get_last_location();
@@ -274,7 +274,7 @@ void Region::update_adjacent_chunks(const Int3D& coord) {
   }
   for (auto& loc : dirty) {
     if (chunks_sent_.contains(loc) && adjacents_missing_[loc] == 0) {
-      diffs_.emplace_back(Diff{loc, Diff::creation});
+      diffs_.emplace_back(loc, Diff::creation);
     }
   }
 }
@@ -311,7 +311,7 @@ bool Region::get_until_kind(
     if (kind_test(voxel_at_v)) {
       return true;
     }
-    voxels.emplace_back(voxel_at_v);
+    voxels.push_back(voxel_at_v);
   }
   return false;
 }
@@ -342,7 +342,7 @@ void Region::raycast_place(const glm::dvec3& pos, const glm::dvec3& dir, Voxel v
             delete_furthest_chunk(loc);
             chunks_sent_.insert(loc);
           }
-          diffs_.emplace_back(Diff{loc, Diff::creation});
+          diffs_.emplace_back(loc, Diff::creation);
 
           update_adjacent_chunks(coord);
         }
@@ -365,7 +365,7 @@ void Region::raycast_remove(const Camera& camera) {
       if (voxel != Voxel::empty) {
         chunk.set_voxel(local[0], local[1], local[2], Voxel::empty);
         updated_since_reset_.insert(loc);
-        diffs_.emplace_back(Diff{loc, Diff::creation});
+        diffs_.emplace_back(loc, Diff::creation);
         update_adjacent_chunks(coord);
         break;
       }
@@ -382,6 +382,6 @@ void Region::reset_updated_since_reset() {
 }
 
 void Region::signal_chunk_update(const Location& loc) {
-  diffs_.emplace_back(Diff{loc, Diff::creation});
+  diffs_.emplace_back(loc, Diff::creation);
   updated_since_reset_.insert(loc);
 }

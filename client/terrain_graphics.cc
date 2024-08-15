@@ -49,13 +49,13 @@ void TerrainGraphics::set_up() {
   std::size_t buckets = Region::max_sz;
   if constexpr (mesh_kind == MeshKind::cubes) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_mesh;
-    mdh.shader = RenderUtils::create_shader(Options::instance()->getShaderPath("terrain.vs"), Options::instance()->getShaderPath("terrain.fs"));
+    mdh.shader = RenderUtils::create_shader("terrain.vs","terrain.fs");
   } else if constexpr (mesh_kind == MeshKind::irregular) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_irregular_mesh;
-    mdh.shader = RenderUtils::create_shader(Options::instance()->getShaderPath("irregular.vs"), Options::instance()->getShaderPath("terrain.fs"));
+    mdh.shader = RenderUtils::create_shader("irregular.vs","terrain.fs");
   } else if constexpr (mesh_kind == MeshKind::water) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_water_mesh;
-    mdh.shader = RenderUtils::create_shader(Options::instance()->getShaderPath("water.vs"), Options::instance()->getShaderPath("water.fs"));
+    mdh.shader = RenderUtils::create_shader("water.vs","water.fs");
   }
   mdh.commands.reserve(buckets);
   mdh.commands_metadata.reserve(buckets);
@@ -133,11 +133,11 @@ TerrainGraphics::TerrainGraphics() {
 
   // shadow map setup
   cubes_shadow_shader_ = RenderUtils::create_shader(
-    Options::instance()->getShaderPath("terrain_shadow.vs"), Options::instance()->getShaderPath("terrain_shadow.gs"),
-    Options::instance()->getShaderPath("terrain_shadow.fs"));
+    "terrain_shadow.vs","terrain_shadow.gs",
+    "terrain_shadow.fs");
   irregular_shadow_shader_ = RenderUtils::create_shader(
-    Options::instance()->getShaderPath("irregular_shadow.vs"), Options::instance()->getShaderPath("irregular_shadow.gs"),
-    Options::instance()->getShaderPath("irregular_shadow.fs"));
+    "irregular_shadow.vs", "irregular_shadow.gs",
+    "irregular_shadow.fs");
 }
 
 void TerrainGraphics::create(const Location& loc, const MeshGenerator& mesh_generator) {
@@ -267,8 +267,8 @@ void TerrainGraphics::render(const Renderer& renderer, const MultiDrawHandle& md
   auto transform = projection * view;
   glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
   auto camera_world_position_loc = glGetUniformLocation(mdh.shader, "uCameraWorldPosition");
-  auto& camera_world_position = renderer.get_camera_world_position();
-  glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_world_position));
+  auto& camera_offset_position = renderer.get_camera_offset_position();
+  glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_offset_position));
 
   GLuint shadow_texture = renderer.get_shadow_texture();
   glBindTextureUnit(0, shadow_texture);
@@ -278,16 +278,16 @@ void TerrainGraphics::render(const Renderer& renderer, const MultiDrawHandle& md
 
   glBindVertexArray(mdh.vao);
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mdh.ibo);
-/* 
-  GLuint query;
-  glGenQueries(1, &query);
-  glBeginQuery(GL_TIME_ELAPSED, query); */
+  /*
+    GLuint query;
+    glGenQueries(1, &query);
+    glBeginQuery(GL_TIME_ELAPSED, query); */
   glMultiDrawArraysIndirect(GL_TRIANGLES, 0, mdh.commands.size(), 0);
-/*   glEndQuery(GL_TIME_ELAPSED);
-  GLuint64 elapsedTime;
-  glGetQueryObjectui64v(query, GL_QUERY_RESULT, &elapsedTime);
-  std::cout << "Time taken: " << (elapsedTime / 1000000.0) << " ms" << std::endl;
-  glDeleteQueries(1, &query); */
+  /*   glEndQuery(GL_TIME_ELAPSED);
+    GLuint64 elapsedTime;
+    glGetQueryObjectui64v(query, GL_QUERY_RESULT, &elapsedTime);
+    std::cout << "Time taken: " << (elapsedTime / 1000000.0) << " ms" << std::endl;
+    glDeleteQueries(1, &query); */
 }
 
 void TerrainGraphics::shadow_map(const Renderer& renderer) const {
@@ -320,9 +320,9 @@ void TerrainGraphics::render_water(const Renderer& renderer) const {
   glUniformMatrix4fv(glGetUniformLocation(mdh.shader, "uView"), 1, GL_FALSE, glm::value_ptr(view));
 
   auto camera_world_position_loc = glGetUniformLocation(mdh.shader, "cameraWorldPosition");
-  auto& camera_world_position = renderer.get_camera_world_position();
+  auto& camera_offset_position = renderer.get_camera_offset_position();
 
-  glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_world_position));
+  glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_offset_position));
 
   glUniform1i(glGetUniformLocation(mdh.shader, "skybox"), 0);
 

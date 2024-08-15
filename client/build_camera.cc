@@ -2,6 +2,9 @@
 
 BuildCamera::BuildCamera() {
   base_translation_speed_ = .7;
+  yaw_ = 33.3;
+  pitch_ = -33.3;
+  update_orientation();
 }
 
 void BuildCamera::move_forward() {

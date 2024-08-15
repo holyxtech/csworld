@@ -197,7 +197,7 @@ namespace QuadCoord {
   constexpr glm::vec2 tr = glm::vec2(1.f, 1.f);
 } // namespace QuadCoord
 
-using Message = std::vector<uint8_t>;
+using Message = std::vector<std::uint8_t>;
 
 struct Action {
   struct NewActiveItemData {

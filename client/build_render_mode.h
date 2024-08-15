@@ -6,9 +6,12 @@
 
 class BuildRenderMode : public RenderMode {
 public:
+  BuildRenderMode(Sim& sim) : RenderMode(sim) {}
   BuildCamera& get_camera();
-  void render(Renderer& renderer) const override;
+  void render() const override;
   void seed_camera(const Camera& camera);
+  void collect_scene_data() override;
+
 private:
   BuildCamera camera_;
 };

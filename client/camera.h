@@ -17,7 +17,7 @@ public:
   const glm::dvec3& get_position() const;
   const glm::vec3& get_front() const;
   const glm::vec3& get_up() const;
-  glm::vec3 get_world_position(glm::dvec3 camera_offset) const;
+  glm::vec3 get_position(glm::dvec3 world_offset) const;
   void set_position(glm::dvec3 position);
   void scale_translation_speed(double scale);
   void scale_rotation_speed(double scale);

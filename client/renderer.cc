@@ -13,12 +13,6 @@
 #include "stb_image.h"
 #include "types.h"
 
-namespace {
-  float ourLerp(float a, float b, float f) {
-    return a + f * (b - a);
-  }
-} // namespace
-
 int Renderer::window_width = 2560;
 int Renderer::window_height = 1440;
 double Renderer::aspect_ratio = Renderer::window_width / static_cast<double>(Renderer::window_height);
@@ -30,43 +24,29 @@ GLuint Renderer::blur_texture_width = Renderer::window_width / 8;
 GLuint Renderer::blur_texture_height = Renderer::window_height / 8;
 std::array<float, Renderer::num_cascades> Renderer::cascade_far_planes = {40, 200, 1000};
 
+namespace {
+  float ourLerp(float a, float b, float f) {
+    return a + f * (b - a);
+  }
+} // namespace
+
 Renderer::Renderer(Sim& sim)
     : sim_(sim), ui_graphics_(sim.get_window(), sim.get_ui()) {
   projection_ = glm::perspective(fov, aspect_ratio, near_plane, far_plane);
 
-  composite_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("composite.vs"), Options::instance()->getShaderPath("composite.fs"));
-  voxel_highlight_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("voxel_highlight.vs"), Options::instance()->getShaderPath("voxel_highlight.fs"));
-  blur_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("blur.vs"), Options::instance()->getShaderPath("blur.fs"));
-  final_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("final.vs"), Options::instance()->getShaderPath("final.fs"));
-  ssao_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("ssao_quad.vs"), Options::instance()->getShaderPath("ssao.fs"));
-  ssao_blur_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("ssao_quad.vs"), Options::instance()->getShaderPath("ssao_blur.fs"));
-  // ssao_apply_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("ssao_quad.vs"), Options::instance()->getShaderPath("ssao_apply.fs"));
+  composite_shader_ = RenderUtils::create_shader("composite.vs", "composite.fs");
 
-  float voxel_highlight_vertices[] = {
-    0.0f, 0.0f, 1.0f,
-    1.0f, 0.0f, 1.0f,
-    1.0f, 1.0f, 1.0f,
-    0.0f, 1.0f, 1.0f,
-    0.0f, 0.0f, 0.0f,
-    1.0f, 0.0f, 0.0f,
-    1.0f, 1.0f, 0.0f,
-    0.0f, 1.0f, 0.0f};
-  unsigned int indices[] = {
-    0, 1, 1, 2, 2, 3, 3, 0,
-    4, 5, 5, 6, 6, 7, 7, 4,
-    0, 4, 1, 5, 2, 6, 3, 7};
-  GLuint voxel_highlight_ebo;
-  GLuint voxel_highlight_vbo;
-  glGenVertexArrays(1, &voxel_highlight_vao_);
-  glGenBuffers(1, &voxel_highlight_vbo);
-  glGenBuffers(1, &voxel_highlight_ebo);
-  glBindVertexArray(voxel_highlight_vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, voxel_highlight_vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(voxel_highlight_vertices), voxel_highlight_vertices, GL_STATIC_DRAW);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, voxel_highlight_ebo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-  glEnableVertexAttribArray(0);
+  GLuint id = RenderUtils::create_shader("voxel_highlight.vs", "voxel_highlight.fs");
+  Shader voxel_highlight_shader(
+    id,
+    {{"MainDepth", 0}},
+    {{"Common", 0}});
+  shaders_["VoxelHighlight"] = std::move(voxel_highlight_shader);
+
+  blur_shader_ = RenderUtils::create_shader("blur.vs", "blur.fs");
+  final_shader_ = RenderUtils::create_shader("final.vs", "final.fs");
+  ssao_shader_ = RenderUtils::create_shader("ssao_quad.vs", "ssao.fs");
+  ssao_blur_shader_ = RenderUtils::create_shader("ssao_quad.vs", "ssao_blur.fs");
 
   glCreateVertexArrays(1, &quad_vao_);
   auto set_up_framebuffers =
@@ -241,6 +221,10 @@ Renderer::Renderer(Sim& sim)
   glCreateBuffers(1, &common_ubo_);
   glNamedBufferStorage(common_ubo_, sizeof(CommonBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
+  // hmm...
+  textures_["MainDepth"] = main_dbo_;
+  uniform_buffers_["Common"] = common_ubo_;
+
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
   glLineWidth(2.f);
@@ -259,7 +243,7 @@ void Renderer::consume_mesh_generator(MeshGenerator& mesh_generator) {
     } else if (diff.kind == MeshGenerator::Diff::deletion) {
       terrain_.destroy(loc);
     } else if (diff.kind == MeshGenerator::Diff::origin) {
-      camera_offset_ = glm::dvec3(loc[0] * Chunk::sz_x, loc[1] * Chunk::sz_y, loc[2] * Chunk::sz_z);
+      world_offset_ = glm::dvec3(loc[0] * Chunk::sz_x, loc[1] * Chunk::sz_y, loc[2] * Chunk::sz_z);
       terrain_.new_origin(loc);
     }
   }
@@ -278,8 +262,8 @@ void Renderer::consume_lod_mesh_generator(LodMeshGenerator& lod_mesh_generator) 
 }
 
 void Renderer::consume_camera(const Camera& camera) {
-  view_ = camera.get_view(camera_offset_);
-  camera_world_position_ = camera.get_world_position(camera_offset_);
+  view_ = camera.get_view(world_offset_);
+  camera_offset_position_ = camera.get_position(world_offset_);
 }
 
 void Renderer::render_scene() {
@@ -333,6 +317,7 @@ void Renderer::render_scene() {
   glUniform1i(glGetUniformLocation(composite_shader_, "waterCameraNormal"), 5);
   glBindTextureUnit(6, ssao_blur_cbo_);
   glUniform1i(glGetUniformLocation(composite_shader_, "ssao"), 6);
+  glUniform1f(glGetUniformLocation(composite_shader_, "jitter"), Common::random_float(0.0, 0.1));
   glBindVertexArray(quad_vao_);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -366,7 +351,7 @@ void Renderer::render_scene() {
 
   // UI
 
-  //ui_graphics_.render();
+  // ui_graphics_.render();
 }
 
 void Renderer::ssao() {
@@ -404,18 +389,52 @@ void Renderer::ssao() {
   glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void Renderer::render_voxel_highlight() {
-  glDisable(GL_DEPTH_TEST);
-  glEnable(GL_BLEND);
-  glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo_);
-  glUseProgram(voxel_highlight_shader_);
-  glBindTextureUnit(0, main_dbo_);
-  glUniform1i(glGetUniformLocation(voxel_highlight_shader_, "depth"), 0);
-  auto transform_loc = glGetUniformLocation(voxel_highlight_shader_, "model");
-  glm::mat4 transform = glm::translate(glm::mat4(1.f), voxel_highlight_position_); // * glm::scale(glm::mat4(1.f), glm::vec3(1.001));
-  glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
-  glBindVertexArray(voxel_highlight_vao_);
-  glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
+void Renderer::render(const DrawCommand& command) {
+  glUseProgram(command.shader_id);
+  if (command.blend)
+    glEnable(GL_BLEND);
+  else
+    glDisable(GL_BLEND);
+
+  if (command.depth_test)
+    glEnable(GL_DEPTH_TEST);
+  else
+    glDisable(GL_DEPTH_TEST);
+
+  for (auto& binding : command.uniform_buffer_bindings)
+    glBindBufferBase(GL_UNIFORM_BUFFER, binding.binding_point, binding.id);
+
+  for (auto& binding : command.uniforms) {
+    auto binding_type = binding.type;
+    auto binding_id = binding.id;
+    switch (binding_type) {
+    case UniformType::Matrix4f:
+      glUniformMatrix4fv(binding_id, 1, GL_FALSE, (const GLfloat*)binding.data);
+      break;
+    }
+  }
+
+  for (auto& binding : command.texture_bindings)
+    glBindTextureUnit(binding.unit, binding.id);
+
+  GLuint vao = vbo_to_vao_[command.vertex_buffer_id];
+  glBindVertexArray(vao);
+
+  GLenum draw_mode;
+  switch (command.primitive_type) {
+  case PrimitiveType::Lines:
+    draw_mode = GL_LINES;
+    break;
+  case PrimitiveType::Triangles:
+    draw_mode = GL_TRIANGLES;
+    break;
+  }
+
+  if (command.index_buffer_id == -1) {
+
+  } else {
+    glDrawElements(draw_mode, command.index_count, GL_UNSIGNED_INT, 0);
+  }
 }
 
 void Renderer::shadow_map() {
@@ -494,16 +513,12 @@ const glm::mat4& Renderer::get_view_matrix() const {
   return view_;
 }
 
-void Renderer::set_highlight(const Int3D& highlight) {
-  voxel_highlight_position_ = glm::dvec3(highlight[0], highlight[1], highlight[2]) - camera_offset_;
-}
-
 const Sky& Renderer::get_sky() const {
   return sky_;
 }
 
-const glm::vec3& Renderer::get_camera_world_position() const {
-  return camera_world_position_;
+const glm::vec3& Renderer::get_camera_offset_position() const {
+  return camera_offset_position_;
 }
 
 UIGraphics& Renderer::get_ui_graphics() {
@@ -516,4 +531,66 @@ GLuint Renderer::get_shadow_texture() const {
 
 const Camera& Renderer::get_camera() const {
   return sim_.get_camera();
+}
+
+GLuint Renderer::get_texture(const std::string& name) const {
+  return textures_.at(name);
+}
+
+GLuint Renderer::get_uniform_buffer(const std::string& name) const {
+  return uniform_buffers_.at(name);
+}
+
+const Shader Renderer::get_shader(const std::string& name) const {
+  return shaders_.at(name);
+}
+
+std::uint32_t Renderer::register_scene_component(const SceneComponent& scene_component) {
+  std::uint32_t id = next_component_id_++;
+  GLuint vao;
+  GLuint vbo;
+  glGenVertexArrays(1, &vao);
+  glGenBuffers(1, &vbo);
+  vertex_buffer_ids_[id] = vbo;
+  vbo_to_vao_[vbo] = vao;
+
+  glBindVertexArray(vao);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  auto& vertices = scene_component.get_vertices();
+  glBufferData(GL_ARRAY_BUFFER, sizeof(std::uint8_t) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+
+  auto& indices = scene_component.get_indices();
+  if (indices.size() > 0) {
+    GLuint ebo;
+    glGenBuffers(1, &ebo);
+    index_buffer_ids_[id] = ebo;
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STATIC_DRAW);
+  }
+
+  auto& attributes = scene_component.get_vertex_attributes();
+  int attrib_id = 0;
+  for (auto& attribute : attributes) {
+    switch (attribute.type) {
+    case VertexAttributeType::Float:
+      glVertexAttribPointer(attrib_id, attribute.component_count, GL_FLOAT, GL_FALSE, sizeof(float) * attribute.component_count, (void*)0);
+
+      break;
+    case VertexAttributeType::Int:
+      break;
+    }
+    glEnableVertexAttribArray(attrib_id);
+    ++attrib_id;
+  }
+
+  return id;
+}
+
+GLuint Renderer::get_vertex_buffer_id(std::uint32_t component_id) { return vertex_buffer_ids_[component_id]; }
+GLuint Renderer::get_index_buffer_id(std::uint32_t component_id) { return index_buffer_ids_[component_id]; }
+GLint Renderer::get_uniform_id(const std::string& shader_name, const std::string& uniform_name) const {
+  auto& shader = shaders_.at(shader_name);
+  GLuint id = shader.get_id();
+  return glGetUniformLocation(id, uniform_name.c_str());
 }

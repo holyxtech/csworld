@@ -4,11 +4,16 @@
 #include "camera.h"
 #include "renderer.h"
 
+class Sim;
+
 class RenderMode {
 public:
+    RenderMode(Sim& sim) : sim_(sim) {}
     virtual Camera& get_camera() = 0;
-    virtual void render(Renderer& renderer) const = 0;
-private:
+    virtual void render() const = 0;
+    virtual void collect_scene_data() = 0;
+protected:
+    Sim& sim_;
 };
 
 #endif

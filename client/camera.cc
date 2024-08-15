@@ -1,7 +1,6 @@
 #include "camera.h"
 #include <iostream>
 #include <glm/ext.hpp>
-#include <glm/gtx/string_cast.hpp>
 
 Camera::Camera() {
   update_orientation();
@@ -53,8 +52,8 @@ void Camera::set_base_translation_speed(double base_translation_speed) {
   base_translation_speed_ = base_translation_speed;
 }
 
-glm::vec3 Camera::get_world_position(glm::dvec3 camera_offset) const {
-  return position_ - camera_offset;
+glm::vec3 Camera::get_position(glm::dvec3 world_offset) const {
+  return position_ - world_offset;
 }
 
 void Camera::print() const {

@@ -59,7 +59,6 @@ int main(int argc, char* argv[]) {
   }
 
   glfwSetErrorCallback(error_callback);
-
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -92,15 +91,11 @@ int main(int argc, char* argv[]) {
   glfwSetCursorPos(window, xpos, ypos);
 
   asio::io_context io_context;
-
   TCPClient tcp_client(io_context);
-
   asio::thread t(boost::bind(&asio::io_context::run, &io_context));
 
   Sim sim(window, tcp_client);
-
   bool quit = false;
-
   std::thread build_thread([&sim, &quit]() {
     auto start = std::chrono::high_resolution_clock::now();
     while (!quit) {
@@ -116,10 +111,8 @@ int main(int argc, char* argv[]) {
   auto start = std::chrono::high_resolution_clock::now();
   while (!quit) {
     glfwPollEvents();
-
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
       quit = true;
-
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     if (duration.count() >= 16) {
@@ -128,6 +121,7 @@ int main(int argc, char* argv[]) {
       start = std::chrono::high_resolution_clock::now();
     }
   }
+
   sim.exit();
   build_thread.join();
   glfwTerminate();

@@ -7,7 +7,6 @@
 FirstPersonController::FirstPersonController(Sim& sim) : UserController(sim) {
 }
 void FirstPersonController::end() {
-  
 }
 void FirstPersonController::init() {
   auto& window_events = sim_.get_window_events();
@@ -32,7 +31,6 @@ void FirstPersonController::move_camera() {
     camera.pan(cursor_pos[0] - prev_cursor_pos[0], prev_cursor_pos[1] - cursor_pos[1]);
     Input::instance()->set_prev_cursor_pos(cursor_pos[0], cursor_pos[1]);
   }
-  renderer.set_highlight(ray_collision);
 
   if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
     camera.set_base_translation_speed(3);
@@ -108,7 +106,7 @@ void FirstPersonController::process_inputs() {
       return;
     }
 
-    if (key_button_event.key == GLFW_KEY_B) {
+    if (key_button_event.key == GLFW_KEY_F) {
       next_controller_ = std::make_unique<BuildController>(sim_);
       return;
     }

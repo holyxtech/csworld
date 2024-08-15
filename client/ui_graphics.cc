@@ -77,7 +77,7 @@ UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
   glfwSetScrollCallback(window, nk_gflw3_scroll_callback);
 }
 
-void UIGraphics::render() {
+void UIGraphics::render_first_person_ui() {
   nk_glfw3_new_frame();
   ctx_->style.window.fixed_background = nk_style_item_color(nk_rgba(0, 0, 0, 0));
   ctx_->style.window.scrollbar_size = {0.f, 0.f};
@@ -86,7 +86,6 @@ void UIGraphics::render() {
   if (nk_begin(ctx_, "nuklear window", nk_rect(0, 0, Renderer::window_width, Renderer::window_height), 0)) {
     nk_layout_set_min_row_height(ctx_, 0);
 
-    auto* canvas = nk_window_get_canvas(ctx_);
     nk_layout_space_begin(ctx_, NK_STATIC, 0, 1);
 
     int action_bar_height = Renderer::window_height * 0.07;
@@ -187,6 +186,22 @@ void UIGraphics::render() {
     }
     nk_end(ctx_);
   }
+
+  nk_glfw3_render(NK_ANTI_ALIASING_ON);
+}
+
+void UIGraphics::render_build_ui() {
+  nk_glfw3_new_frame();
+  //ctx_->style.window.fixed_background = nk_style_item_color(nk_rgba(0, 1));
+  ctx_->style.window.scrollbar_size = {0.f, 0.f};
+  /* ctx_->style.window.padding = {0.f, 0.f};
+  ctx_->style.window.spacing = {0.f, 0.f}; */
+  if (
+    nk_begin(
+      ctx_, "build options", nk_rect(0, 0, Renderer::window_width / 8, Renderer::window_height / 2),
+      NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_CLOSABLE)) {
+  }
+  nk_end(ctx_);
 
   nk_glfw3_render(NK_ANTI_ALIASING_ON);
 }

@@ -57,11 +57,11 @@ namespace {
 } // namespace
 
 Sky::Sky() {
-  cb_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("cb.vs"), Options::instance()->getShaderPath("cb.fs"));
+  cb_shader_ = RenderUtils::create_shader("cb.vs", "cb.fs");
 
   AtmosphereProperties preset_ap;
   AtmosphereProperties std_ap = preset_ap.toStdUnit();
-  transmittance_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("transmittance.comp"));
+  transmittance_shader_ = RenderUtils::create_shader("transmittance.comp");
   glCreateBuffers(1, &atmosphere_ubo_);
   glNamedBufferStorage(atmosphere_ubo_, sizeof(AtmosphereProperties), &std_ap, GL_DYNAMIC_STORAGE_BIT);
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, atmosphere_ubo_);
@@ -74,7 +74,7 @@ Sky::Sky() {
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   // scattering
-  multiscattering_shader_ = RenderUtils::create_shader(Options::instance()->getShaderPath("multiscattering.comp"));
+  multiscattering_shader_ = RenderUtils::create_shader("multiscattering.comp");
   MultiscatteringParams params;
   glCreateBuffers(1, &multiscattering_params_ubo_);
   glNamedBufferStorage(multiscattering_params_ubo_, sizeof(MultiscatteringParams), &params, GL_DYNAMIC_STORAGE_BIT);
@@ -102,8 +102,8 @@ Sky::Sky() {
 
   // sky lut
   sky_lut_shader_ = RenderUtils::create_shader(
-    Options::instance()->getShaderPath("sky_quad.vs"),
-    Options::instance()->getShaderPath("sky_lut.fs"));
+    "sky_quad.vs",
+   "sky_lut.fs");
   glCreateFramebuffers(1, &sky_lut_fbo_);
   glCreateRenderbuffers(1, &sky_lut_rbo_);
   glNamedRenderbufferStorage(sky_lut_rbo_, GL_DEPTH24_STENCIL8, sky_lut_size.x, sky_lut_size.y);
@@ -117,8 +117,8 @@ Sky::Sky() {
 
   // sky
   sky_shader_ = RenderUtils::create_shader(
-    Options::instance()->getShaderPath("sky_quad.vs"),
-    Options::instance()->getShaderPath("sky.fs"));
+    "sky_quad.vs",
+    "sky.fs");
   glCreateVertexArrays(1, &sky_vao_);
   glCreateBuffers(1, &sky_params_ubo_);
   glNamedBufferData(sky_params_ubo_, sizeof(SkyParams), nullptr, GL_DYNAMIC_DRAW);
@@ -168,7 +168,6 @@ void Sky::update_sun_dir(const glm::vec3& dir) {
 }
 
 void Sky::generate_sky_lut(const Renderer& renderer) const {
-
   glDepthFunc(GL_LEQUAL);
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, atmosphere_ubo_);
 
@@ -176,26 +175,20 @@ void Sky::generate_sky_lut(const Renderer& renderer) const {
 
   params.sun_dir = -sun_dir;
   params.sun_radiance = sun_radiance;
-  params.view_pos = renderer.get_camera_world_position();
+  params.view_pos = renderer.get_camera_offset_position();
   params.ray_march_step_count = 40;
   params.enable_multi_scattering = 1;
   glNamedBufferSubData(sky_lut_params_ubo_, 0, sizeof(SkyLutParams), &params);
   glBindBufferBase(GL_UNIFORM_BUFFER, 1, sky_lut_params_ubo_);
-
   glUseProgram(sky_lut_shader_);
-
   glBindTextureUnit(0, transmittance_lut_);
-
   glBindTextureUnit(1, multiscattering_lut_);
   glBindFramebuffer(GL_FRAMEBUFFER, sky_lut_fbo_);
-
   glViewport(0, 0, sky_lut_size.x, sky_lut_size.y);
   glDrawBuffer(GL_COLOR_ATTACHMENT0);
-
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glBindVertexArray(sky_lut_vao_);
   glDrawArrays(GL_TRIANGLES, 0, 6);
-
   glDepthFunc(GL_LESS);
 }
 

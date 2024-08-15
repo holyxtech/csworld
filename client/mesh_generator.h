@@ -32,6 +32,7 @@ public:
   static constexpr int defacto_vertices_per_irregular_mesh = 2500;
   static constexpr int defacto_vertices_per_water_mesh = 3000;
   static constexpr int f = sizeof(CubeVertex);
+
 private:
   enum class Axis {
     x,
@@ -49,50 +50,6 @@ private:
   std::unordered_map<Location, std::vector<Vertex>, LocationHash> water_meshes_;
   std::vector<Diff> diffs_;
 
-  static constexpr std::array<std::array<Int3D, 9>, 3> three_by_three_grid_vectors = {
-    std::array<Int3D, 9>{
-      Int3D{0, -1, -1},
-      Int3D{0, 0, -1},
-      Int3D{0, 1, -1},
-
-      Int3D{0, -1, 0},
-      Int3D{0, 0, 0},
-      Int3D{0, 1, 0},
-
-      Int3D{0, -1, 1},
-      Int3D{0, 0, 1},
-      Int3D{0, 1, 1}},
-
-    std::array<Int3D, 9>{
-      Int3D{-1, 0, -1},
-      Int3D{0, 0, -1},
-      Int3D{1, 0, -1},
-
-      Int3D{-1, 0, 0},
-      Int3D{0, 0, 0},
-      Int3D{1, 0, 0},
-
-      Int3D{-1, 0, 1},
-      Int3D{0, 0, 1},
-      Int3D{1, 0, 1}},
-
-    std::array<Int3D, 9>{
-      Int3D{-1, -1, 0},
-      Int3D{0, -1, 0},
-      Int3D{1, -1, 0},
-
-      Int3D{-1, 0, 0},
-      Int3D{0, 0, 0},
-      Int3D{1, 0, 0},
-
-      Int3D{-1, 1, 0},
-      Int3D{0, 1, 0},
-      Int3D{1, 1, 0},
-    }
-
-  };
-
-  //static constexpr int z_lighting_reduction = 3;
   Location origin_;
   bool origin_set_ = false;
   std::uint32_t random_seed_ = 0;

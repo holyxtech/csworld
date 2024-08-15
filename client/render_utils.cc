@@ -31,7 +31,8 @@ namespace {
 
 namespace RenderUtils {
 
-  GLuint compile_shader(const std::string& path, GLenum shader_type) {
+  GLuint compile_shader(const std::string& name, GLenum shader_type) {
+    auto path = Options::instance()->getShaderPath(name);
     auto shader_source = read_sfile(path);
     const auto shader = glCreateShader(shader_type);
 
@@ -49,26 +50,26 @@ namespace RenderUtils {
     return shader;
   }
 
-  GLuint create_shader(const std::string& compute_shader_path) {
+  GLuint create_shader(const std::string& compute_shader_name) {
     if (!shaders_included)
       include_all();
-    GLuint compute_shader = compile_shader(compute_shader_path, GL_COMPUTE_SHADER);
+    GLuint compute_shader = compile_shader(compute_shader_name, GL_COMPUTE_SHADER);
     GLuint shader = glCreateProgram();
-    
+
     glAttachShader(shader, compute_shader);
-    
+
     glLinkProgram(shader);
     glDeleteShader(compute_shader);
-    
+
     return shader;
   }
 
-  GLuint create_shader(const std::string& vertex_shader_path, const std::string& geometry_shader_path, const std::string& fragment_shader_path) {
+  GLuint create_shader(const std::string& vertex_shader_name, const std::string& geometry_shader_name, const std::string& fragment_shader_name) {
     if (!shaders_included)
       include_all();
-    GLuint vertex_shader = compile_shader(vertex_shader_path, GL_VERTEX_SHADER);
-    GLuint fragment_shader = compile_shader(fragment_shader_path, GL_FRAGMENT_SHADER);
-    GLuint geometry_shader = compile_shader(geometry_shader_path, GL_GEOMETRY_SHADER);
+    GLuint vertex_shader = compile_shader(vertex_shader_name, GL_VERTEX_SHADER);
+    GLuint fragment_shader = compile_shader(fragment_shader_name, GL_FRAGMENT_SHADER);
+    GLuint geometry_shader = compile_shader(geometry_shader_name, GL_GEOMETRY_SHADER);
     GLuint shader = glCreateProgram();
     glAttachShader(shader, vertex_shader);
     glAttachShader(shader, fragment_shader);
@@ -80,11 +81,11 @@ namespace RenderUtils {
     return shader;
   }
 
-  GLuint create_shader(const std::string& vertex_shader_path, const std::string& fragment_shader_path) {
+  GLuint create_shader(const std::string& vertex_shader_name, const std::string& fragment_shader_name) {
     if (!shaders_included)
       include_all();
-    GLuint vertex_shader = compile_shader(vertex_shader_path, GL_VERTEX_SHADER);
-    GLuint fragment_shader = compile_shader(fragment_shader_path, GL_FRAGMENT_SHADER);
+    GLuint vertex_shader = compile_shader(vertex_shader_name, GL_VERTEX_SHADER);
+    GLuint fragment_shader = compile_shader(fragment_shader_name, GL_FRAGMENT_SHADER);
     GLuint shader = glCreateProgram();
     glAttachShader(shader, vertex_shader);
     glAttachShader(shader, fragment_shader);

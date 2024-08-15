@@ -80,7 +80,7 @@ bool Chunk::check_flag(Flags flag) const {
   return flags_ & flag;
 }
 
-Location Chunk::pos_to_loc(const std::array<double, 3>& position) {
+Location Chunk::pos_to_loc(const glm::dvec3& position) {
   return Location{
     static_cast<int>(std::floor(position[0] / Chunk::sz_x)),
     static_cast<int>(std::floor(position[1] / Chunk::sz_y)),

@@ -35,9 +35,9 @@ namespace RenderUtils {
     std::pair{"sunflower", VT{IrregularTexture::sunflower}}};
   constexpr auto named_textures = join(named_cube_textures, named_irregular_textures);
 
-  GLuint create_shader(const std::string& vertex_shader_path, const std::string& fragment_shader_path);
-  GLuint create_shader(const std::string& vertex_shader_path, const std::string& geometry_shader_path, const std::string& fragment_shader_path);
-  GLuint create_shader(const std::string& compute_shader_path);
+  GLuint create_shader(const std::string& vertex_shader_name, const std::string& fragment_shader_name);
+  GLuint create_shader(const std::string& vertex_shader_name, const std::string& geometry_shader_name, const std::string& fragment_shader_name);
+  GLuint create_shader(const std::string& compute_shader_name);
   std::vector<glm::vec3> get_frustum_corners_world_space(const glm::mat4& proj, const glm::mat4& view);
 
 } // namespace RenderUtils

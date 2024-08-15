@@ -33,7 +33,7 @@ public:
   void unset_flag(Flags flag);
   bool check_flag(Flags flag) const;
 
-  static Location pos_to_loc(const std::array<double, 3>& position);
+  static Location pos_to_loc(const glm::dvec3& position);
   static std::array<int, 3> flat_index_to_3d(int i);
 
   static Int3D to_local(Int3D coord);

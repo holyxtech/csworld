@@ -23,25 +23,22 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window),
       tcp_client_(tcp_client),
       renderer_(*this),
-      world_editor_(region_) {
+      world_editor_(region_),
+      render_modes_(*this) {
 
-  // user_controller_ = std::make_unique<FirstPersonController>(*this);
-  user_controller_ = std::make_unique<BuildController>(*this);
+  user_controller_ = std::make_unique<FirstPersonController>(*this);
+  //user_controller_ = std::make_unique<BuildController>(*this);
   user_controller_->init();
-  render_modes_.cur = render_modes_.build;
+  //render_modes_.cur = render_modes_.build;
 
-  std::array<double, 3> starting_pos{4230249, 316, -1220386};
+  glm::dvec3 starting_pos{4230225.256719, 311.122231, -1220227.127904};
   // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
   // starting_pos[1] = 530;
 
-  {
-    std::unique_lock<std::mutex> lock(camera_mutex_);
-    auto& camera = render_modes_.first_person->get_camera();
-    camera.set_position(glm::dvec3{starting_pos[0], starting_pos[1], starting_pos[2]});
-    camera.set_position(glm::dvec3{4230225.256719, 311.122231, -1220227.127904});
-    camera.set_orientation(-41.5007, -12);
-    render_modes_.build->seed_camera(camera);
-  }
+  auto& camera = render_modes_.first_person->get_camera();
+  camera.set_position(starting_pos);
+  camera.set_orientation(-41.5007, -12);
+  render_modes_.build->seed_camera(camera);
 
   auto& player = region_.get_player();
   player.set_position(starting_pos[0], starting_pos[1], starting_pos[2]);
@@ -49,11 +46,13 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
 
   ++loc[0]; // hack so loc != last_location in step() triggers
   player.set_last_location(loc);
+
+  // Can do shader set up...
 }
 
 void Sim::stream_chunks() {
   int num_new_chunks = 0;
-  auto stream_column = [this, &num_new_chunks](Location column) {
+  auto stream_column = [this, &num_new_chunks](Location column) -> void {
     for (int y = render_min_y_offset; y <= render_max_y_offset; ++y) {
       auto location = Location{column[0], column[1] + y, column[2]};
       if (!region_.has_chunk(location) && world_generator_.ready_to_fill(location, sections_)) {
@@ -158,25 +157,9 @@ void Sim::step(std::int64_t ms) {
   }
 
   auto& player = region_.get_player();
-  {
-    std::unique_lock<std::mutex> lock(camera_mutex_);
-    auto& camera_pos = get_camera().get_position();
-    player.set_position(camera_pos[0], camera_pos[1], camera_pos[2]);
-    auto ray = Region::raycast(get_camera().get_position(), get_camera().get_front());
-    ray_collision_ = Int3D{std::numeric_limits<int>::max(), std::numeric_limits<int>::max(), std::numeric_limits<int>::max()};
-    for (auto& coord : ray) {
-      auto loc = Region::location_from_global_coord(coord);
-      if (region_.has_chunk(loc) && region_.get_voxel(coord[0], coord[1], coord[2]) != Voxel::empty) {
-        ray_collision_ = coord;
-        break;
-      }
-    }
-  }
   auto& pos = player.get_position();
   auto loc = Chunk::pos_to_loc(pos);
   auto& last_location = player.get_last_location();
-
-  // sections
   if (loc != last_location) {
     std::vector<Location2D> locs;
     for (int x = -section_distance; x < section_distance; ++x) {
@@ -190,7 +173,6 @@ void Sim::step(std::int64_t ms) {
       request_sections(locs);
   }
   stream_chunks();
-
   player.set_last_location(loc);
 
   user_controller_->process_inputs();
@@ -204,6 +186,8 @@ void Sim::step(std::int64_t ms) {
     }
   }
 
+  render_modes_.cur->collect_scene_data();
+  
   {
     {
       std::unique_lock<std::mutex> lock(mutex_);
@@ -286,7 +270,8 @@ void Sim::draw(std::int64_t ms) {
     }
   }
   cv_.notify_one();
-  render_modes_.cur->render(renderer_);
+  // std::cout<<glm::to_string(render_modes_.cur->get_camera().get_position())<<std::endl;
+  render_modes_.cur->render();
   // renderer_.render();
 }
 

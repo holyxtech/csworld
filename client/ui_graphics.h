@@ -25,7 +25,9 @@ class Renderer;
 class UIGraphics {
 public:
   UIGraphics(GLFWwindow* window, const UI& ui);
-  void render();
+  void render_first_person_ui();
+  void render_build_ui();
+
   std::optional<Item> get_hovering() const;
 
 private:

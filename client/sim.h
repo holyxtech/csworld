@@ -22,15 +22,15 @@
 #include "ui.h"
 #include "user_controller.h"
 #include "world.h"
-#include "world_generator.h"
 #include "world_editor.h"
+#include "world_generator.h"
 
 class Sim {
 public:
   struct RenderModes {
-    RenderModes() {
-      first_person = std::make_shared<FirstPersonRenderMode>();
-      build = std::make_shared<BuildRenderMode>();
+    RenderModes(Sim& sim) {
+      first_person = std::make_shared<FirstPersonRenderMode>(sim);
+      build = std::make_shared<BuildRenderMode>(sim);
       cur = first_person;
     }
     std::shared_ptr<RenderMode> cur;

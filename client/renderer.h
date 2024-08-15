@@ -8,13 +8,55 @@
 #include "lod_mesh_generator.h"
 #include "mesh_generator.h"
 #include "region.h"
+#include "scene_component.h"
 #include "sky.h"
 #include "terrain_graphics.h"
 #include "ui.h"
 #include "ui_graphics.h"
 #include "world.h"
+#include "scene_component.h"
+#include "shader.h"
 
 class Sim;
+
+enum class UniformType {
+  Matrix4f,
+  Vector3f,
+  Float,
+  Int,
+};
+struct UniformBinding {
+  int id;
+  UniformType type;
+  void* data;
+};
+struct UniformBufferBinding {
+  int id;
+  int binding_point;
+};
+struct TextureBinding {
+  int id;
+  int unit;
+};
+struct DrawCommand {
+  int shader_id;
+
+  int vertex_buffer_id;
+  int index_buffer_id;
+
+  int vertex_count;
+  int index_count;
+  int instance_count;
+
+  PrimitiveType primitive_type;
+
+  std::vector<UniformBinding> uniforms;
+  std::vector<UniformBufferBinding> uniform_buffer_bindings;
+  std::vector<TextureBinding> texture_bindings;
+
+  bool depth_test;
+  bool blend;
+};
 
 class Renderer {
 public:
@@ -22,17 +64,25 @@ public:
   void consume_mesh_generator(MeshGenerator& mesh_generator);
   void consume_lod_mesh_generator(LodMeshGenerator& lod_mesh_generator);
   void consume_camera(const Camera& camera);
-  void set_highlight(const Int3D& highlight);
   void render_scene();
-  void render_voxel_highlight();
-  //void render();
+  void render(const DrawCommand& command);
+  //void render_voxel_highlight();
   const glm::mat4& get_view_matrix() const;
   const glm::mat4& get_projection_matrix() const;
-  const glm::vec3& get_camera_world_position() const;
+  const glm::vec3& get_camera_offset_position() const;
   GLuint get_shadow_texture() const;
   const Sky& get_sky() const;
   UIGraphics& get_ui_graphics();
   const Camera& get_camera() const;
+
+  std::uint32_t register_scene_component(const SceneComponent& scene_component);
+  GLuint get_texture(const std::string& name) const;
+  GLuint get_uniform_buffer(const std::string& name) const;
+  const Shader get_shader(const std::string& name) const;
+  GLuint get_vertex_buffer_id(std::uint32_t component_id);
+  GLuint get_index_buffer_id(std::uint32_t component_id);
+  GLint get_uniform_id(const std::string& shader_name, const std::string& uniform_name) const;
+
   static int window_width;
   static int window_height;
   static double aspect_ratio;
@@ -45,9 +95,15 @@ private:
   void ssao();
 
   GLuint composite_shader_;
-  GLuint voxel_highlight_shader_;
   GLuint blur_shader_;
   GLuint final_shader_;
+
+  std::unordered_map<std::string, GLuint> textures_;
+  std::unordered_map<std::string, GLuint> uniform_buffers_;
+  std::unordered_map<std::string, Shader> shaders_;
+  std::unordered_map<std::uint32_t, GLuint> vertex_buffer_ids_;
+  std::unordered_map<std::uint32_t, GLuint> index_buffer_ids_;
+  std::unordered_map<GLuint, GLuint> vbo_to_vao_;
 
   GLuint main_fbo_;
   GLuint main_cbo_;
@@ -61,7 +117,6 @@ private:
   GLuint water_camera_normal_;
   GLuint composite_fbo_;
   GLuint quad_vao_;
-  GLuint voxel_highlight_vao_;
   static GLuint blur_texture_width;
   static GLuint blur_texture_height;
   std::array<GLuint, 2> composite_cbos_;
@@ -74,9 +129,8 @@ private:
   } common_block_;
   GLuint common_ubo_;
 
-  glm::vec3 voxel_highlight_position_;
-  glm::dvec3 camera_offset_;
-  glm::vec3 camera_world_position_;
+  glm::dvec3 world_offset_;
+  glm::vec3 camera_offset_position_;
   glm::mat4 projection_;
   glm::mat4 view_;
   Sky sky_;
@@ -106,6 +160,8 @@ private:
   GLuint shadow_block_ubo_;
   GLuint light_space_matrices_ubo_;
   static std::array<float, 3> cascade_far_planes;
+
+  std::uint32_t next_component_id_ = 0;
 };
 
 #endif
