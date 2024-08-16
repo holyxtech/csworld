@@ -16,7 +16,7 @@ void InventoryController::end() {
   ui.set_inv_open(false);
 }
 void InventoryController::move_camera() {}
-bool InventoryController::process_input(const InputEvent& event) {
+void InventoryController::process_input(const InputEvent& event) {
   auto& ui = sim_.get_ui();
   auto& renderer = sim_.get_renderer();
   auto& window_events = sim_.get_window_events();
@@ -28,12 +28,12 @@ bool InventoryController::process_input(const InputEvent& event) {
   case InputEvent::Kind::KeyButtonEvent:
     auto& key_button_event = std::any_cast<const KeyButtonEvent&>(event.data);
     if (key_button_event.action != GLFW_PRESS) {
-      return false;
+      return;
     }
     if (key_button_event.key == GLFW_KEY_I ||
         key_button_event.key == GLFW_KEY_ESCAPE) {
       next_controller_ = std::make_unique<FirstPersonController>(sim_);
-      return true;
+      return;
     }
     if (key_button_event.key >= GLFW_KEY_0 && key_button_event.key <= GLFW_KEY_9) {
       auto& ui_graphics = renderer.get_ui_graphics();
@@ -45,5 +45,5 @@ bool InventoryController::process_input(const InputEvent& event) {
     }
     break;
   }
-  return false;
+  return;
 }

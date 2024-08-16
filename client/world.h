@@ -1,19 +1,21 @@
 #ifndef WORLD_H
 #define WORLD_H
 
+#include <vector>
 #include <glm/glm.hpp>
+#include <memory>
+#include "GameObjects/game_object.h"
+#include "GameObjects/pawn.h"
 
 class World {
 public:
   World();
-  const glm::vec3& get_sun_dir() const;
-  const glm::vec3& get_sun_col() const;
-  const glm::vec3& get_ambient_col() const;
-
+  void add_game_object(std::shared_ptr<GameObject> obj);
+  void add_pawn(std::shared_ptr<Pawn> obj);
+  void process_input(const InputEvent& event);
+  void step();
 private:
-  glm::vec3 sun_dir_;
-  glm::vec3 sun_col_;
-  glm::vec3 ambient_col_;
+  std::vector<std::shared_ptr<Pawn>> pawns_;
 };
 
 #endif

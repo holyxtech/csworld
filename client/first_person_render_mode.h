@@ -4,7 +4,7 @@
 #include <vector>
 #include "first_person_camera.h"
 #include "render_mode.h"
-#include "game_object.h"
+#include "GameObjects/game_object.h"
 #include "scene_component.h"
 #include "shader.h"
   
@@ -18,7 +18,6 @@ public:
 private:
   FirstPersonCamera camera_;
   GameObject voxel_highlight_;
-  //SceneComponent voxel_highlight_;
 };
 
 #endif

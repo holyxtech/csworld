@@ -11,6 +11,8 @@ struct MouseButtonEvent {
   int button;
   int action;
   int mods;
+  double xpos;
+  double ypos;
 };
 
 struct KeyButtonEvent {

@@ -26,7 +26,7 @@ namespace Common {
   constexpr int landcover_cols_per_sector = 2;
   constexpr int landcover_tiles_per_sector = landcover_rows_per_sector * landcover_cols_per_sector;
 
-  constexpr std::size_t max_msg_buffer_size = 100000;
+  constexpr std::size_t max_msg_buffer_size = 10000;
 
   enum class LandCover : uint8_t {
     bare,

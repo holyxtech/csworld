@@ -24,12 +24,12 @@ void FirstPersonController::move_camera() {
   auto& camera = sim_.get_first_person_render_mode()->get_camera();
 
   std::unique_lock<std::mutex> lock(camera_mutex);
-  auto& cursor_pos = Input::instance()->get_cursor_pos();
-  auto& prev_cursor_pos = Input::instance()->get_prev_cursor_pos();
+  auto [xpos, ypos] = Input::instance()->get_cursor_pos();
+  auto [prev_xpos, prev_ypos] = Input::instance()->get_prev_cursor_pos();
 
-  if (cursor_pos[0] != prev_cursor_pos[0] || cursor_pos[1] != prev_cursor_pos[1]) {
-    camera.pan(cursor_pos[0] - prev_cursor_pos[0], prev_cursor_pos[1] - cursor_pos[1]);
-    Input::instance()->set_prev_cursor_pos(cursor_pos[0], cursor_pos[1]);
+  if (xpos != prev_xpos || ypos != prev_ypos) {
+    camera.pan(xpos - prev_xpos, prev_ypos - ypos);
+    Input::instance()->set_prev_cursor_pos(xpos, ypos);
   }
 
   if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
@@ -59,7 +59,7 @@ void FirstPersonController::move_camera() {
   }
 }
 
-bool FirstPersonController::process_input(const InputEvent& event) {
+void FirstPersonController::process_input(const InputEvent& event) {
   auto& region = sim_.get_region();
   auto& ui = sim_.get_ui();
   auto& camera = sim_.get_camera();
@@ -94,22 +94,22 @@ bool FirstPersonController::process_input(const InputEvent& event) {
     auto& key_button_event = std::any_cast<const KeyButtonEvent&>(event.data);
 
     if (key_button_event.action != GLFW_PRESS) {
-      return false;
+      return;
     }
 
     if (key_button_event.key == GLFW_KEY_I) {
       next_controller_ = std::make_unique<InventoryController>(sim_);
-      return true;
+      return;
     }
 
     if (key_button_event.key == GLFW_KEY_F) {
       next_controller_ = std::make_unique<BuildController>(sim_);
-      return true;
+      return;
     }
 
     if (key_button_event.key == GLFW_KEY_ESCAPE) {
       next_controller_ = std::make_unique<DisabledController>(sim_, std::make_unique<FirstPersonController>(sim_));
-      return true;
+      return;
     }
 
     if (key_button_event.key >= GLFW_KEY_0 && key_button_event.key <= GLFW_KEY_9) {
@@ -125,5 +125,5 @@ bool FirstPersonController::process_input(const InputEvent& event) {
 
   } break;
   }
-  return false;
+  return;
 }

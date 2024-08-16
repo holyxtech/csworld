@@ -2,11 +2,11 @@
 #include <iostream>
 
 void Input::mouse_button_callback(int button, int action, int mods) {
-  mouse_button_events_.enqueue(MouseButtonEvent{button, action, mods});
+  mouse_button_events_.enqueue(MouseButtonEvent{button, action, mods, cursor_pos_[0], cursor_pos_[1]});
   if (action == GLFW_PRESS)
     pressed_mouse_buttons_[button] = true;
   else if (action == GLFW_RELEASE)
-    pressed_mouse_buttons_[button] = false;
+    pressed_mouse_buttons_[button] = false;  
 }
 
 void Input::key_callback(GLFWwindow* window, int key, int action) {

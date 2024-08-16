@@ -8,7 +8,7 @@ class FirstPersonController : public UserController {
 public:
   FirstPersonController(Sim& sim);
   void move_camera() override;
-  bool process_input(const InputEvent& event) override;
+  void process_input(const InputEvent& event) override;
   void init() override;
   void end() override;
 };

@@ -36,12 +36,23 @@ Renderer::Renderer(Sim& sim)
 
   composite_shader_ = RenderUtils::create_shader("composite.vs", "composite.fs");
 
-  GLuint id = RenderUtils::create_shader("voxel_highlight.vs", "voxel_highlight.fs");
-  Shader voxel_highlight_shader(
-    id,
-    {{"MainDepth", 0}},
-    {{"Common", 0}});
-  shaders_["VoxelHighlight"] = std::move(voxel_highlight_shader);
+  {
+    GLuint id = RenderUtils::create_shader("voxel_highlight.vs", "voxel_highlight.fs");
+    Shader voxel_highlight_shader(
+      id,
+      {{"MainDepth", 0}},
+      {{"Common", 0}});
+    shaders_["VoxelHighlight"] = std::move(voxel_highlight_shader);
+  }
+  {
+    GLuint id = RenderUtils::create_shader("ground_selection.vs", "ground_selection.fs");
+    Shader ground_selection_shader(
+      id,
+      {{"MainDepth", 0},
+       {"MainColor", 1}},
+      {{"Common", 0}});
+    shaders_["GroundSelection"] = std::move(ground_selection_shader);
+  }
 
   blur_shader_ = RenderUtils::create_shader("blur.vs", "blur.fs");
   final_shader_ = RenderUtils::create_shader("final.vs", "final.fs");
@@ -223,6 +234,7 @@ Renderer::Renderer(Sim& sim)
 
   // hmm...
   textures_["MainDepth"] = main_dbo_;
+  textures_["MainColor"] = main_cbo_;
   uniform_buffers_["Common"] = common_ubo_;
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -354,41 +366,6 @@ void Renderer::render_scene() {
   // ui_graphics_.render();
 }
 
-void Renderer::ssao() {
-  glBindFramebuffer(GL_FRAMEBUFFER, ssao_fbo_);
-  glClear(GL_COLOR_BUFFER_BIT);
-  glUseProgram(ssao_shader_);
-  glBindTextureUnit(0, main_camera_position_);
-  glUniform1i(glGetUniformLocation(ssao_shader_, "gPosition"), 0);
-  glBindTextureUnit(1, main_camera_normal_);
-  glUniform1i(glGetUniformLocation(ssao_shader_, "gNormal"), 1);
-  glBindTextureUnit(2, ssao_noise_texture_);
-  glUniform1i(glGetUniformLocation(ssao_shader_, "texNoise"), 2);
-  auto proj_loc = glGetUniformLocation(ssao_shader_, "projection");
-  glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm::value_ptr(projection_));
-  auto noise_scale = glm::vec2(window_width / 4.0, window_height / 4.0);
-  glUniform2fv(glGetUniformLocation(ssao_shader_, "noiseScale"), 1, glm::value_ptr(noise_scale));
-  glBindVertexArray(quad_vao_);
-
-  /*   GLuint query;
-    glGenQueries(1, &query);
-    glBeginQuery(GL_TIME_ELAPSED, query); */
-  glDrawArrays(GL_TRIANGLES, 0, 6);
-  /* glEndQuery(GL_TIME_ELAPSED);
-  GLuint64 elapsedTime;
-  glGetQueryObjectui64v(query, GL_QUERY_RESULT, &elapsedTime);
-  std::cout << "Time taken: " << (elapsedTime / 1000000.0) << " ms" << std::endl;
-  glDeleteQueries(1, &query); */
-
-  glBindFramebuffer(GL_FRAMEBUFFER, ssao_blur_fbo_);
-  glClear(GL_COLOR_BUFFER_BIT);
-  glUseProgram(ssao_blur_shader_);
-  glBindTextureUnit(0, ssao_cbo_);
-  glUniform1i(glGetUniformLocation(ssao_blur_shader_, "ssaoInput"), 0);
-  glBindVertexArray(quad_vao_);
-  glDrawArrays(GL_TRIANGLES, 0, 6);
-}
-
 void Renderer::render(const DrawCommand& command) {
   glUseProgram(command.shader_id);
   if (command.blend)
@@ -435,6 +412,99 @@ void Renderer::render(const DrawCommand& command) {
   } else {
     glDrawElements(draw_mode, command.index_count, GL_UNSIGNED_INT, 0);
   }
+}
+
+void Renderer::upload_buffer_data(
+  std::uint32_t component_id, BufferType buffer_type, unsigned int offset, unsigned int size, const void* data) {
+  GLuint buffer;
+  GLenum target;
+  switch (buffer_type) {
+  case BufferType::Vertex:
+    buffer = vertex_buffer_ids_[component_id];
+    target = GL_ARRAY_BUFFER;
+    break;
+  case BufferType::Index:
+    buffer = index_buffer_ids_[component_id];
+    target = GL_ELEMENT_ARRAY_BUFFER;
+    break;
+  }
+  glBindBuffer(target, buffer);
+  glBufferSubData(target, offset, size, data);
+}
+
+std::uint32_t Renderer::register_scene_component(const SceneComponent& scene_component) {
+  std::uint32_t id = next_component_id_++;
+  GLuint vao;
+  GLuint vbo;
+  glGenVertexArrays(1, &vao);
+  glGenBuffers(1, &vbo);
+  vertex_buffer_ids_[id] = vbo;
+  vbo_to_vao_[vbo] = vao;
+
+  glBindVertexArray(vao);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  auto& vertices = scene_component.get_vertices();
+  glBufferData(GL_ARRAY_BUFFER, sizeof(std::uint8_t) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+
+  auto& indices = scene_component.get_indices();
+  if (indices.size() > 0) {
+    GLuint ebo;
+    glGenBuffers(1, &ebo);
+    index_buffer_ids_[id] = ebo;
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STATIC_DRAW);
+  }
+
+  auto& attributes = scene_component.get_vertex_attributes();
+  int attrib_id = 0;
+  for (auto& attribute : attributes) {
+    switch (attribute.type) {
+    case VertexAttributeType::Float:
+      glVertexAttribPointer(attrib_id, attribute.component_count, GL_FLOAT, GL_FALSE, sizeof(float) * attribute.component_count, (void*)0);
+      break;
+    case VertexAttributeType::Int:
+      break;
+    }
+    glEnableVertexAttribArray(attrib_id);
+    ++attrib_id;
+  }
+
+  return id;
+}
+
+void Renderer::ssao() {
+  glBindFramebuffer(GL_FRAMEBUFFER, ssao_fbo_);
+  glClear(GL_COLOR_BUFFER_BIT);
+  glUseProgram(ssao_shader_);
+  glBindTextureUnit(0, main_camera_position_);
+  glUniform1i(glGetUniformLocation(ssao_shader_, "gPosition"), 0);
+  glBindTextureUnit(1, main_camera_normal_);
+  glUniform1i(glGetUniformLocation(ssao_shader_, "gNormal"), 1);
+  glBindTextureUnit(2, ssao_noise_texture_);
+  glUniform1i(glGetUniformLocation(ssao_shader_, "texNoise"), 2);
+  auto proj_loc = glGetUniformLocation(ssao_shader_, "projection");
+  glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm::value_ptr(projection_));
+  auto noise_scale = glm::vec2(window_width / 4.0, window_height / 4.0);
+  glUniform2fv(glGetUniformLocation(ssao_shader_, "noiseScale"), 1, glm::value_ptr(noise_scale));
+  glBindVertexArray(quad_vao_);
+
+  /*   GLuint query;
+    glGenQueries(1, &query);
+    glBeginQuery(GL_TIME_ELAPSED, query); */
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+  /* glEndQuery(GL_TIME_ELAPSED);
+  GLuint64 elapsedTime;
+  glGetQueryObjectui64v(query, GL_QUERY_RESULT, &elapsedTime);
+  std::cout << "Time taken: " << (elapsedTime / 1000000.0) << " ms" << std::endl;
+  glDeleteQueries(1, &query); */
+
+  glBindFramebuffer(GL_FRAMEBUFFER, ssao_blur_fbo_);
+  glClear(GL_COLOR_BUFFER_BIT);
+  glUseProgram(ssao_blur_shader_);
+  glBindTextureUnit(0, ssao_cbo_);
+  glUniform1i(glGetUniformLocation(ssao_blur_shader_, "ssaoInput"), 0);
+  glBindVertexArray(quad_vao_);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void Renderer::shadow_map() {
@@ -543,48 +613,6 @@ GLuint Renderer::get_uniform_buffer(const std::string& name) const {
 
 const Shader Renderer::get_shader(const std::string& name) const {
   return shaders_.at(name);
-}
-
-std::uint32_t Renderer::register_scene_component(const SceneComponent& scene_component) {
-  std::uint32_t id = next_component_id_++;
-  GLuint vao;
-  GLuint vbo;
-  glGenVertexArrays(1, &vao);
-  glGenBuffers(1, &vbo);
-  vertex_buffer_ids_[id] = vbo;
-  vbo_to_vao_[vbo] = vao;
-
-  glBindVertexArray(vao);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  auto& vertices = scene_component.get_vertices();
-  glBufferData(GL_ARRAY_BUFFER, sizeof(std::uint8_t) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
-
-  auto& indices = scene_component.get_indices();
-  if (indices.size() > 0) {
-    GLuint ebo;
-    glGenBuffers(1, &ebo);
-    index_buffer_ids_[id] = ebo;
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STATIC_DRAW);
-  }
-
-  auto& attributes = scene_component.get_vertex_attributes();
-  int attrib_id = 0;
-  for (auto& attribute : attributes) {
-    switch (attribute.type) {
-    case VertexAttributeType::Float:
-      glVertexAttribPointer(attrib_id, attribute.component_count, GL_FLOAT, GL_FALSE, sizeof(float) * attribute.component_count, (void*)0);
-
-      break;
-    case VertexAttributeType::Int:
-      break;
-    }
-    glEnableVertexAttribArray(attrib_id);
-    ++attrib_id;
-  }
-
-  return id;
 }
 
 GLuint Renderer::get_vertex_buffer_id(std::uint32_t component_id) { return vertex_buffer_ids_[component_id]; }

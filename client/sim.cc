@@ -27,6 +27,10 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
       render_modes_(*this),
       draw_generator_(renderer_) {
 
+  {
+    GameObject::set_sim(*this);
+  }
+
   // user_controller_ = std::make_unique<FirstPersonController>(*this);
   user_controller_ = std::make_unique<BuildController>(*this);
   render_modes_.cur = render_modes_.build;
@@ -176,30 +180,31 @@ void Sim::step(std::int64_t ms) {
   stream_chunks();
   player.set_last_location(loc);
 
-  auto swap_controller = [this]() {
-    std::unique_lock<std::mutex> lock(controller_mutex_);
-    auto next_controller = user_controller_->get_next_controller();
-    user_controller_->end();
-    user_controller_ = std::move(next_controller);
-    user_controller_->init();
+  auto process_inputs = [this](auto& event_queue, InputEvent::Kind input_event_kind) {
+    using EventType = typename std::remove_reference<decltype(event_queue)>::type::value_type;
+    EventType event;
+    bool success = event_queue.try_dequeue(event);
+    while (success) {
+      auto input_event = InputEvent{input_event_kind, event};
+      user_controller_->process_input(input_event);
+      {
+        std::unique_lock<std::mutex> lock(controller_mutex_);
+        auto next_controller = user_controller_->get_next_controller();
+        if (next_controller != nullptr) {
+          user_controller_->end();
+          user_controller_ = std::move(next_controller);
+          user_controller_->init();
+        }
+      }
+      world_.process_input(input_event);
+      success = event_queue.try_dequeue(event);
+    }
   };
-  auto& mouse_button_events = Input::instance()->get_mouse_button_events();
-  MouseButtonEvent mouse_button_event;
-  success = mouse_button_events.try_dequeue(mouse_button_event);
-  while (success) {
-    if (user_controller_->process_input(InputEvent{InputEvent::Kind::MouseButtonEvent, mouse_button_event}))
-      swap_controller();
-    success = mouse_button_events.try_dequeue(mouse_button_event);
-  }
-  auto& key_button_events = Input::instance()->get_key_button_events();
-  KeyButtonEvent key_button_event;
-  success = key_button_events.try_dequeue(key_button_event);
-  while (success) {
-    if (user_controller_->process_input(InputEvent{InputEvent::Kind::KeyButtonEvent, key_button_event}))
-      swap_controller();
-    success = key_button_events.try_dequeue(key_button_event);
-  }
+  process_inputs(Input::instance()->get_mouse_button_events(), InputEvent::Kind::MouseButtonEvent);
+  process_inputs(Input::instance()->get_key_button_events(), InputEvent::Kind::KeyButtonEvent);
   ui_.clear_actions();
+
+  world_.step();
 
   render_modes_.cur->collect_scene_data();
 

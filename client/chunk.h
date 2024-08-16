@@ -12,8 +12,8 @@
 class Chunk {
 public:
   enum Flags : uint32_t {
-    DELETED = 1 << 0,
-    EMPTY = 1 << 1,
+    Deleted = 1 << 0,
+    Empty = 1 << 1,
   };
 
   Chunk(int x, int y, int z);
@@ -48,7 +48,7 @@ private:
 
   std::vector<Voxel> voxels_;
   Location location_;
-  uint32_t flags_ = 0;
+  std::uint32_t flags_ = 0;
 };
 
 #endif

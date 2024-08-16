@@ -12,7 +12,7 @@ void DisabledController::init() {
 void DisabledController::end() {}
 
 void DisabledController::move_camera() {}
-bool DisabledController::process_input(const InputEvent& event) {
+void DisabledController::process_input(const InputEvent& event) {
   auto& window_events = sim_.get_window_events();
   switch (event.kind) {
   case InputEvent::Kind::MouseButtonEvent:
@@ -20,13 +20,13 @@ bool DisabledController::process_input(const InputEvent& event) {
   case InputEvent::Kind::KeyButtonEvent:
     auto& key_button_event = std::any_cast<const KeyButtonEvent&>(event.data);
     if (key_button_event.action != GLFW_PRESS) {
-      return false;
+      return;
     }
     if (key_button_event.key == GLFW_KEY_ESCAPE) {
       next_controller_ = std::move(previous_controller_);
-      return true;
+      return;
     }
     break;
   }
-  return false;
+  return;
 }

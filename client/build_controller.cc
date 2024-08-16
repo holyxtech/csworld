@@ -47,7 +47,7 @@ void BuildController::move_camera() {
     camera.move_right();
   }
 }
-bool BuildController::process_input(const InputEvent& event) {
+void BuildController::process_input(const InputEvent& event) {
   auto& ui = sim_.get_ui();
   auto& renderer = sim_.get_renderer();
   auto& window_events = sim_.get_window_events();
@@ -78,13 +78,13 @@ bool BuildController::process_input(const InputEvent& event) {
   case InputEvent::Kind::KeyButtonEvent:
     auto& key_button_event = std::any_cast<const KeyButtonEvent&>(event.data);
     if (key_button_event.action != GLFW_PRESS) {
-      return false;
+      return;
     }
     if (key_button_event.key == GLFW_KEY_F) {
       next_controller_ = std::make_unique<FirstPersonController>(sim_);
-      return true;
+      return;
     }
     break;
   }
-  return false;
+  return;
 }

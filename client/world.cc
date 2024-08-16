@@ -1,19 +1,17 @@
 #include "world.h"
 
-World::World() {
-  sun_dir_ = glm::vec3(-1.f, 1.f, 1.f);
-  sun_col_ = glm::vec3(1.f);
-  ambient_col_ = glm::vec3(0.1f);
+World::World() {}
+void World::add_game_object(std::shared_ptr<GameObject> obj) {}
+void World::add_pawn(std::shared_ptr<Pawn> obj) {
+  pawns_.push_back(obj);
 }
-
-const glm::vec3& World::get_sun_dir() const {
-  return sun_dir_;
+void World::process_input(const InputEvent& event) {
+  for (auto& pawn : pawns_) {
+    pawn->process_input(event);
+  }
 }
-
-const glm::vec3& World::get_sun_col() const {
-  return sun_col_;
-}
-
-const glm::vec3& World::get_ambient_col() const {
-  return ambient_col_;
+void World::step() {
+  for (auto& pawn : pawns_) {
+    pawn->step();
+  }
 }

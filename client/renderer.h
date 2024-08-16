@@ -57,6 +57,10 @@ struct DrawCommand {
   bool depth_test;
   bool blend;
 };
+enum class BufferType {
+  Vertex,
+  Index
+};
 
 class Renderer {
 public:
@@ -66,7 +70,6 @@ public:
   void consume_camera(const Camera& camera);
   void render_scene();
   void render(const DrawCommand& command);
-  //void render_voxel_highlight();
   const glm::mat4& get_view_matrix() const;
   const glm::mat4& get_projection_matrix() const;
   const glm::vec3& get_camera_offset_position() const;
@@ -76,6 +79,7 @@ public:
   const Camera& get_camera() const;
 
   std::uint32_t register_scene_component(const SceneComponent& scene_component);
+  void upload_buffer_data(std::uint32_t component_id, BufferType buffer_type, unsigned int offset, unsigned int size, const void* data);
   GLuint get_texture(const std::string& name) const;
   GLuint get_uniform_buffer(const std::string& name) const;
   const Shader get_shader(const std::string& name) const;

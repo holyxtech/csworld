@@ -3,7 +3,7 @@
 
 #include <memory>
 #include "readerwriterqueue.h"
-// #include "sim.h"
+#include "input.h"
 
 class Sim;
 
@@ -11,7 +11,7 @@ class UserController {
 public:
   UserController(Sim& sim) : sim_(sim) {}
   virtual void move_camera() = 0;
-  virtual void process_inputs() = 0;
+  virtual void process_input(const InputEvent& event) = 0;
   virtual void init() = 0;
   virtual void end() = 0;
 
