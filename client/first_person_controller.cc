@@ -59,7 +59,7 @@ void FirstPersonController::move_camera() {
   }
 }
 
-void FirstPersonController::process_inputs() {
+bool FirstPersonController::process_input(const InputEvent& event) {
   auto& region = sim_.get_region();
   auto& ui = sim_.get_ui();
   auto& camera = sim_.get_camera();
@@ -71,16 +71,15 @@ void FirstPersonController::process_inputs() {
   auto& mesh_mutex = sim_.get_mesh_mutex();
   auto& window_events = sim_.get_window_events();
 
-  auto& mouse_button_events = Input::instance()->get_mouse_button_events();
-  MouseButtonEvent event;
-  bool success = mouse_button_events.try_dequeue(event);
-  while (success) {
-    if (event.button == GLFW_MOUSE_BUTTON_LEFT && event.action == GLFW_PRESS) {
+  switch (event.kind) {
+  case InputEvent::Kind::MouseButtonEvent: {
+    auto& mouse_button_event = std::any_cast<const MouseButtonEvent&>(event.data);
+    if (mouse_button_event.button == GLFW_MOUSE_BUTTON_LEFT && mouse_button_event.action == GLFW_PRESS) {
       {
         std::unique_lock<std::mutex> lock(camera_mutex);
         region.raycast_remove(camera);
       }
-    } else if (event.button == GLFW_MOUSE_BUTTON_RIGHT && event.action == GLFW_PRESS) {
+    } else if (mouse_button_event.button == GLFW_MOUSE_BUTTON_RIGHT && mouse_button_event.action == GLFW_PRESS) {
       {
         std::unique_lock<std::mutex> lock(camera_mutex);
         auto item = ui.get_active_item();
@@ -90,30 +89,27 @@ void FirstPersonController::process_inputs() {
         }
       }
     }
-    success = mouse_button_events.try_dequeue(event);
-  }
-  auto& key_button_events = Input::instance()->get_key_button_events();
-  KeyButtonEvent key_button_event;
-  success = key_button_events.try_dequeue(key_button_event);
-  while (success) {
+  } break;
+  case InputEvent::Kind::KeyButtonEvent: {
+    auto& key_button_event = std::any_cast<const KeyButtonEvent&>(event.data);
+
     if (key_button_event.action != GLFW_PRESS) {
-      success = key_button_events.try_dequeue(key_button_event);
-      continue;
+      return false;
     }
 
     if (key_button_event.key == GLFW_KEY_I) {
       next_controller_ = std::make_unique<InventoryController>(sim_);
-      return;
+      return true;
     }
 
     if (key_button_event.key == GLFW_KEY_F) {
       next_controller_ = std::make_unique<BuildController>(sim_);
-      return;
+      return true;
     }
 
     if (key_button_event.key == GLFW_KEY_ESCAPE) {
       next_controller_ = std::make_unique<DisabledController>(sim_, std::make_unique<FirstPersonController>(sim_));
-      return;
+      return true;
     }
 
     if (key_button_event.key >= GLFW_KEY_0 && key_button_event.key <= GLFW_KEY_9) {
@@ -127,7 +123,7 @@ void FirstPersonController::process_inputs() {
       camera.set_orientation(-41.5007, -12);
     }
 
-    success = key_button_events.try_dequeue(key_button_event);
+  } break;
   }
-  ui.clear_actions();
+  return false;
 }

@@ -1,6 +1,7 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+#include <any>
 #include <array>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -15,6 +16,17 @@ struct MouseButtonEvent {
 struct KeyButtonEvent {
   int key;
   int action;
+};
+
+struct InputEvent {
+  enum Kind {
+    MouseButtonEvent,
+    KeyButtonEvent,
+  };
+  Kind kind;
+  std::any data;
+  template <typename T>
+  InputEvent(Kind k, const T& obj) : kind(k), data(obj) {}
 };
 
 class Input {

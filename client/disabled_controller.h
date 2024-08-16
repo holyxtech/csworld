@@ -9,7 +9,7 @@ class DisabledController : public UserController {
 public:
   DisabledController(Sim& sim, std::unique_ptr<UserController> previous_controller);
   void move_camera() override;
-  void process_inputs() override;
+    bool process_input(const InputEvent& event) override;
   void init() override;
   void end() override;
 

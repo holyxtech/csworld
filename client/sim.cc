@@ -24,12 +24,13 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
       tcp_client_(tcp_client),
       renderer_(*this),
       world_editor_(region_),
-      render_modes_(*this) {
+      render_modes_(*this),
+      draw_generator_(renderer_) {
 
-  user_controller_ = std::make_unique<FirstPersonController>(*this);
-  //user_controller_ = std::make_unique<BuildController>(*this);
+  // user_controller_ = std::make_unique<FirstPersonController>(*this);
+  user_controller_ = std::make_unique<BuildController>(*this);
+  render_modes_.cur = render_modes_.build;
   user_controller_->init();
-  //render_modes_.cur = render_modes_.build;
 
   glm::dvec3 starting_pos{4230225.256719, 311.122231, -1220227.127904};
   // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
@@ -175,19 +176,33 @@ void Sim::step(std::int64_t ms) {
   stream_chunks();
   player.set_last_location(loc);
 
-  user_controller_->process_inputs();
-  {
+  auto swap_controller = [this]() {
     std::unique_lock<std::mutex> lock(controller_mutex_);
     auto next_controller = user_controller_->get_next_controller();
-    if (next_controller != nullptr) {
-      user_controller_->end();
-      user_controller_ = std::move(next_controller);
-      user_controller_->init();
-    }
+    user_controller_->end();
+    user_controller_ = std::move(next_controller);
+    user_controller_->init();
+  };
+  auto& mouse_button_events = Input::instance()->get_mouse_button_events();
+  MouseButtonEvent mouse_button_event;
+  success = mouse_button_events.try_dequeue(mouse_button_event);
+  while (success) {
+    if (user_controller_->process_input(InputEvent{InputEvent::Kind::MouseButtonEvent, mouse_button_event}))
+      swap_controller();
+    success = mouse_button_events.try_dequeue(mouse_button_event);
   }
+  auto& key_button_events = Input::instance()->get_key_button_events();
+  KeyButtonEvent key_button_event;
+  success = key_button_events.try_dequeue(key_button_event);
+  while (success) {
+    if (user_controller_->process_input(InputEvent{InputEvent::Kind::KeyButtonEvent, key_button_event}))
+      swap_controller();
+    success = key_button_events.try_dequeue(key_button_event);
+  }
+  ui_.clear_actions();
 
   render_modes_.cur->collect_scene_data();
-  
+
   {
     {
       std::unique_lock<std::mutex> lock(mutex_);
@@ -296,3 +311,5 @@ moodycamel::ReaderWriterQueue<Sim::WindowEvent>& Sim::get_window_events() { retu
 std::shared_ptr<FirstPersonRenderMode> Sim::get_first_person_render_mode() { return render_modes_.first_person; }
 Sim::RenderModes& Sim::get_render_modes() { return render_modes_; }
 WorldEditor& Sim::get_world_editor() { return world_editor_; }
+DrawGenerator& Sim::get_draw_generator() { return draw_generator_; }
+World& Sim::get_world() { return world_; }

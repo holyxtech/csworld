@@ -12,30 +12,21 @@ void DisabledController::init() {
 void DisabledController::end() {}
 
 void DisabledController::move_camera() {}
-void DisabledController::process_inputs() {
+bool DisabledController::process_input(const InputEvent& event) {
   auto& window_events = sim_.get_window_events();
-
-  auto& mouse_button_events = Input::instance()->get_mouse_button_events();
-  MouseButtonEvent event;
-  bool success = mouse_button_events.try_dequeue(event);
-  while (success) {
-    success = mouse_button_events.try_dequeue(event);
-  }
-
-  auto& key_button_events = Input::instance()->get_key_button_events();
-  KeyButtonEvent key_button_event;
-  success = key_button_events.try_dequeue(key_button_event);
-  while (success) {
+  switch (event.kind) {
+  case InputEvent::Kind::MouseButtonEvent:
+    break;
+  case InputEvent::Kind::KeyButtonEvent:
+    auto& key_button_event = std::any_cast<const KeyButtonEvent&>(event.data);
     if (key_button_event.action != GLFW_PRESS) {
-      success = key_button_events.try_dequeue(key_button_event);
-      continue;
+      return false;
     }
-
     if (key_button_event.key == GLFW_KEY_ESCAPE) {
       next_controller_ = std::move(previous_controller_);
-      return;
+      return true;
     }
-
-    success = key_button_events.try_dequeue(key_button_event);
+    break;
   }
+  return false;
 }

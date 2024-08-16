@@ -24,6 +24,7 @@
 #include "world.h"
 #include "world_editor.h"
 #include "world_generator.h"
+#include "draw_generator.h"
 
 class Sim {
 public:
@@ -49,6 +50,7 @@ public:
   void draw(std::int64_t ms);
   void exit();
 
+  World& get_world();
   Region& get_region();
   UI& get_ui();
   Camera& get_camera();
@@ -62,6 +64,7 @@ public:
   std::shared_ptr<FirstPersonRenderMode> get_first_person_render_mode();
   RenderModes& get_render_modes();
   WorldEditor& get_world_editor();
+  DrawGenerator& get_draw_generator();
 
   static constexpr int render_min_y_offset = -2;
   static constexpr int render_max_y_offset = 2;
@@ -85,6 +88,7 @@ private:
   MeshGenerator mesh_generator_;
   LodMeshGenerator lod_mesh_generator_;
   Renderer renderer_;
+  DrawGenerator draw_generator_;
   UI ui_;
   DbManager db_manager_;
   std::unique_ptr<UserController> user_controller_;
