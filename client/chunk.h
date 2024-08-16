@@ -5,17 +5,18 @@
 #include <unordered_set>
 #include <vector>
 #include "common.h"
+#include "flag_manager.h"
 #include "section.h"
 #include "types.h"
 #include "voxel.h"
 
-class Chunk {
-public:
-  enum Flags : uint32_t {
-    Deleted = 1 << 0,
-    Empty = 1 << 1,
-  };
+enum class ChunkFlags : uint32_t {
+  Deleted = 1 << 0,
+  Empty = 1 << 1,
+};
 
+class Chunk : public FlagManager<ChunkFlags> {
+public:
   Chunk(int x, int y, int z);
   Chunk(const Location& loc, const unsigned char* data, int data_size);
 
@@ -28,10 +29,6 @@ public:
 
   void set_voxel(int i, Voxel voxel);
   void set_voxel(int x, int y, int z, Voxel voxel);
-
-  void set_flag(Flags flag);
-  void unset_flag(Flags flag);
-  bool check_flag(Flags flag) const;
 
   static Location pos_to_loc(const glm::dvec3& position);
   static std::array<int, 3> flat_index_to_3d(int i);

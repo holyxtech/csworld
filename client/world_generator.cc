@@ -164,7 +164,7 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
     }
   }
   if (empty_subsections == Chunk::sz_x * Chunk::sz_z)
-    chunk.set_flag(Chunk::Flags::Empty);
+    chunk.set_flag(ChunkFlags::Empty);
 
   int num_features = 0;
   for (auto [x, z] : section_order) {
@@ -175,7 +175,7 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
     num_features += features.size();
   }
   if (num_features > 0)
-    chunk.unset_flag(Chunk::Flags::Empty);
+    chunk.unset_flag(ChunkFlags::Empty);
 }
 
 double WorldGenerator::noise(double x, double y) const {

@@ -302,6 +302,7 @@ void TerrainGraphics::shadow_map(const Renderer& renderer) const {
   glBindVertexArray(irregular_draw_handle_.vao);
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, irregular_draw_handle_.ibo);
   glMultiDrawArraysIndirect(GL_TRIANGLES, 0, irregular_draw_handle_.commands.size(), 0);
+
 }
 
 void TerrainGraphics::render(const Renderer& renderer) const {

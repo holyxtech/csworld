@@ -7,11 +7,15 @@ void World::add_pawn(std::shared_ptr<Pawn> obj) {
 }
 void World::process_input(const InputEvent& event) {
   for (auto& pawn : pawns_) {
+    if (pawn->check_flag(GameObjectFlags::Disabled))
+      continue;
     pawn->process_input(event);
   }
 }
 void World::step() {
   for (auto& pawn : pawns_) {
+    if (pawn->check_flag(GameObjectFlags::Disabled))
+      continue;
     pawn->step();
   }
 }

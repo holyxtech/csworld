@@ -4,12 +4,13 @@
 #include <vector>
 #include <glm/ext.hpp>
 #include "material.h"
+#include "flag_manager.h"
 
 enum class PrimitiveType {
   Triangles,
   Lines,
 };
-enum VertexAttributeType {
+enum class VertexAttributeType {
   Float,
   Int
 };
@@ -18,11 +19,12 @@ struct VertexAttribute {
   std::uint8_t component_count;
 };
 
-class SceneComponent {
+enum class SceneComponentFlags {
+  Dynamic = (1 << 0)
+};
+
+class SceneComponent : public FlagManager<SceneComponentFlags> {
 public:
-  enum Flags {
-    Dynamic
-  };
   SceneComponent();
 
   std::uint32_t get_id() const;
@@ -49,10 +51,6 @@ public:
   const std::vector<VertexAttribute>& get_vertex_attributes() const;
   std::vector<VertexAttribute>& get_vertex_attributes();
   void set_vertex_attributes(std::vector<VertexAttribute>&& attributes);
-
-  void set_flag(Flags flag);
-  void unset_flag(Flags flag);
-  bool check_flag(Flags flag) const;
 
 private:
   std::uint32_t id_;

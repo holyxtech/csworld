@@ -48,7 +48,7 @@ FirstPersonRenderMode::FirstPersonRenderMode(Sim& sim) : RenderMode(sim) {
   scene_component->set_id(component_id);
 }
 
-void FirstPersonRenderMode::collect_scene_data() {
+void FirstPersonRenderMode::step() {
   auto& camera_mutex = sim_.get_camera_mutex();
   auto& region = sim_.get_region();
   std::unique_lock<std::mutex> lock(camera_mutex);
@@ -85,4 +85,10 @@ void FirstPersonRenderMode::render() const {
 
 FirstPersonCamera& FirstPersonRenderMode::get_camera() {
   return camera_;
+}
+void FirstPersonRenderMode::init() {
+  
+}
+void FirstPersonRenderMode::end() {
+
 }

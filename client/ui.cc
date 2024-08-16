@@ -13,6 +13,7 @@ UI::UI() {
   for (; i < action_bar_size; ++i)
     action_bar_[i] = {};
   std::size_t index = 0;
+
   actions_.emplace_back(Action::new_active_item, Action::NewActiveItemData{action_bar_[index]});
   active_index_ = index;
 

@@ -11,7 +11,7 @@ void FirstPersonController::end() {
 void FirstPersonController::init() {
   auto& window_events = sim_.get_window_events();
   auto& modes = sim_.get_render_modes();
-  modes.cur = modes.first_person;
+  modes.set_mode(modes.first_person);
   window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::disable_cursor});
 }
 

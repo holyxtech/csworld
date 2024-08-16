@@ -10,6 +10,7 @@
 #include "build_render_mode.h"
 #include "camera.h"
 #include "db_manager.h"
+#include "draw_generator.h"
 #include "first_person_render_mode.h"
 #include "lod_loader.h"
 #include "lod_mesh_generator.h"
@@ -24,7 +25,6 @@
 #include "world.h"
 #include "world_editor.h"
 #include "world_generator.h"
-#include "draw_generator.h"
 
 class Sim {
 public:
@@ -33,6 +33,11 @@ public:
       first_person = std::make_shared<FirstPersonRenderMode>(sim);
       build = std::make_shared<BuildRenderMode>(sim);
       cur = first_person;
+    }
+    void set_mode(std::shared_ptr<RenderMode> new_mode) {
+      cur->end();      
+      cur = new_mode;
+      cur->init();
     }
     std::shared_ptr<RenderMode> cur;
     std::shared_ptr<FirstPersonRenderMode> first_person;

@@ -9,7 +9,7 @@ BuildRenderMode::BuildRenderMode(Sim& sim) : RenderMode(sim) {
   auto& scene_component = ground_selection_->get_scene_component();
   auto& vertices = scene_component->get_vertices();
   vertices.resize(1000);
-  scene_component->set_flag(SceneComponent::Flags::Dynamic);
+  scene_component->set_flag(SceneComponentFlags::Dynamic);
   scene_component->set_primitive_type(PrimitiveType::Triangles);
   auto& vertex_attributes = scene_component->get_vertex_attributes();
   VertexAttribute vertex_attribute;
@@ -50,7 +50,7 @@ void BuildRenderMode::seed_camera(const Camera& camera) {
   camera_.set_position(camera.get_position() + glm::dvec3(0, 25, 0));
 }
 
-void BuildRenderMode::collect_scene_data() {
+void BuildRenderMode::step() {
   auto& camera_mutex = sim_.get_camera_mutex();
   auto& region = sim_.get_region();
   std::unique_lock<std::mutex> lock(camera_mutex);
@@ -59,4 +59,10 @@ void BuildRenderMode::collect_scene_data() {
   // this is a strange place to do this...
   player.set_position(camera_pos);
 
+}
+void BuildRenderMode::init() {
+  ground_selection_->unset_flag(GameObjectFlags::Disabled);
+}
+void BuildRenderMode::end() {
+  ground_selection_->set_flag(GameObjectFlags::Disabled);
 }

@@ -20,6 +20,6 @@ void SceneComponent::set_vertex_count(unsigned int count) { vertex_count_ = coun
 unsigned int SceneComponent::get_vertex_count() const { return vertex_count_; }
 PrimitiveType SceneComponent::get_primitive_type() const { return primitive_type_; }
 void SceneComponent::set_primitive_type(PrimitiveType type) { primitive_type_ = type; }
-void SceneComponent::set_flag(Flags flag) { flags_ |= flag; }
-void SceneComponent::unset_flag(Flags flag) { flags_ &= ~flag; }
-bool SceneComponent::check_flag(Flags flag) const { return flags_ & flag; }
+/* void SceneComponent::set_flag(SceneComponent::Flags flag) { flags_ |= flag; }
+void SceneComponent::unset_flag(SceneComponent::Flags flag) { flags_ &= ~flag; }
+bool SceneComponent::check_flag(SceneComponent::Flags flag) const { return flags_ & flag; } */

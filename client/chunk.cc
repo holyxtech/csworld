@@ -68,18 +68,6 @@ Voxel Chunk::get_voxel(int i) const {
   return voxels_[i];
 }
 
-void Chunk::set_flag(Flags flag) {
-  flags_ |= flag;
-}
-
-void Chunk::unset_flag(Flags flag) {
-  flags_ &= ~flag;
-}
-
-bool Chunk::check_flag(Flags flag) const {
-  return flags_ & flag;
-}
-
 Location Chunk::pos_to_loc(const glm::dvec3& position) {
   return Location{
     static_cast<int>(std::floor(position[0] / Chunk::sz_x)),

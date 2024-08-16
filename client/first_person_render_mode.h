@@ -13,7 +13,9 @@ public:
   FirstPersonRenderMode(Sim& sim);
   FirstPersonCamera& get_camera() override;
   void render() const override;
-  void collect_scene_data() override;
+  void step() override;
+  void init() override;
+  void end() override;
 
 private:
   FirstPersonCamera camera_;

@@ -12,7 +12,7 @@ void BuildController::init() {
   auto& window_events = sim_.get_window_events();
   auto build_mode = modes.build;
   build_mode->seed_camera(modes.first_person->get_camera());
-  modes.cur = build_mode;
+  modes.set_mode(build_mode);
   window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::enable_cursor});
 }
 

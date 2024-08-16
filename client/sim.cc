@@ -33,8 +33,8 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
 
   // user_controller_ = std::make_unique<FirstPersonController>(*this);
   user_controller_ = std::make_unique<BuildController>(*this);
-  render_modes_.cur = render_modes_.build;
   user_controller_->init();
+  render_modes_.set_mode(render_modes_.build);
 
   glm::dvec3 starting_pos{4230225.256719, 311.122231, -1220227.127904};
   // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
@@ -205,8 +205,7 @@ void Sim::step(std::int64_t ms) {
   ui_.clear_actions();
 
   world_.step();
-
-  render_modes_.cur->collect_scene_data();
+  render_modes_.cur->step();
 
   {
     {

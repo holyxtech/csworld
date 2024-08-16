@@ -51,7 +51,7 @@ void Region::delete_furthest_chunk(const Location& loc) {
     const Location* to_delete;
     for (auto& location : chunks_sent_) {
       auto& chunk = chunks_.at(location);
-      if (chunk.check_flag(Chunk::Flags::Deleted)) {
+      if (chunk.check_flag(ChunkFlags::Deleted)) {
         continue;
       }
 
@@ -62,7 +62,7 @@ void Region::delete_furthest_chunk(const Location& loc) {
         to_delete = &location;
       }
     }
-    chunk_to_delete->set_flag(Chunk::Flags::Deleted);
+    chunk_to_delete->set_flag(ChunkFlags::Deleted);
     diffs_.emplace_back(*to_delete, Diff::deletion);
     chunks_sent_.erase(*to_delete);
   }
@@ -89,8 +89,8 @@ void Region::add_chunk(Chunk&& chunk) {
     if (adjacents_missing_[location] == 0 &&
         chunks_.contains(location) &&
         !chunks_sent_.contains(location) &&
-        !chunks_.at(location).check_flag(Chunk::Flags::Deleted) &&
-        !chunks_.at(location).check_flag(Chunk::Flags::Empty)) {
+        !chunks_.at(location).check_flag(ChunkFlags::Deleted) &&
+        !chunks_.at(location).check_flag(ChunkFlags::Empty)) {
       chunk_to_mesh_generator(location);
     }
   }
@@ -99,7 +99,7 @@ void Region::add_chunk(Chunk&& chunk) {
     adjacents_missing_.insert({loc, 6});
   } else if (
     adjacents_missing_[loc] == 0 &&
-    !chunks_.at(loc).check_flag(Chunk::Flags::Empty)) {
+    !chunks_.at(loc).check_flag(ChunkFlags::Empty)) {
     chunk_to_mesh_generator(loc);
   }
 }
@@ -332,7 +332,7 @@ void Region::raycast_place(const glm::dvec3& pos, const glm::dvec3& dir, Voxel v
         auto coord = visited[i - 1];
         auto loc = location_from_global_coord(coord);
         if (chunks_.contains(loc) && adjacents_missing_[loc] == 0 &&
-            !chunks_.at(loc).check_flag(Chunk::Flags::Deleted)) {
+            !chunks_.at(loc).check_flag(ChunkFlags::Deleted)) {
           auto& chunk = chunks_.at(loc);
           auto local = Chunk::to_local(coord);
           chunk.set_voxel(local[0], local[1], local[2], voxel);

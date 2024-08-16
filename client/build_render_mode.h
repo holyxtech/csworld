@@ -12,7 +12,9 @@ public:
   BuildCamera& get_camera();
   void render() const override;
   void seed_camera(const Camera& camera);
-  void collect_scene_data() override;
+  void step() override;
+  void init() override;
+  void end() override;
 
 private:
   BuildCamera camera_;
