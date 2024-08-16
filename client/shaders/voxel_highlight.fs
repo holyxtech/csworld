@@ -10,5 +10,5 @@ void main() {
     if (envDepth.r > gl_FragCoord.z)
         color = vec4(1.f,1.f,1.f,1.f);
     else
-        color = vec4(1.f,1.f,1.f,0.f);
+        discard;
 }

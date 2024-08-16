@@ -9,11 +9,17 @@ const glm::mat4& SceneComponent::get_model_transform() const { return model_tran
 void SceneComponent::set_model_transform(const glm::mat4& transform) { model_transform_ = transform; }
 const std::vector<std::uint8_t>& SceneComponent::get_vertices() const { return vertices_; }
 const std::vector<unsigned int>& SceneComponent::get_indices() const { return indices_; }
+std::vector<std::uint8_t>& SceneComponent::get_vertices() { return vertices_; }
+std::vector<unsigned int>& SceneComponent::get_indices() { return indices_; }
 void SceneComponent::set_vertices(std::vector<std::uint8_t>&& vertices) { vertices_ = std::move(vertices); }
 void SceneComponent::set_indices(std::vector<unsigned int>&& indices) { indices_ = std::move(indices); }
 const std::vector<VertexAttribute>& SceneComponent::get_vertex_attributes() const { return vertex_attributes_; }
+std::vector<VertexAttribute>& SceneComponent::get_vertex_attributes() { return vertex_attributes_; }
 void SceneComponent::set_vertex_attributes(std::vector<VertexAttribute>&& attributes) { vertex_attributes_ = std::move(attributes); }
 void SceneComponent::set_vertex_count(unsigned int count) { vertex_count_ = count; }
 unsigned int SceneComponent::get_vertex_count() const { return vertex_count_; }
 PrimitiveType SceneComponent::get_primitive_type() const { return primitive_type_; }
 void SceneComponent::set_primitive_type(PrimitiveType type) { primitive_type_ = type; }
+void SceneComponent::set_flag(Flags flag) { flags_ |= flag; }
+void SceneComponent::unset_flag(Flags flag) { flags_ &= ~flag; }
+bool SceneComponent::check_flag(Flags flag) const { return flags_ & flag; }

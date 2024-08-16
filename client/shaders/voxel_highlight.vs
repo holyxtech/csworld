@@ -3,8 +3,6 @@
 
 #include <common.glsl>
 
-uniform mat4 model;
-
 layout (location = 0) in vec3 position;
 
 void main() {

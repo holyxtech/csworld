@@ -4,9 +4,10 @@
 #include <vector>
 #include "first_person_camera.h"
 #include "render_mode.h"
+#include "game_object.h"
 #include "scene_component.h"
 #include "shader.h"
-
+  
 class FirstPersonRenderMode : public RenderMode {
 public:
   FirstPersonRenderMode(Sim& sim);
@@ -16,7 +17,8 @@ public:
 
 private:
   FirstPersonCamera camera_;
-  SceneComponent voxel_highlight_;
+  GameObject voxel_highlight_;
+  //SceneComponent voxel_highlight_;
 };
 
 #endif
