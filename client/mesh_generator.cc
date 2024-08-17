@@ -60,6 +60,7 @@ void MeshGenerator::mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position,
     layer = static_cast<int>(IrregularTexture::sunflower);
   } break;
   }
+  // normals wrong?
   auto normal = glm::normalize(glm::vec3(1, 0, 1));
   mesh.emplace_back(glm::vec3(i + 1, j, k), normal, QuadCoord::br, layer);
   mesh.emplace_back(glm::vec3(i + 1, j + 1, k), normal, QuadCoord::tr, layer);
@@ -210,12 +211,13 @@ void MeshGenerator::mesh_chunk(const Region& region, const Location& location) {
           mesh.emplace_back(x + 1, y, z + 1, px, br, textures[px]);
         }
         if (adjacent[ny] < occluding_voxel_type) {
-          mesh.emplace_back(x, y, z, ny, br, textures[ny]);
+          mesh.emplace_back(x, y, z, ny, bl, textures[ny]);
           mesh.emplace_back(x + 1, y, z + 1, ny, tr, textures[ny]);
           mesh.emplace_back(x, y, z + 1, ny, tl, textures[ny]);
-          mesh.emplace_back(x, y, z, ny, br, textures[ny]);
-          mesh.emplace_back(x + 1, y, z, ny, tl, textures[ny]);
-          mesh.emplace_back(x + 1, y, z + 1, ny, bl, textures[ny]);
+          
+          mesh.emplace_back(x, y, z, ny, bl, textures[ny]);
+          mesh.emplace_back(x + 1, y, z, ny, br, textures[ny]);
+          mesh.emplace_back(x + 1, y, z + 1, ny, tr, textures[ny]);
         }
         if (adjacent[py] < occluding_voxel_type) {
           mesh.emplace_back(x, y + 1, z, py, br, textures[py]);
