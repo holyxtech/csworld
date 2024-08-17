@@ -1,7 +1,7 @@
 #include "build_camera.h"
 
 BuildCamera::BuildCamera() {
-  base_translation_speed_ = .7;
+  base_translation_speed_ = .5;
   yaw_ = 33.3;
   pitch_ = -33.3;
   update_orientation();

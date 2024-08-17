@@ -408,7 +408,7 @@ void Renderer::render(const DrawCommand& command) {
   }
 
   if (command.index_buffer_id == -1) {
-
+    glDrawArrays(draw_mode, 0, command.vertex_count);
   } else {
     glDrawElements(draw_mode, command.index_count, GL_UNSIGNED_INT, 0);
   }
@@ -441,10 +441,12 @@ std::uint32_t Renderer::register_scene_component(const SceneComponent& scene_com
   vertex_buffer_ids_[id] = vbo;
   vbo_to_vao_[vbo] = vao;
 
+  GLenum draw_type = scene_component.check_flag(SceneComponentFlags::Dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
+
   glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   auto& vertices = scene_component.get_vertices();
-  glBufferData(GL_ARRAY_BUFFER, sizeof(std::uint8_t) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(std::uint8_t) * vertices.size(), vertices.data(), draw_type);
 
   auto& indices = scene_component.get_indices();
   if (indices.size() > 0) {
@@ -452,7 +454,7 @@ std::uint32_t Renderer::register_scene_component(const SceneComponent& scene_com
     glGenBuffers(1, &ebo);
     index_buffer_ids_[id] = ebo;
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), draw_type);
   }
 
   auto& attributes = scene_component.get_vertex_attributes();

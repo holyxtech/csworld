@@ -20,6 +20,10 @@ class UI {
 public:
   static constexpr std::size_t action_bar_size = 10;
 
+  struct Brush {
+    int brush_radius;
+  };
+
   UI();
   void action_bar_select(std::size_t index);
   void set_inv_open(bool open);
@@ -32,13 +36,16 @@ public:
   std::size_t get_active_index() const;
   const std::vector<Item>& get_inv() const;
   std::optional<Item> get_active_item() const;
+  const Brush& get_brush() const;
+  void set_brush(Brush&& brush);
 private:
   std::vector<Action> actions_;
-
   std::array<std::optional<Item>, action_bar_size> action_bar_;
   std::size_t active_index_;
   std::vector<Item> inv_;
   bool inv_open_ = false;
+
+  Brush brush_;
 };
 
 #endif

@@ -279,10 +279,9 @@ void Region::update_adjacent_chunks(const Int3D& coord) {
   }
 }
 
-bool Region::get_first_of_kind(
+bool Region::get_first_of_kind_without_obstruction(
   const glm::dvec3& pos, const glm::dvec3& dir, int max_tries, Int3D& coord, Voxel& voxel,
-  const std::function<bool(Voxel v)>& kind_test) const {
-
+  const std::function<bool(Voxel v)>& kind_test, const std::function<bool(Voxel v)>& obstruction_test) const {
   auto visited = raycast(pos, dir, max_tries);
   for (auto& v : visited) {
     auto loc = location_from_global_coord(v);
@@ -294,6 +293,8 @@ bool Region::get_first_of_kind(
       voxel = voxel_at_v;
       coord = v;
       return true;
+    } else if (obstruction_test(voxel_at_v)) {
+      return false;
     }
   }
   return false;

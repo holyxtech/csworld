@@ -66,3 +66,5 @@ const std::vector<Item>& UI::get_inv() const {
 std::optional<Item> UI::get_active_item() const {
   return action_bar_[active_index_];
 }
+const UI::Brush& UI::get_brush() const { return brush_; }
+void UI::set_brush(Brush&& brush) { brush_ = brush; }

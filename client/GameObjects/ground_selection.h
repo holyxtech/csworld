@@ -8,6 +8,7 @@
 
 class GroundSelection : public Pawn {
 public:
+  GroundSelection();
   void process_input(const InputEvent& event) override;
   void step() override;
 

@@ -27,6 +27,12 @@ void BuildController::move_camera() {
     Input::instance()->set_prev_cursor_pos(cursor_pos[0], cursor_pos[1]);
   }
 
+  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+    camera.set_base_translation_speed(3);
+  } else {
+    camera.set_base_translation_speed(0.5);
+  }
+
   camera.scale_translation_speed(16.6 * Sim::frame_rate_target / 1000.0);
   camera.scale_rotation_speed(16.6 * Sim::frame_rate_target / 1000.0);
 

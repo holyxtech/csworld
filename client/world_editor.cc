@@ -37,7 +37,7 @@ float WorldEditor::gaussian_falloff(float distance_squared) const {
    - need to generate update in some form that can be undone
 */
 void WorldEditor::raise(const glm::dvec3& pos, const glm::dvec3& dir) {
-  Int3D coord;
+/*   Int3D coord;
   Voxel voxel_at_brush_tip;
   if (!region_.get_first_of_kind(pos, dir, 500, coord, voxel_at_brush_tip, vops::is_earthen))
     return;
@@ -53,8 +53,8 @@ void WorldEditor::raise(const glm::dvec3& pos, const glm::dvec3& dir) {
 
   std::unordered_set<Location, LocationHash> dirty;
 
-  for (int z = -brush_radius; z < brush_radius; ++z) {
-    for (int x = -brush_radius; x < brush_radius; ++x) {
+  for (int z = -brush_radius; z <= brush_radius; ++z) {
+    for (int x = -brush_radius; x <= brush_radius; ++x) {
       glm::dvec3 adjacent_pos_center{coord[0] + x + 0.5, coord[1] - 0.5, coord[2] + z + 0.5};
       Int3D adjacent_coord;
       Voxel adjacent_voxel;
@@ -107,7 +107,7 @@ void WorldEditor::raise(const glm::dvec3& pos, const glm::dvec3& dir) {
   }
   for (auto& loc : dirty) {
      region_.signal_chunk_update(loc);
-  }
+  } */
 }
 
 void WorldEditor::reset() {

@@ -45,9 +45,12 @@ public:
   void signal_chunk_update(const Location& loc);
 
   static std::vector<Int3D> raycast(const glm::dvec3& pos, const glm::dvec3& dir, int num_voxels = 50);
-  bool get_first_of_kind(
+/*   bool get_first_of_kind(
     const glm::dvec3& pos, const glm::dvec3& dir, int max_tries, Int3D& coord, Voxel& voxel,
-    const std::function<bool(Voxel v)>& kind_test) const;
+    const std::function<bool(Voxel v)>& kind_test) const; */
+  bool get_first_of_kind_without_obstruction(
+    const glm::dvec3& pos, const glm::dvec3& dir, int max_tries, Int3D& coord, Voxel& voxel,
+    const std::function<bool(Voxel v)>& kind_test , const std::function<bool(Voxel v)>& obstruction_test) const;
   bool get_until_kind(
     const glm::dvec3& pos, const glm::dvec3& dir, int max_tries, std::vector<Voxel>& voxels,
     const std::function<bool(Voxel v)>& kind_test) const;

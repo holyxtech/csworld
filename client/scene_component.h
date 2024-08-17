@@ -20,7 +20,8 @@ struct VertexAttribute {
 };
 
 enum class SceneComponentFlags {
-  Dynamic = (1 << 0)
+  Dynamic = (1 << 0),
+  Dirty = (1 << 1),
 };
 
 class SceneComponent : public FlagManager<SceneComponentFlags> {
@@ -43,6 +44,7 @@ public:
   std::vector<std::uint8_t>& get_vertices();
   std::vector<unsigned int>& get_indices();
   void set_vertices(std::vector<std::uint8_t>&& vertices);
+  void memcpy_vertices(const void* src, std::size_t bytes);
   void set_indices(std::vector<unsigned int>&& indices);
 
   PrimitiveType get_primitive_type() const;

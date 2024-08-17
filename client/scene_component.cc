@@ -1,4 +1,6 @@
 #include "scene_component.h"
+#include <iostream>
+#include <memory>
 
 SceneComponent::SceneComponent() {}
 std::uint32_t SceneComponent::get_id() const { return id_; }
@@ -20,6 +22,12 @@ void SceneComponent::set_vertex_count(unsigned int count) { vertex_count_ = coun
 unsigned int SceneComponent::get_vertex_count() const { return vertex_count_; }
 PrimitiveType SceneComponent::get_primitive_type() const { return primitive_type_; }
 void SceneComponent::set_primitive_type(PrimitiveType type) { primitive_type_ = type; }
-/* void SceneComponent::set_flag(SceneComponent::Flags flag) { flags_ |= flag; }
-void SceneComponent::unset_flag(SceneComponent::Flags flag) { flags_ &= ~flag; }
-bool SceneComponent::check_flag(SceneComponent::Flags flag) const { return flags_ & flag; } */
+void SceneComponent::memcpy_vertices(const void* src, std::size_t bytes) {
+  // need to handle reallocation
+  if (bytes > vertices_.size()) {
+    std::cout << "vertex buffer too small!!!" << std::endl;
+    return;
+  }
+  std::memcpy(vertices_.data(), src, bytes);
+  set_flag(SceneComponentFlags::Dirty);
+}
