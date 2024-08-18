@@ -15,7 +15,7 @@ find_package(CURL REQUIRED)
 find_package(Boost CONFIG REQUIRED COMPONENTS bind)
 find_package(asio CONFIG REQUIRED)
 find_package(SQLite3 REQUIRED)
-find_package(unofficial-nuklear CONFIG REQUIRED)
+#find_package(unofficial-nuklear CONFIG REQUIRED)
 
 function(escape_backslashes input_path output_path)
     string(REPLACE "\\" "\\\\" escaped_path "${input_path}")
@@ -79,6 +79,7 @@ add_dependencies(client generate_fbs)
 add_dependencies(server generate_fbs)
 
 target_include_directories(client PRIVATE
+    ${CMAKE_SOURCE_DIR}/ext/
     ${CMAKE_SOURCE_DIR}/ext/cy
     ${CMAKE_SOURCE_DIR}/common
     ${CMAKE_SOURCE_DIR}/fbs

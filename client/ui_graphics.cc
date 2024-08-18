@@ -14,12 +14,14 @@
 float UIGraphics::action_button_spacing = 0.f;
 float UIGraphics::action_button_border = 8.f;
 float UIGraphics::action_button_padding = 0.f;
-float UIGraphics::inv_button_spacing = 4.f;
-float UIGraphics::inv_button_padding = 4.f;
+struct nk_color UIGraphics::action_border_default_color = nk_rgb(204, 204, 204);
+struct nk_color UIGraphics::action_border_selected_color = nk_rgb(81, 125, 47);
+float UIGraphics::inv_button_spacing = 0.f;
+float UIGraphics::inv_button_padding = 0.f;
 float UIGraphics::inv_scrollbar_width = 20.f;
-float UIGraphics::inv_button_border = 0.f;
-struct nk_color UIGraphics::action_border_default_color = nk_rgb(100, 100, 100);
-struct nk_color UIGraphics::action_border_selected_color = nk_rgb(153, 81, 61);
+float UIGraphics::inv_button_border = 8.f;
+struct nk_color UIGraphics::inv_border_hover_color = nk_rgb(255, 200, 30);
+struct nk_color UIGraphics::inv_background_color = nk_rgb(230, 230, 230);
 
 UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
   std::uint32_t tex_id = 0;
@@ -82,6 +84,17 @@ UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
     std::string path = Options::instance()->getImagePath(texture_name + ".png");
     int width, height, channels;
     auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+    int num_pixels = width * height;
+    for (int i = 0; i < num_pixels; ++i) {
+      unsigned char* pixel = &image_data[i * channels];
+
+      if (pixel[3] == 0) {
+        pixel[0] = action_border_default_color.r;
+        pixel[1] = action_border_default_color.g;
+        pixel[2] = action_border_default_color.b;
+        pixel[3] = 255;
+      }
+    }
 
     if (width != texture_width || height != texture_height) {
       auto* resized_data = new unsigned char[texture_width * texture_height * channels];
@@ -110,7 +123,11 @@ UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
 void UIGraphics::render_first_person_ui() {
   nk_glfw3_new_frame();
   nk_style_push_vec2(ctx_, &ctx_->style.window.scrollbar_size, {0.f, 0.f});
-  if (nk_begin(ctx_, "nuklear window", nk_rect(0, 0, Renderer::window_width, Renderer::window_height), 0)) {
+  uint32_t flags = 0;
+  if (ui_.is_inv_open()) {
+    flags |= NK_WINDOW_NO_INPUT;
+  }
+  if (nk_begin(ctx_, "nuklear window", nk_rect(0, 0, Renderer::window_width, Renderer::window_height), flags)) {
     nk_layout_set_min_row_height(ctx_, 0);
     nk_layout_space_begin(ctx_, NK_STATIC, 0, 1);
     nk_style_push_vec2(ctx_, &ctx_->style.window.spacing, {action_button_spacing, action_button_spacing});
@@ -122,19 +139,13 @@ void UIGraphics::render_first_person_ui() {
     float spacing = (UI::action_bar_size - 1) * action_button_spacing;
     float action_bar_width = action_button_width * UI::action_bar_size + spacing;
 
-    /* float action_bar_width =
-      (action_bar_height + (2 * action_button_border)) * UI::action_bar_size +
-      ((UI::action_bar_size - 1) * (action_button_spacing));
-    float action_button_width = action_bar_height; */
     float width_offset = Renderer::window_width / 2 - action_bar_width / 2;
     float height_offset = (Renderer::window_height)-action_bar_height; // - action_button_spacing;
 
     auto action_bar_rect = nk_rect(width_offset, height_offset, action_bar_width, Renderer::window_height);
     nk_layout_space_push(ctx_, action_bar_rect);
-    // nk_fill_rect(&ctx_->current->buffer, action_bar_rect, 0.0f, nk_rgb(100, 0, 30));
     if (nk_group_begin(ctx_, "action_bar", 0)) {
       nk_layout_row_static(ctx_, action_bar_height, action_button_width, UI::action_bar_size);
-      // nk_layout_row_dynamic(ctx_, action_bar_height, UI::action_bar_size);
       nk_style_push_color(ctx_, &ctx_->style.button.border_color, action_border_default_color);
 
       auto& action_bar = ui_.get_action_bar();
@@ -148,12 +159,10 @@ void UIGraphics::render_first_person_ui() {
           texture = item_to_texture_.at(item.value());
           nk_button_image(ctx_, icons_.at(texture));
         } else {
-          // texture = ui_textures.at("white");
           nk_button_color(ctx_, action_border_default_color);
         }
       }
-      //      nk_style_push_style_item(ctx_, &ctx_->style.button.normal, nk_style_item_color(nk_rgb(255, 215, 0)));
-      nk_style_push_color(ctx_, &ctx_->style.button.border_color,action_border_selected_color);
+      nk_style_push_color(ctx_, &ctx_->style.button.border_color, action_border_selected_color);
       auto item = action_bar[idx++];
       if (item.has_value()) {
         texture = item_to_texture_.at(item.value());
@@ -161,22 +170,16 @@ void UIGraphics::render_first_person_ui() {
       } else {
         nk_button_color(ctx_, action_border_default_color);
       }
-      //  texture = ui_textures.at("white");
-      //
 
       nk_style_pop_color(ctx_);
-      //      nk_style_pop_style_item(ctx_);
       for (; idx < action_bar.size(); ++idx) {
         auto item = action_bar[idx];
         if (item.has_value()) {
           texture = item_to_texture_.at(item.value());
           nk_button_image(ctx_, icons_.at(texture));
         } else {
-          // texture = ui_textures.at("white");
           nk_button_color(ctx_, action_border_default_color);
         }
-
-        // nk_button_image(ctx_, icons_.at(texture));
       }
       nk_style_pop_color(ctx_);
       nk_group_end(ctx_);
@@ -184,7 +187,6 @@ void UIGraphics::render_first_person_ui() {
     nk_style_pop_float(ctx_);
     nk_style_pop_vec2(ctx_);
     nk_style_pop_vec2(ctx_);
-    // nk_style_pop_vec2(ctx_);
     {
       int crosshair_width = 10;
       int crosshair_height = 10;
@@ -196,7 +198,7 @@ void UIGraphics::render_first_person_ui() {
 
       nk_style_push_vec2(ctx_, &ctx_->style.button.padding, nk_vec2(0, 0));
       nk_style_push_float(ctx_, &ctx_->style.button.border, border_width);
-      nk_button_color(ctx_, nk_rgb(0,0,0));
+      nk_button_color(ctx_, nk_rgb(0, 0, 0));
       nk_style_pop_float(ctx_);
       nk_style_pop_vec2(ctx_);
     }
@@ -204,54 +206,59 @@ void UIGraphics::render_first_person_ui() {
     nk_layout_space_end(ctx_);
     nk_layout_reset_min_row_height(ctx_);
   }
-  nk_end(ctx_);
   nk_style_pop_vec2(ctx_);
+  nk_end(ctx_);
 
   if (ui_.is_inv_open()) {
-    nk_style_push_style_item(ctx_, &ctx_->style.window.fixed_background, nk_style_item_color(nk_rgba(194, 185, 184, 255)));
+    nk_style_push_style_item(ctx_, &ctx_->style.window.fixed_background, nk_style_item_color(inv_background_color));
     nk_style_push_vec2(ctx_, &ctx_->style.window.padding, {inv_button_padding, inv_button_padding});
     nk_style_push_vec2(ctx_, &ctx_->style.window.spacing, {inv_button_spacing, inv_button_spacing});
     nk_style_push_vec2(ctx_, &ctx_->style.window.scrollbar_size, {inv_scrollbar_width, 0.f});
-    nk_style_push_style_item(ctx_, &ctx_->style.button.normal, nk_style_item_color(nk_rgba(0, 0, 0, 0)));
-    nk_style_push_style_item(ctx_, &ctx_->style.button.active, nk_style_item_color(nk_rgba(0, 0, 0, 0)));
-    nk_style_push_style_item(ctx_, &ctx_->style.button.hover, nk_style_item_color(nk_rgba(255, 215, 0, 255)));
+
     nk_style_push_float(ctx_, &ctx_->style.button.border, inv_button_border);
     nk_style_push_vec2(ctx_, &ctx_->style.button.padding, nk_vec2(inv_button_padding, inv_button_padding));
-
     int inv_height = Renderer::window_height * 0.5;
     int inv_width = inv_height;
     int width_offset = (Renderer::window_width - inv_width) / 2;
     int height_offset = (Renderer::window_height - inv_height) / 2;
     if (nk_begin(ctx_, "inv window", nk_rect(width_offset, height_offset, inv_width, inv_height), NK_WINDOW_BORDER)) {
-      int num_cols = 6;
-      int icon_size = (inv_width - (num_cols) * (inv_button_spacing)-inv_scrollbar_width) / num_cols - 0;
+      int num_cols = 7;
+      int icon_size = (inv_width - inv_scrollbar_width) / num_cols;
 
       nk_layout_row_static(ctx_, icon_size, icon_size, num_cols);
+
       auto& inv = ui_.get_inv();
       bool icon_is_hovered = false;
 
+      nk_style_push_color(ctx_, &ctx_->style.button.border_color, inv_background_color);
       for (auto item : inv) {
         auto texture = item_to_texture_.at(item);
-        nk_button_image(ctx_, icons_.at(texture));
-        if (ctx_->last_widget_state & NK_WIDGET_STATE_HOVER) {
+        struct nk_rect bounds = nk_widget_bounds(ctx_);
+        int is_hovered = nk_input_is_mouse_hovering_rect(&ctx_->input, bounds);
+        if (is_hovered) {
+          nk_style_push_color(ctx_, &ctx_->style.button.border_color, inv_border_hover_color);
+          nk_style_push_float(ctx_, &ctx_->style.button.border, inv_button_border);
+          nk_button_image(ctx_, icons_.at(texture));
+          nk_style_pop_float(ctx_);
+          nk_style_pop_color(ctx_);
           hovering_ = item;
           icon_is_hovered = true;
+        } else {
+          nk_button_image(ctx_, icons_.at(texture));
         }
       }
-
+      nk_style_pop_color(ctx_);
       if (!icon_is_hovered)
         hovering_ = {};
     }
 
     nk_style_pop_vec2(ctx_);
     nk_style_pop_float(ctx_);
-    nk_style_pop_style_item(ctx_);
-    nk_style_pop_style_item(ctx_);
-    nk_style_pop_style_item(ctx_);
-    nk_style_pop_style_item(ctx_);
+
     nk_style_pop_vec2(ctx_);
     nk_style_pop_vec2(ctx_);
     nk_style_pop_vec2(ctx_);
+    nk_style_pop_style_item(ctx_);
     nk_end(ctx_);
   }
 
@@ -260,7 +267,6 @@ void UIGraphics::render_first_person_ui() {
 
 void UIGraphics::render_build_ui() {
   nk_glfw3_new_frame();
-  // ctx_->style.window.scrollbar_size = {0.f, 0.f};
   if (
     nk_begin(
       ctx_, "build options", nk_rect(0, 0, Renderer::window_width / 8, Renderer::window_height / 2),

@@ -48,6 +48,8 @@ private:
   static float inv_button_padding;
   static float inv_scrollbar_width;
   static float inv_button_border;
+  static struct nk_color inv_border_hover_color;
+  static struct nk_color inv_background_color;
 
   float font_height_;
 
