@@ -22,11 +22,10 @@ float UIGraphics::inv_scrollbar_width = 20.f;
 float UIGraphics::inv_button_border = 8.f;
 struct nk_color UIGraphics::inv_border_hover_color = nk_rgb(255, 200, 30);
 struct nk_color UIGraphics::inv_background_color = nk_rgb(230, 230, 230);
+struct nk_color UIGraphics::build_options_background_color = nk_rgb(80, 80, 80);
 
 UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
   std::uint32_t tex_id = 0;
-  ui_textures.insert({"white", tex_id++});
-  ui_textures.insert({"black", tex_id++});
   for (auto [item_name, item_id] : ItemUtils::items) {
     ui_textures.insert({item_name, tex_id});
     item_to_texture_.insert({item_id, tex_id});
@@ -39,40 +38,43 @@ UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
   struct nk_font_atlas* atlas;
   nk_glfw3_font_stash_begin(&atlas);
 
-  // auto* font = nk_ font_atlas_add_default(atlas, 16.f, NULL);
-
+  auto* font = nk_font_atlas_add_default(atlas, 24.f, NULL);
+  /* auto font_path = Options::instance()->getFontPath("ProggyTiny.ttf");
+  struct nk_font* font = nk_font_atlas_add_from_file(atlas, font_path.c_str(), 16, 0); */
   nk_glfw3_font_stash_end();
-  // nk_style_set_font(ctx_, &font->handle);
+  nk_style_set_font(ctx_, &font->handle);
 
   struct nk_color table[NK_COLOR_COUNT];
-  table[NK_COLOR_WINDOW] = nk_rgba(0, 0, 0, 0);
-  table[NK_COLOR_SCROLLBAR] = nk_rgba(180, 180, 180, 255);
-  table[NK_COLOR_SCROLLBAR_CURSOR] = nk_rgba(140, 140, 140, 255);
-  nk_style_from_table(ctx_, table);
-  ctx_->style.button.border = 0.f;
-  ctx_->style.button.rounding = 0.f;
-  ctx_->style.window.border = 0.f;
+  table[NK_COLOR_TEXT] = nk_rgba(210, 210, 210, 255);
+  table[NK_COLOR_WINDOW] = nk_rgba(57, 67, 71, 215);
+  table[NK_COLOR_HEADER] = nk_rgba(51, 51, 56, 220);
+  table[NK_COLOR_BORDER] = nk_rgba(46, 46, 46, 255);
+  table[NK_COLOR_BUTTON] = nk_rgba(48, 83, 111, 255);
+  table[NK_COLOR_BUTTON_HOVER] = nk_rgba(58, 93, 121, 255);
+  table[NK_COLOR_BUTTON_ACTIVE] = nk_rgba(63, 98, 126, 255);
+  table[NK_COLOR_TOGGLE] = nk_rgba(50, 58, 61, 255);
+  table[NK_COLOR_TOGGLE_HOVER] = nk_rgba(45, 53, 56, 255);
+  table[NK_COLOR_TOGGLE_CURSOR] = nk_rgba(48, 83, 111, 255);
+  table[NK_COLOR_SELECT] = nk_rgba(57, 67, 61, 255);
+  table[NK_COLOR_SELECT_ACTIVE] = nk_rgba(48, 83, 111, 255);
+  table[NK_COLOR_SLIDER] = nk_rgba(50, 58, 61, 255);
+  table[NK_COLOR_SLIDER_CURSOR] = nk_rgba(48, 83, 111, 245);
+  table[NK_COLOR_SLIDER_CURSOR_HOVER] = nk_rgba(53, 88, 116, 255);
+  table[NK_COLOR_SLIDER_CURSOR_ACTIVE] = nk_rgba(58, 93, 121, 255);
+  table[NK_COLOR_PROPERTY] = nk_rgba(50, 58, 61, 255);
+  table[NK_COLOR_EDIT] = nk_rgba(50, 58, 61, 225);
+  table[NK_COLOR_EDIT_CURSOR] = nk_rgba(210, 210, 210, 255);
+  table[NK_COLOR_COMBO] = nk_rgba(50, 58, 61, 255);
+  table[NK_COLOR_CHART] = nk_rgba(50, 58, 61, 255);
+  table[NK_COLOR_CHART_COLOR] = nk_rgba(48, 83, 111, 255);
+  table[NK_COLOR_CHART_COLOR_HIGHLIGHT] = nk_rgba(255, 0, 0, 255);
+  table[NK_COLOR_SCROLLBAR] = nk_rgba(50, 58, 61, 255);
+  table[NK_COLOR_SCROLLBAR_CURSOR] = nk_rgba(48, 83, 111, 255);
+  table[NK_COLOR_SCROLLBAR_CURSOR_HOVER] = nk_rgba(53, 88, 116, 255);
+  table[NK_COLOR_SCROLLBAR_CURSOR_ACTIVE] = nk_rgba(58, 93, 121, 255);
+  table[NK_COLOR_TAB_HEADER] = nk_rgba(48, 83, 111, 255);
 
-  /*   ctx_->style.window.fixed_background = nk_style_item_color(nk_rgba(0, 0, 0, 0));
-   */
-  ctx_->style.window.padding = {0.f, 0.f};
-  ctx_->style.window.spacing = {0.f, 0.f};
-  ctx_->style.window.scrollbar_size = {0.f, 0.f};
-  ctx_->style.window.group_padding = {0.f, 0.f};
-  ctx_->style.window.min_row_height_padding = 0.f;
-  ctx_->style.window.popup_padding = {0.f, 0.f};
-  ctx_->style.window.combo_padding = {0.f, 0.f};
-  ctx_->style.window.contextual_padding = {0.f, 0.f};
-  ctx_->style.window.menu_padding = {0.f, 0.f};
-  ctx_->style.window.tooltip_padding = {0.f, 0.f};
-  ctx_->style.window.header.padding = {0.f, 0.f};
-  ctx_->style.window.header.label_padding = {0.f, 0.f};
-  ctx_->style.window.header.spacing = {0.f, 0.f};
-  ctx_->style.window.combo_border = 0.f;
-  ctx_->style.window.menu_border = 0.f;
-  ctx_->style.window.group_border = 0.f;
-  ctx_->style.window.tooltip_border = 0.f;
-  ctx_->style.window.popup_border = 0.f;
+  nk_style_from_table(ctx_, table);
 
   font_height_ = ctx_->style.font->height;
   GLuint num_layers = static_cast<GLuint>(ui_textures.size());
@@ -122,37 +124,42 @@ UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
 
 void UIGraphics::render_first_person_ui() {
   nk_glfw3_new_frame();
-  nk_style_push_vec2(ctx_, &ctx_->style.window.scrollbar_size, {0.f, 0.f});
+
   uint32_t flags = 0;
   if (ui_.is_inv_open()) {
     flags |= NK_WINDOW_NO_INPUT;
   }
+
+  nk_style_push_float(ctx_, &ctx_->style.button.border, 0.f);
+  nk_style_push_float(ctx_, &ctx_->style.button.rounding, 0.f);
+  nk_style_push_float(ctx_, &ctx_->style.window.border, 0.f);
+  nk_style_push_float(ctx_, &ctx_->style.button.border, action_button_border);
+  nk_style_push_vec2(ctx_, &ctx_->style.window.padding, {0, 0});
+  nk_style_push_vec2(ctx_, &ctx_->style.window.spacing, {0, 0});
+  nk_style_push_vec2(ctx_, &ctx_->style.window.group_padding, {0, 0});
+  nk_style_push_vec2(ctx_, &ctx_->style.window.scrollbar_size, {0.f, 0.f});
+  nk_style_push_vec2(ctx_, &ctx_->style.button.padding, {action_button_padding, action_button_padding});
+  nk_style_push_style_item(ctx_, &ctx_->style.window.fixed_background, nk_style_item_color(nk_rgba(0, 0, 0, 0)));
   if (nk_begin(ctx_, "nuklear window", nk_rect(0, 0, Renderer::window_width, Renderer::window_height), flags)) {
     nk_layout_set_min_row_height(ctx_, 0);
     nk_layout_space_begin(ctx_, NK_STATIC, 0, 1);
-    nk_style_push_vec2(ctx_, &ctx_->style.window.spacing, {action_button_spacing, action_button_spacing});
-    nk_style_push_float(ctx_, &ctx_->style.button.border, action_button_border);
-    nk_style_push_vec2(ctx_, &ctx_->style.button.padding, {action_button_padding, action_button_padding});
     float action_bar_height = Renderer::window_height * 0.08;
     float action_image_width = action_bar_height - (2 * action_button_border);
     float action_button_width = action_bar_height;
     float spacing = (UI::action_bar_size - 1) * action_button_spacing;
     float action_bar_width = action_button_width * UI::action_bar_size + spacing;
-
     float width_offset = Renderer::window_width / 2 - action_bar_width / 2;
     float height_offset = (Renderer::window_height)-action_bar_height; // - action_button_spacing;
-
     auto action_bar_rect = nk_rect(width_offset, height_offset, action_bar_width, Renderer::window_height);
     nk_layout_space_push(ctx_, action_bar_rect);
+    nk_style_push_vec2(ctx_, &ctx_->style.window.spacing, {action_button_spacing, action_button_spacing});
     if (nk_group_begin(ctx_, "action_bar", 0)) {
       nk_layout_row_static(ctx_, action_bar_height, action_button_width, UI::action_bar_size);
       nk_style_push_color(ctx_, &ctx_->style.button.border_color, action_border_default_color);
-
       auto& action_bar = ui_.get_action_bar();
       std::size_t idx = 0;
       auto active_index = ui_.get_active_index();
       UITexture texture;
-
       for (; idx < active_index; ++idx) {
         auto item = action_bar[idx];
         if (item.has_value()) {
@@ -170,7 +177,6 @@ void UIGraphics::render_first_person_ui() {
       } else {
         nk_button_color(ctx_, action_border_default_color);
       }
-
       nk_style_pop_color(ctx_);
       for (; idx < action_bar.size(); ++idx) {
         auto item = action_bar[idx];
@@ -184,9 +190,8 @@ void UIGraphics::render_first_person_ui() {
       nk_style_pop_color(ctx_);
       nk_group_end(ctx_);
     }
-    nk_style_pop_float(ctx_);
     nk_style_pop_vec2(ctx_);
-    nk_style_pop_vec2(ctx_);
+
     {
       int crosshair_width = 10;
       int crosshair_height = 10;
@@ -206,7 +211,16 @@ void UIGraphics::render_first_person_ui() {
     nk_layout_space_end(ctx_);
     nk_layout_reset_min_row_height(ctx_);
   }
+  nk_style_pop_style_item(ctx_);
   nk_style_pop_vec2(ctx_);
+  nk_style_pop_vec2(ctx_);
+  nk_style_pop_vec2(ctx_);
+  nk_style_pop_vec2(ctx_);
+  nk_style_pop_vec2(ctx_);
+  nk_style_pop_float(ctx_);
+  nk_style_pop_float(ctx_);
+  nk_style_pop_float(ctx_);
+  nk_style_pop_float(ctx_);
   nk_end(ctx_);
 
   if (ui_.is_inv_open()) {
@@ -214,7 +228,8 @@ void UIGraphics::render_first_person_ui() {
     nk_style_push_vec2(ctx_, &ctx_->style.window.padding, {inv_button_padding, inv_button_padding});
     nk_style_push_vec2(ctx_, &ctx_->style.window.spacing, {inv_button_spacing, inv_button_spacing});
     nk_style_push_vec2(ctx_, &ctx_->style.window.scrollbar_size, {inv_scrollbar_width, 0.f});
-
+    nk_style_push_float(ctx_, &ctx_->style.button.rounding, 0.f);
+    nk_style_push_float(ctx_, &ctx_->style.window.border, 0.f);
     nk_style_push_float(ctx_, &ctx_->style.button.border, inv_button_border);
     nk_style_push_vec2(ctx_, &ctx_->style.button.padding, nk_vec2(inv_button_padding, inv_button_padding));
     int inv_height = Renderer::window_height * 0.5;
@@ -224,12 +239,9 @@ void UIGraphics::render_first_person_ui() {
     if (nk_begin(ctx_, "inv window", nk_rect(width_offset, height_offset, inv_width, inv_height), NK_WINDOW_BORDER)) {
       int num_cols = 7;
       int icon_size = (inv_width - inv_scrollbar_width) / num_cols;
-
       nk_layout_row_static(ctx_, icon_size, icon_size, num_cols);
-
       auto& inv = ui_.get_inv();
       bool icon_is_hovered = false;
-
       nk_style_push_color(ctx_, &ctx_->style.button.border_color, inv_background_color);
       for (auto item : inv) {
         auto texture = item_to_texture_.at(item);
@@ -251,10 +263,10 @@ void UIGraphics::render_first_person_ui() {
       if (!icon_is_hovered)
         hovering_ = {};
     }
-
     nk_style_pop_vec2(ctx_);
     nk_style_pop_float(ctx_);
-
+    nk_style_pop_float(ctx_);
+    nk_style_pop_float(ctx_);
     nk_style_pop_vec2(ctx_);
     nk_style_pop_vec2(ctx_);
     nk_style_pop_vec2(ctx_);
@@ -267,38 +279,16 @@ void UIGraphics::render_first_person_ui() {
 
 void UIGraphics::render_build_ui() {
   nk_glfw3_new_frame();
-  // init gui state
-  enum { EASY,
-         HARD };
-  static int op = EASY;
-  static float value = 0.6f;
-  static int i = 20;
-  nk_style_push_style_item(ctx_, &ctx_->style.window.fixed_background, nk_style_item_color(inv_background_color));
   if (
     nk_begin(
-      ctx_, "build options", nk_rect(0, 0, Renderer::window_width / 8, Renderer::window_height / 2),
-      NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_CLOSABLE)) {
-    nk_layout_row_static(ctx_, 30, 80, 1);
-    if (nk_button_label(ctx_, "button")) {
-      // event handling
+      ctx_, "Build Options", nk_rect(0, 0, Renderer::window_width / 8, Renderer::window_height / 2),
+      NK_WINDOW_MOVABLE | NK_WINDOW_BORDER | NK_WINDOW_TITLE)) {
+    nk_layout_row_static(ctx_, 40, 130, 1);
+    if (nk_button_label(ctx_, "Generate")) {
+      
     }
-    // fixed widget window ratio width
-    nk_layout_row_dynamic(ctx_, 30, 2);
-    if (nk_option_label(ctx_, "easy", op == EASY))
-      op = EASY;
-    if (nk_option_label(ctx_, "hard", op == HARD))
-      op = HARD;
-    // custom widget pixel width
-    nk_layout_row_begin(ctx_, NK_STATIC, 30, 2);
-    {
-      nk_layout_row_push(ctx_, 50);
-      nk_label(ctx_, "Volume:", NK_TEXT_LEFT);
-      nk_layout_row_push(ctx_, 110);
-      nk_slider_float(ctx_, 0, &value, 1.0f, 0.1f);
-    }
-    nk_layout_row_end(ctx_);
   }
-  nk_style_pop_style_item(ctx_);
+
   if (nk_window_is_hovered(ctx_)) {
     mouse_captured_ = true;
   } else {

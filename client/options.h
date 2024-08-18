@@ -3,6 +3,7 @@
 
 #define SHADERS_DIR "shaders"
 #define IMAGES_DIR "assets/images"
+#define FONTS_DIR "assets/fonts"
 #define APP_DIR 1
 
 #include <filesystem>
@@ -19,6 +20,7 @@ public:
 
   std::string getShaderPath(const std::string& name);
   std::string getImagePath(const std::string& name);
+  std::string getFontPath(const std::string& name);
   bool hasValidShaderPath();
 
 private:

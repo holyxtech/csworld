@@ -54,6 +54,7 @@ private:
   static float inv_button_border;
   static struct nk_color inv_border_hover_color;
   static struct nk_color inv_background_color;
+  static struct nk_color build_options_background_color;
 
   // Write on render thread
   std::atomic<bool> mouse_captured_{false};

@@ -30,6 +30,10 @@ std::string Options::getImagePath(const std::string& name) {
   return this->getPath(name, IMAGES_DIR);
 }
 
+std::string Options::getFontPath(const std::string& name) {
+  return this->getPath(name, FONTS_DIR);
+}
+
 std::string Options::getPath(const std::string& name, const std::string& type) {
   std::filesystem::path tmpPath = ((this->dir.has_value() ? this->dir.value() : std::filesystem::current_path()) / type);
 
