@@ -13,7 +13,7 @@
 #define NK_INCLUDE_FONT_BAKING
 #define NK_INCLUDE_DEFAULT_FONT
 #define NK_IMPLEMENTATION
-#include <nuklear/nuklear.h>
+#include <nuklear.h>
 #undef NK_IMPLEMENTATION
 
 #ifdef _WIN32

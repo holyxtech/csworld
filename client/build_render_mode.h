@@ -15,6 +15,7 @@ public:
   void step() override;
   void init() override;
   void end() override;
+  const std::shared_ptr<GroundSelection> get_ground_selection() const;
 
 private:
   BuildCamera camera_;

@@ -54,7 +54,11 @@ void BuildRenderMode::step() {
 }
 void BuildRenderMode::init() {
   ground_selection_->unset_flag(GameObjectFlags::Disabled);
+  ground_selection_->reset();
 }
 void BuildRenderMode::end() {
   ground_selection_->set_flag(GameObjectFlags::Disabled);
+}
+const std::shared_ptr<GroundSelection> BuildRenderMode::get_ground_selection() const {
+  return ground_selection_;
 }

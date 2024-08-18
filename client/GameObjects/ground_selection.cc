@@ -71,16 +71,8 @@ void GroundSelection::step() {
     is_dirt,
     is_not_empty);
 
-  // check y+1. if something, do nothing
   if (!success)
     return;
-  /*   auto above_coord = Int3D{coord[0], coord[1] + 1, coord[2]};
-    auto loc = Region::location_from_global_coord(above_coord);
-    if (!region.has_chunk(loc))
-      return;
-    Voxel above_voxel = region.get_voxel(above_coord);
-    if (!vops::is_empty(above_voxel))
-      return; */
 
   // int brush_radius = brush.brush_radius;
   int brush_radius = 2;
@@ -139,4 +131,11 @@ void GroundSelection::step() {
   std::size_t vertex_byte_count = sizeof(glm::vec3) * vertices.size();
   scene_component_->memcpy_vertices(vertices.data(), vertex_byte_count);
   scene_component_->set_vertex_count(vertices.size());
+}
+void GroundSelection::reset() {
+  selected_.clear();
+  scene_component_->set_vertex_count(0);
+}
+const std::unordered_set<Int3D, LocationHash>& GroundSelection::get_selected() const {
+  return selected_;
 }

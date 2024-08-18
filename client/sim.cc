@@ -31,10 +31,10 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     GameObject::set_sim(*this);
   }
 
-  // user_controller_ = std::make_unique<FirstPersonController>(*this);
-  user_controller_ = std::make_unique<BuildController>(*this);
+  user_controller_ = std::make_unique<FirstPersonController>(*this);
+  /* user_controller_ = std::make_unique<BuildController>(*this); */
   user_controller_->init();
-  render_modes_.set_mode(render_modes_.build);
+  //render_modes_.set_mode(render_modes_.build);
 
   glm::dvec3 starting_pos{4230225.256719, 311.122231, -1220227.127904};
   // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");

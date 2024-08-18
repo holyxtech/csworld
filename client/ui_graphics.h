@@ -17,7 +17,7 @@
 #define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
 #define NK_INCLUDE_FONT_BAKING
 #define NK_INCLUDE_DEFAULT_FONT
-#include <nuklear/nuklear.h>
+#include <nuklear.h>
 #include "ui.h"
 
 class Renderer;
@@ -38,8 +38,17 @@ private:
   std::unordered_map<UITexture, struct nk_image> icons_;
   std::unordered_map<Item, UITexture> item_to_texture_;
 
-  static constexpr float widget_spacing = 4.f;
-  static constexpr float button_padding = 4.f;
+  // static float action_bar_padding
+  static float action_button_spacing;
+  static float action_button_padding;
+  static float action_button_border;
+  static struct nk_color action_border_default_color;
+  static struct nk_color action_border_selected_color;
+  static float inv_button_spacing;
+  static float inv_button_padding;
+  static float inv_scrollbar_width;
+  static float inv_button_border;
+
   float font_height_;
 
   const UI& ui_;

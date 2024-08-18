@@ -11,6 +11,8 @@ public:
   GroundSelection();
   void process_input(const InputEvent& event) override;
   void step() override;
+  void reset();
+  const std::unordered_set<Int3D, LocationHash>& get_selected() const;
 
 private:
   bool doing_selection_ = false;
