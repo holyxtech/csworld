@@ -15,7 +15,6 @@ find_package(CURL REQUIRED)
 find_package(Boost CONFIG REQUIRED COMPONENTS bind)
 find_package(asio CONFIG REQUIRED)
 find_package(SQLite3 REQUIRED)
-#find_package(unofficial-nuklear CONFIG REQUIRED)
 
 function(escape_backslashes input_path output_path)
     string(REPLACE "\\" "\\\\" escaped_path "${input_path}")

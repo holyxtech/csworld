@@ -19,3 +19,9 @@ void World::step() {
     pawn->step();
   }
 }
+
+void World::interrupt_pawns() {
+  for (auto& pawn : pawns_) {
+    pawn->interrupt();
+  }
+}

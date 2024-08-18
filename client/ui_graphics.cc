@@ -267,11 +267,44 @@ void UIGraphics::render_first_person_ui() {
 
 void UIGraphics::render_build_ui() {
   nk_glfw3_new_frame();
+  // init gui state
+  enum { EASY,
+         HARD };
+  static int op = EASY;
+  static float value = 0.6f;
+  static int i = 20;
+  nk_style_push_style_item(ctx_, &ctx_->style.window.fixed_background, nk_style_item_color(inv_background_color));
   if (
     nk_begin(
       ctx_, "build options", nk_rect(0, 0, Renderer::window_width / 8, Renderer::window_height / 2),
       NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_CLOSABLE)) {
+    nk_layout_row_static(ctx_, 30, 80, 1);
+    if (nk_button_label(ctx_, "button")) {
+      // event handling
+    }
+    // fixed widget window ratio width
+    nk_layout_row_dynamic(ctx_, 30, 2);
+    if (nk_option_label(ctx_, "easy", op == EASY))
+      op = EASY;
+    if (nk_option_label(ctx_, "hard", op == HARD))
+      op = HARD;
+    // custom widget pixel width
+    nk_layout_row_begin(ctx_, NK_STATIC, 30, 2);
+    {
+      nk_layout_row_push(ctx_, 50);
+      nk_label(ctx_, "Volume:", NK_TEXT_LEFT);
+      nk_layout_row_push(ctx_, 110);
+      nk_slider_float(ctx_, 0, &value, 1.0f, 0.1f);
+    }
+    nk_layout_row_end(ctx_);
   }
+  nk_style_pop_style_item(ctx_);
+  if (nk_window_is_hovered(ctx_)) {
+    mouse_captured_ = true;
+  } else {
+    mouse_captured_ = false;
+  }
+
   nk_end(ctx_);
 
   nk_glfw3_render(NK_ANTI_ALIASING_ON);
@@ -279,4 +312,17 @@ void UIGraphics::render_build_ui() {
 
 std::optional<Item> UIGraphics::get_hovering() const {
   return hovering_;
+}
+
+void UIGraphics::set_mouse_captured(bool captured) {
+  mouse_captured_ = captured;
+}
+void UIGraphics::set_key_captured(bool captured) {
+  key_captured_ = captured;
+}
+bool UIGraphics::is_mouse_captured() const {
+  return mouse_captured_;
+}
+bool UIGraphics::is_key_captured() const {
+  return key_captured_;
 }

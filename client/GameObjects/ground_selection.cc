@@ -36,6 +36,11 @@ void GroundSelection::process_input(const InputEvent& event) {
   } break;
   }
 }
+
+void GroundSelection::interrupt() {
+  doing_selection_ = false;
+}
+
 void GroundSelection::step() {
   if (!doing_selection_)
     return;

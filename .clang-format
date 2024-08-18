@@ -28,3 +28,5 @@ IncludeCategories:
     Priority: 2
   - Regex: '^(".*\.h")'
     Priority: 3
+AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: true

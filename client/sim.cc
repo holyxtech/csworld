@@ -31,10 +31,11 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     GameObject::set_sim(*this);
   }
 
-  user_controller_ = std::make_unique<FirstPersonController>(*this);
-  /* user_controller_ = std::make_unique<BuildController>(*this); */
+  // user_controller_ = std::make_unique<FirstPersonController>(*this);
+  user_controller_ = std::make_unique<BuildController>(*this);
   user_controller_->init();
-  //render_modes_.set_mode(render_modes_.build);
+  render_modes_.set_mode(render_modes_.build);
+  auto& ui_graphics = renderer_.get_ui_graphics();
 
   glm::dvec3 starting_pos{4230225.256719, 311.122231, -1220227.127904};
   // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
@@ -200,8 +201,32 @@ void Sim::step(std::int64_t ms) {
       success = event_queue.try_dequeue(event);
     }
   };
-  process_inputs(Input::instance()->get_mouse_button_events(), InputEvent::Kind::MouseButtonEvent);
-  process_inputs(Input::instance()->get_key_button_events(), InputEvent::Kind::KeyButtonEvent);
+  // need to know mouse capture state by hover (disable key events)
+  // know key capture state by click on ui element (mouse already captured so no worries)
+
+  // check if the key/mouse input is captured by UI first
+  // if it is, just empty the queues
+  // distinction between key vs mouse capture
+  auto& ui_graphics = renderer_.get_ui_graphics();
+  bool mouse_captured = ui_graphics.is_mouse_captured();
+  bool key_captured = ui_graphics.is_key_captured();
+  if (mouse_captured || key_captured) {
+    world_.interrupt_pawns();
+  }
+
+  auto& mouse_button_events = Input::instance()->get_mouse_button_events();
+  if (mouse_captured) {
+    do { success = mouse_button_events.pop(); } while (success);
+  } else {
+    process_inputs(mouse_button_events, InputEvent::Kind::MouseButtonEvent);
+  }
+  auto& key_button_events = Input::instance()->get_key_button_events();
+  if (key_captured) {
+    do { success = key_button_events.pop(); } while (success);
+  } else {
+    process_inputs(key_button_events, InputEvent::Kind::KeyButtonEvent);
+  }
+
   ui_.clear_actions();
 
   world_.step();

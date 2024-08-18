@@ -1,6 +1,7 @@
 #ifndef UI_H
 #define UI_H
 
+#include <atomic>
 #include <optional>
 #include <any>
 #include <array>
@@ -38,12 +39,16 @@ public:
   std::optional<Item> get_active_item() const;
   const Brush& get_brush() const;
   void set_brush(Brush&& brush);
+
 private:
   std::vector<Action> actions_;
+  // Write on game thread
   std::array<std::optional<Item>, action_bar_size> action_bar_;
   std::size_t active_index_;
   std::vector<Item> inv_;
-  bool inv_open_ = false;
+
+  // Write on game thread
+  std::atomic<bool> inv_open_{false};
 
   Brush brush_;
 };

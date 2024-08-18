@@ -13,6 +13,7 @@ public:
   void add_game_object(std::shared_ptr<GameObject> obj);
   void add_pawn(std::shared_ptr<Pawn> obj);
   void process_input(const InputEvent& event);
+  void interrupt_pawns();
   void step();
 private:
   std::vector<std::shared_ptr<Pawn>> pawns_;

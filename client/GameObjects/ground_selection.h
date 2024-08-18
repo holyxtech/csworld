@@ -10,6 +10,7 @@ class GroundSelection : public Pawn {
 public:
   GroundSelection();
   void process_input(const InputEvent& event) override;
+  void interrupt() override;
   void step() override;
   void reset();
   const std::unordered_set<Int3D, LocationHash>& get_selected() const;

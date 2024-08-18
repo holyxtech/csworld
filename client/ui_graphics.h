@@ -27,6 +27,10 @@ public:
   UIGraphics(GLFWwindow* window, const UI& ui);
   void render_first_person_ui();
   void render_build_ui();
+  void set_mouse_captured(bool captured);
+  void set_key_captured(bool captured);
+  bool is_mouse_captured() const;
+  bool is_key_captured() const;
 
   std::optional<Item> get_hovering() const;
 
@@ -50,6 +54,10 @@ private:
   static float inv_button_border;
   static struct nk_color inv_border_hover_color;
   static struct nk_color inv_background_color;
+
+  // Write on render thread
+  std::atomic<bool> mouse_captured_{false};
+  std::atomic<bool> key_captured_{false};
 
   float font_height_;
 

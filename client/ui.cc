@@ -15,8 +15,7 @@ UI::UI() {
      m.at("roses"),
      m.at("standing_grass"),
      m.at("leaves"),
-     m.at("tree_trunk")
-    };
+     m.at("tree_trunk")};
 
   std::size_t i = 0;
   /*   for (auto& [name, item] : m) {

@@ -7,6 +7,7 @@
 class Pawn : public GameObject {
 public:
   virtual void process_input(const InputEvent& event) = 0;
+  virtual void interrupt() {}
 
 private:
 };
