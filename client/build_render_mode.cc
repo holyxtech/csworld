@@ -40,7 +40,7 @@ BuildCamera& BuildRenderMode::get_camera() {
 }
 
 void BuildRenderMode::seed_camera(const Camera& camera) {
-  camera_.set_position(camera.get_position() + glm::dvec3(0, 25, 0));
+  camera_.set_position(camera.get_position());
 }
 
 void BuildRenderMode::step() {

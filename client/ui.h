@@ -13,9 +13,6 @@
 #include <glm/ext.hpp>
 #include <glm/gtc/random.hpp>
 #include "item.h"
-#include "types.h"
-
-class Renderer;
 
 class UI {
 public:
@@ -30,9 +27,6 @@ public:
   void set_inv_open(bool open);
   void action_bar_assign(std::size_t index, Item item);
   bool is_inv_open() const;
-  Item inv_select() const;
-  void clear_actions();
-  const std::vector<Action>& get_actions() const;
   const std::array<std::optional<Item>, action_bar_size> get_action_bar() const;
   std::size_t get_active_index() const;
   const std::vector<Item>& get_inv() const;
@@ -41,7 +35,6 @@ public:
   void set_brush(Brush&& brush);
 
 private:
-  std::vector<Action> actions_;
   // Write on game thread
   std::array<std::optional<Item>, action_bar_size> action_bar_;
   std::size_t active_index_;

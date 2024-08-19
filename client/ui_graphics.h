@@ -10,6 +10,7 @@
 #include <glm/ext.hpp>
 #include <glm/gtc/random.hpp>
 #include "item.h"
+#include "readerwriterqueue.h"
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
 #define NK_INCLUDE_STANDARD_VARARGS
@@ -18,6 +19,7 @@
 #define NK_INCLUDE_FONT_BAKING
 #define NK_INCLUDE_DEFAULT_FONT
 #include <nuklear.h>
+#include "action.h"
 #include "ui.h"
 
 class Renderer;
@@ -31,7 +33,7 @@ public:
   void set_key_captured(bool captured);
   bool is_mouse_captured() const;
   bool is_key_captured() const;
-
+  moodycamel::ReaderWriterQueue<Action>& get_action_events();
   std::optional<Item> get_hovering() const;
 
 private:
@@ -65,6 +67,7 @@ private:
   const UI& ui_;
 
   std::optional<Item> hovering_;
+  moodycamel::ReaderWriterQueue<Action> action_events_;
 };
 
 #endif

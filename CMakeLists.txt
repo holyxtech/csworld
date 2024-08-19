@@ -40,6 +40,7 @@ file(GLOB PROJECT_SOURCE_FILES_CLIENT
      "common/*.cc"
      "common/*.cc"
      "client/GameObjects/*.cc"
+     "client/WorldGeneration/*.cc"
 )
 set(projectSources
 	${PROJECT_SOURCE_FILES_CLIENT}

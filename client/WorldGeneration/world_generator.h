@@ -3,11 +3,11 @@
 
 #include <memory>
 #include <unordered_set>
-#include "chunk.h"
-#include "open-simplex-noise.h"
-#include "section.h"
-#include "types.h"
-#include "voxel.h"
+#include "../chunk.h"
+#include "../open-simplex-noise.h"
+#include "../section.h"
+#include "../types.h"
+#include "../voxel.h"
 
 class WorldGenerator {
 public:
@@ -15,10 +15,12 @@ public:
   void fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Section, Location2DHash>& sections);
   bool ready_to_fill(Location& location, const std::unordered_map<Location2D, Section, Location2DHash>& sections) const;
 
+  std::vector<std::pair<Int3D, Voxel>> build_tree(int x, int y, int z) const;
+
 private:
   double noise(double x, double y) const;
   void load_features(Section& section);
-  void build_tree(Section& section, int x, int y, int z);
+  
 
   osn_context* ctx_;
   static constexpr int octaves_ = 4;

@@ -23,7 +23,7 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window),
       tcp_client_(tcp_client),
       renderer_(*this),
-      world_editor_(region_),
+      world_editor_(*this),
       render_modes_(*this),
       draw_generator_(renderer_) {
 
@@ -31,24 +31,25 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     GameObject::set_sim(*this);
   }
 
-  // user_controller_ = std::make_unique<FirstPersonController>(*this);
-  user_controller_ = std::make_unique<BuildController>(*this);
+  user_controller_ = std::make_unique<FirstPersonController>(*this);
+  //user_controller_ = std::make_unique<BuildController>(*this);
   user_controller_->init();
-  render_modes_.set_mode(render_modes_.build);
-  auto& ui_graphics = renderer_.get_ui_graphics();
-
-  glm::dvec3 starting_pos{4230225.256719, 311.122231, -1220227.127904};
-  // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
-  // starting_pos[1] = 530;
+  //render_modes_.set_mode(render_modes_.build);
 
   auto& camera = render_modes_.first_person->get_camera();
-  camera.set_position(starting_pos);
-  camera.set_orientation(-41.5007, -12);
+  db_manager_.load_camera(camera);
+
+  /*
+  //glm::dvec3 starting_pos{4230225.256719, 311.122231, -1220227.127904};
+  // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
+  // starting_pos[1] = 530;
+    camera.set_position(starting_pos);
+   camera.set_orientation(-41.5007, -12); */
   render_modes_.build->seed_camera(camera);
 
   auto& player = region_.get_player();
-  player.set_position(starting_pos[0], starting_pos[1], starting_pos[2]);
-  auto loc = Chunk::pos_to_loc(starting_pos);
+  player.set_position(camera.get_position());
+  auto loc = Chunk::pos_to_loc(camera.get_position());
 
   ++loc[0]; // hack so loc != last_location in step() triggers
   player.set_last_location(loc);
@@ -201,19 +202,13 @@ void Sim::step(std::int64_t ms) {
       success = event_queue.try_dequeue(event);
     }
   };
-  // need to know mouse capture state by hover (disable key events)
-  // know key capture state by click on ui element (mouse already captured so no worries)
 
-  // check if the key/mouse input is captured by UI first
-  // if it is, just empty the queues
-  // distinction between key vs mouse capture
   auto& ui_graphics = renderer_.get_ui_graphics();
   bool mouse_captured = ui_graphics.is_mouse_captured();
   bool key_captured = ui_graphics.is_key_captured();
   if (mouse_captured || key_captured) {
     world_.interrupt_pawns();
   }
-
   auto& mouse_button_events = Input::instance()->get_mouse_button_events();
   if (mouse_captured) {
     do { success = mouse_button_events.pop(); } while (success);
@@ -226,8 +221,20 @@ void Sim::step(std::int64_t ms) {
   } else {
     process_inputs(key_button_events, InputEvent::Kind::KeyButtonEvent);
   }
+  auto& ui_action_events = ui_graphics.get_action_events();
+  Action event;
+  success = ui_action_events.try_dequeue(event);
+  while (success) {
+    switch (event.kind) {
+    case Action::terrain_generation: {
+      auto& ground_selection = render_modes_.build->get_ground_selection();
+      auto& surface = ground_selection->get_selected();
+      world_editor_.generate(surface);
+    } break;
+    }
 
-  ui_.clear_actions();
+    success = ui_action_events.try_dequeue(event);
+  }
 
   world_.step();
   render_modes_.cur->step();
@@ -314,14 +321,15 @@ void Sim::draw(std::int64_t ms) {
     }
   }
   cv_.notify_one();
-  // std::cout<<glm::to_string(render_modes_.cur->get_camera().get_position())<<std::endl;
   render_modes_.cur->render();
-  // renderer_.render();
 }
 
 void Sim::exit() {
   ready_to_mesh_ = true;
   cv_.notify_one();
+}
+void Sim::save() {
+  db_manager_.save_camera(render_modes_.cur->get_camera());
 }
 
 Region& Sim::get_region() { return region_; }
@@ -342,3 +350,4 @@ Sim::RenderModes& Sim::get_render_modes() { return render_modes_; }
 WorldEditor& Sim::get_world_editor() { return world_editor_; }
 DrawGenerator& Sim::get_draw_generator() { return draw_generator_; }
 World& Sim::get_world() { return world_; }
+WorldGenerator& Sim::get_world_generator() { return world_generator_; }

@@ -11,6 +11,7 @@ void main() {
     vec4 envColor = texelFetch(MainColor, texcoord, 0);
     if (envDepth.r > gl_FragCoord.z) {
         vec4 tileColor = vec4(.729f,.486f,1.f,1.f);
+        //vec4 tileColor = vec4(0.f,0.816f,0.922f,1.f);
         color = mix(tileColor, envColor, 0.5);
     }
     else {

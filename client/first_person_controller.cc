@@ -11,6 +11,12 @@ void FirstPersonController::end() {
 void FirstPersonController::init() {
   auto& window_events = sim_.get_window_events();
   auto& modes = sim_.get_render_modes();
+  if (modes.cur == modes.build) {
+    auto& build_camera = modes.build->get_camera();
+    auto& camera = modes.first_person->get_camera();
+    camera.set_orientation(build_camera.get_yaw(), build_camera.get_pitch());
+    camera.set_position(build_camera.get_position());
+  }
   modes.set_mode(modes.first_person);
   window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::disable_cursor});
 }
@@ -34,6 +40,8 @@ void FirstPersonController::move_camera() {
 
   if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
     camera.set_base_translation_speed(3);
+  } else if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
+    camera.set_base_translation_speed(0.5);
   } else {
     camera.set_base_translation_speed(0.2);
   }

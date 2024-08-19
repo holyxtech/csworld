@@ -4,12 +4,15 @@
 #include <optional>
 #include <sqlite3.h>
 #include "chunk.h"
+#include "camera.h"
 
 class DbManager {
 public:
   DbManager();
   ~DbManager();
   void save_chunk(const Chunk& chunk);
+  void save_camera(const Camera& camera);
+  void load_camera(Camera& camera);
   std::optional<Chunk> load_chunk_if_exists(const Location& loc);
 
 private:

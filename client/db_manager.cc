@@ -19,7 +19,7 @@ DbManager::DbManager() {
     throw std::runtime_error("Failed to initialize DbManager");
   }
   if (initialize_db) {
-    std::string sql =
+    std::string chunk_table =
       "create table Chunk("
       "\tx integer not null,"
       "\ty integer not null,"
@@ -27,6 +27,17 @@ DbManager::DbManager() {
       "\tdata blob,"
       "\tprimary key (x,y,z)"
       ");";
+    std::string player_table =
+      "create table Player("
+      "\tx real not null,"
+      "\ty real not null,"
+      "\tz real not null,"
+      "\tyaw real not null,"
+      "\tpitch real not null"
+      ");";
+    std::string player_entry =
+      "insert into Player values (0,0,0,0,0);";
+    std::string sql = chunk_table + player_table + player_entry;
     char* err_msg;
     int failure = sqlite3_exec(db_, sql.c_str(), NULL, 0, &err_msg);
     if (failure) {
@@ -90,6 +101,37 @@ void DbManager::save_chunk(const Chunk& chunk) {
   sqlite3_bind_int(stmt, 3, loc[2]);
   int runs_size = sizeof(std::uint32_t) * runs.size();
   sqlite3_bind_blob(stmt, 4, runs.data(), runs_size, SQLITE_STATIC);
+  sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+}
+
+void DbManager::load_camera(Camera& camera) {
+  sqlite3_stmt* stmt;
+  std::string sql = "select * from Player;";
+  sqlite3_prepare_v2(db_, sql.c_str(), -1, &stmt, nullptr);
+  int rc = sqlite3_step(stmt);
+  if (rc == SQLITE_ROW) {
+    double x = sqlite3_column_double(stmt, 0);
+    double y = sqlite3_column_double(stmt, 1);
+    double z = sqlite3_column_double(stmt, 2);
+    double yaw = sqlite3_column_double(stmt, 3);
+    double pitch = sqlite3_column_double(stmt, 4);
+    camera.set_position({x,y,z});
+    camera.set_orientation(yaw,pitch);
+  };
+  sqlite3_finalize(stmt);
+}
+
+void DbManager::save_camera(const Camera& camera) {
+  std::string sql = "update Player set x = ?, y = ?, z = ?, yaw = ?, pitch = ?;";
+  sqlite3_stmt* stmt;
+  sqlite3_prepare_v2(db_, sql.c_str(), -1, &stmt, nullptr);
+  auto& pos = camera.get_position();
+  sqlite3_bind_double(stmt, 1, pos.x);
+  sqlite3_bind_double(stmt, 2, pos.y);
+  sqlite3_bind_double(stmt, 3, pos.z);
+  sqlite3_bind_double(stmt, 4, camera.get_yaw());
+  sqlite3_bind_double(stmt, 5, camera.get_pitch());
   sqlite3_step(stmt);
   sqlite3_finalize(stmt);
 }

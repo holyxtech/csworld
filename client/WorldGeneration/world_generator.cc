@@ -1,9 +1,8 @@
 #include "world_generator.h"
 #include <cstdlib>
 #include <iostream>
-#include "poisson_disk_sampling.h"
-#include "region.h"
-#include "types.h"
+#include "../poisson_disk_sampling.h"
+#include "../region.h"
 
 namespace {
   const std::array<std::array<int, 2>, 9> section_order =
@@ -33,7 +32,8 @@ bool WorldGenerator::ready_to_fill(Location& location, const std::unordered_map<
   return true;
 }
 
-void WorldGenerator::build_tree(Section& section, int x, int y, int z) {
+std::vector<std::pair<Int3D, Voxel>> WorldGenerator::build_tree(int x, int y, int z) const {
+  std::vector<std::pair<Int3D, Voxel>> parts;
   int i, j, k;
 
   // the randomness needs to be seeded by x,y,z, so the results don't depend on when this is called
@@ -51,17 +51,17 @@ void WorldGenerator::build_tree(Section& section, int x, int y, int z) {
   for (int count = height_without_leaves; count < tree_height; ++count) {
     for (auto x : arr_1) {
       for (auto z : arr_1) {
-        section.insert_into_features(i + x, j + count, k + z, Voxel::leaves);
+        parts.emplace_back(Int3D{i + x, j + count, k + z}, Voxel::leaves);
       }
     }
     for (auto z : arr_1) {
       for (auto x : arr_2) {
-        section.insert_into_features(i + x, j + count, k + z, Voxel::leaves);
+        parts.emplace_back(Int3D{i + x, j + count, k + z}, Voxel::leaves);
       }
     }
     for (auto x : arr_1) {
       for (auto z : arr_2) {
-        section.insert_into_features(i + x, j + count, k + z, Voxel::leaves);
+        parts.emplace_back(Int3D{i + x, j + count, k + z}, Voxel::leaves);
       }
     }
   }
@@ -69,19 +69,20 @@ void WorldGenerator::build_tree(Section& section, int x, int y, int z) {
   // cross on top
   constexpr std::array<int, 3> arr_3 = {-1, 1};
   for (auto x : arr_3) {
-    section.insert_into_features(i + x, j + tree_height, k, Voxel::leaves);
+    parts.emplace_back(Int3D{i + x, j + tree_height, k}, Voxel::leaves);
   }
   for (auto z : arr_3) {
-    section.insert_into_features(i, j + tree_height, k + z, Voxel::leaves);
+    parts.emplace_back(Int3D{i, j + tree_height, k + z}, Voxel::leaves);
   }
-  section.insert_into_features(i, j + tree_height, k, Voxel::leaves);
-  section.insert_into_features(i, j + tree_height + 1, k, Voxel::leaves);
+  parts.emplace_back(Int3D{i, j + tree_height, k}, Voxel::leaves);
+  parts.emplace_back(Int3D{i, j + tree_height + 1, k}, Voxel::leaves);
 
   // trunk
   i = x, j = y, k = z;
   for (int count = 0; count < tree_height; ++count) {
-    section.insert_into_features(i, j + count, k, Voxel::tree_trunk);
+    parts.emplace_back(Int3D{i, j + count, k}, Voxel::tree_trunk);
   }
+  return parts;
 }
 
 void WorldGenerator::load_features(Section& section) {
@@ -103,7 +104,10 @@ void WorldGenerator::load_features(Section& section) {
     if (landcover != Common::LandCover::trees)
       continue;
     int subsection_elevation = section.get_subsection_elevation(s[0], s[1]);
-    build_tree(section, loc[0] * Section::sz_x + static_cast<int>(s[0]), subsection_elevation + 1, loc[1] * Section::sz_z + static_cast<int>(s[1]));
+    auto tree = build_tree(loc[0] * Section::sz_x + static_cast<int>(s[0]), subsection_elevation + 1, loc[1] * Section::sz_z + static_cast<int>(s[1]));
+    for (auto& [coord, voxel] : tree) {
+      section.insert_into_features(coord[0], coord[1], coord[2], voxel);
+    }
   }
 }
 
@@ -149,8 +153,7 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
       for (; y < (y_global + Chunk::sz_y) && y <= height; ++y) {
         chunk.set_voxel(x, y - y_global, z, voxel);
       }
-
-      if (landcover != Common::LandCover::bare) {
+      /* if (landcover != Common::LandCover::bare) {
         double n = noise(x + location[0] * Chunk::sz_x, z + location[2] * Chunk::sz_z);
         if (n > 0.65 && y < (y_global + Chunk::sz_y))
           chunk.set_voxel(x, y - y_global, z, Voxel::grass);
@@ -160,7 +163,7 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
         n = noise(x + location[0] * Chunk::sz_x * 3, z + location[2] * Chunk::sz_z * 3);
         if (n > 0.75 && y < (y_global + Chunk::sz_y))
           chunk.set_voxel(x, y - y_global, z, Voxel::sunflower);
-      }
+      } */
     }
   }
   if (empty_subsections == Chunk::sz_x * Chunk::sz_z)

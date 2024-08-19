@@ -383,6 +383,27 @@ void Region::reset_updated_since_reset() {
 }
 
 void Region::signal_chunk_update(const Location& loc) {
-  diffs_.emplace_back(loc, Diff::creation);
+  if (!chunks_.contains(loc))
+    return;
+  auto& chunk = chunks_.at(loc);
+  if (chunk.check_flag(ChunkFlags::Deleted))
+    return;
+  chunk.unset_flag(ChunkFlags::Empty);
+  if (adjacents_missing_[loc] != 0)
+    return;
+  if (!chunks_sent_.contains(loc)) {
+    chunk_to_mesh_generator(loc);    
+  } else {
+    diffs_.emplace_back(loc, Diff::creation);
+  }
   updated_since_reset_.insert(loc);
+}
+
+bool Region::set_voxel_if_possible(const Location& loc, int idx, Voxel voxel) {
+  auto it = chunks_.find(loc);
+  if (it == chunks_.end())
+    return false;
+  auto& chunk = it->second;
+  chunk.set_voxel(idx, voxel);
+  return true;
 }

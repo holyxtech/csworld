@@ -1,24 +1,28 @@
 #ifndef WORLD_EDITOR_H
 #define WORLD_EDITOR_H
 
+#include <unordered_set>
+#include <vector>
 #include <array>
-#include "types.h"
-#include "region.h"
+#include "../types.h"
+
+class Sim;
 
 class WorldEditor {
 public:
-  WorldEditor(Region& region);
+  WorldEditor(Sim& sim);
   void raise(const glm::dvec3& pos, const glm::dvec3& dir);
   void reset();
+  void generate(const std::unordered_set<Int3D, LocationHash>& surface);
 
 private:
   float gaussian_falloff(float distance_squared) const;
 
-  Region& region_;
-  static constexpr int heightmap_sz_x = 50;
-  static constexpr int heightmap_sz_z = 50;
+  Sim& sim_;
+  static constexpr int heightmap_sz_x = 10;
+  static constexpr int heightmap_sz_z = 10;
   static constexpr int heightmap_sz = heightmap_sz_x * heightmap_sz_z;
-  std::array<float, heightmap_sz> heightmap_;
+  std::vector<float> heightmap_;
   Int2D heightmap_origin_;
   Int2D brush_tip_local_;
   static int max_dropoff_distance;

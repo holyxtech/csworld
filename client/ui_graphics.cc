@@ -285,7 +285,7 @@ void UIGraphics::render_build_ui() {
       NK_WINDOW_MOVABLE | NK_WINDOW_BORDER | NK_WINDOW_TITLE)) {
     nk_layout_row_static(ctx_, 40, 130, 1);
     if (nk_button_label(ctx_, "Generate")) {
-      
+      action_events_.enqueue(Action{Action::terrain_generation, Action::TerrainGenerationData{}});
     }
   }
 
@@ -315,4 +315,8 @@ bool UIGraphics::is_mouse_captured() const {
 }
 bool UIGraphics::is_key_captured() const {
   return key_captured_;
+}
+
+moodycamel::ReaderWriterQueue<Action>& UIGraphics::get_action_events() {
+  return action_events_;
 }

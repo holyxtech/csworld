@@ -121,9 +121,9 @@ int main(int argc, char* argv[]) {
       start = std::chrono::high_resolution_clock::now();
     }
   }
-
   sim.exit();
   build_thread.join();
+  sim.save();
   glfwTerminate();
   io_context.stop();
   t.join();

@@ -7,7 +7,7 @@
 GroundSelection::GroundSelection() {
   set_scene_component(std::make_unique<SceneComponent>());
   auto& vertices = scene_component_->get_vertices();
-  vertices.resize(100000);
+  vertices.resize(1000000);
   scene_component_->set_flag(SceneComponentFlags::Dynamic);
   scene_component_->set_primitive_type(PrimitiveType::Triangles);
   auto& vertex_attributes = scene_component_->get_vertex_attributes();

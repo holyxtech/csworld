@@ -1,19 +1,19 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <optional>
 #include <any>
 #include <array>
 #include <cmath>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 #include <glm/glm.hpp>
-#include "item.h"
 #include "common.h"
+#include "item.h"
 
 enum Direction {
   nx,
@@ -198,19 +198,5 @@ namespace QuadCoord {
 } // namespace QuadCoord
 
 using Message = std::vector<std::uint8_t>;
-
-struct Action {
-  struct NewActiveItemData {
-    std::optional<Item> item;
-  };
-  enum Kind {
-    new_active_item,
-  };
-  Kind kind;
-  std::any data;
-
-  template <typename T>
-  Action(Kind k, const T& obj) : kind(k), data(obj) {}
-};
 
 #endif

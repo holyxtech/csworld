@@ -23,8 +23,8 @@
 #include "ui.h"
 #include "user_controller.h"
 #include "world.h"
-#include "world_editor.h"
-#include "world_generator.h"
+#include "WorldGeneration/world_editor.h"
+#include "WorldGeneration/world_generator.h"
 
 class Sim {
 public:
@@ -54,6 +54,7 @@ public:
   void step(std::int64_t ms);
   void draw(std::int64_t ms);
   void exit();
+  void save();
 
   World& get_world();
   Region& get_region();
@@ -70,6 +71,7 @@ public:
   RenderModes& get_render_modes();
   WorldEditor& get_world_editor();
   DrawGenerator& get_draw_generator();
+  WorldGenerator& get_world_generator();
 
   static constexpr int render_min_y_offset = -2;
   static constexpr int render_max_y_offset = 2;
