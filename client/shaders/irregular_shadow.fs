@@ -1,12 +1,12 @@
 #version 460 core
 
 in vec2 GeoTexCoord;
-flat in int GeoTextureId;
+flat in uint GeoTextureId;
 
 uniform sampler2DArray textureArray;
 
 void main() {
   vec4 textureColor = texture(textureArray, vec3(GeoTexCoord, GeoTextureId));
-  if (textureColor.a == 0.0)
-    discard;
+  if (textureColor.a == 0)
+    discard; 
 }

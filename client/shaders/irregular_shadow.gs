@@ -8,9 +8,9 @@ layout (std140, binding = 0) uniform LightSpaceMatrices {
 };
 
 in vec2 TexCoord[];
-flat in int TextureId[];
+flat in uint TextureId[];
 out vec2 GeoTexCoord;
-flat out int GeoTextureId;
+flat out uint GeoTextureId;
     
 void main() {          
   for (int i = 0; i < 3; ++i) {
