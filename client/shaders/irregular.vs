@@ -28,6 +28,5 @@ void main() {
     vs_out.worldNormal = vec3(1.f,0.f,0.f);
     vec4 cameraPos = uView * vec4(position, 1.f);
     vs_out.cameraPos = cameraPos.xyz;
-    vec3 normal2 = vec3(1,0,0);
     vs_out.cameraNormal = (normalMatrix*vec4(normal,0.f)).xyz;
 }

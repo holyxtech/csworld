@@ -31,6 +31,7 @@ class TerrainGraphics {
 public:
   TerrainGraphics();
   void render(const Renderer& renderer) const;
+  void render_irregular(const Renderer& renderer) const;
   void render_water(const Renderer& renderer) const;
   void shadow_map(const Renderer& renderer) const;
   void create(const Location& loc, const MeshGenerator& mesh_generator);

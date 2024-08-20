@@ -11,8 +11,8 @@ in VS_OUT {
 } fs_in;
 
 layout (location = 0) out vec4 color;
-layout (location = 1) out vec4 gCameraPosition;
-layout (location = 2) out vec4 gCameraNormal;
+layout (location = 1) out vec4 gPosition;
+layout (location = 2) out vec4 gNormal;
 
 uniform sampler2D normalMap1;
 uniform sampler2D normalMap2;
@@ -26,8 +26,8 @@ const vec2 normalMap2Scroll = vec2(-0.25,-0.2) / vec2(3);
 const float specularStrength = 0.1;
 
 void main() {
-  gCameraPosition = fs_in.cameraPos;
-  gCameraNormal = vec4(fs_in.cameraNormal.xyz, 1.f);
+  gPosition = fs_in.cameraPos;
+  gNormal = vec4(fs_in.cameraNormal.xyz, 1.f);
 
   vec3 fragWorldPosition = fs_in.worldPos;
   float xOffset = mod(fragWorldPosition.x + time * normalMap1Scroll.x, normalMapWidth) / normalMapWidth;
@@ -41,7 +41,7 @@ void main() {
   // err...
   vec3 lightDir = normalize(vec3(0.f,1.f,0.f));
   vec3 lightColor = vec3(1.f,1.f,1.f);
-  color = vec4(0.1f,0.4,0.8,.2f);
+  color = vec4(0.1f,0.2,0.6,.2f);
 
   // diffuse
   float diff = max(dot(normal, lightDir), 0.0);

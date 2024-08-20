@@ -61,8 +61,5 @@ void main() {
     vs_out.worldNormal = normal;
     vec4 cameraPos = uView * vec4(pos, 1.f);
     vs_out.cameraPos = cameraPos.xyz;
-    //mat3 nm = transpose(inverse(mat3(uView)));
     vs_out.cameraNormal = (normalMatrix*vec4(normal,0.f)).xyz;
-    //vs_out.cameraNormal = normal;
-    //vs_out.cameraNormal = nm * normal;
 }

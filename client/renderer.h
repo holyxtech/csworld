@@ -73,7 +73,6 @@ public:
   const glm::mat4& get_view_matrix() const;
   const glm::mat4& get_projection_matrix() const;
   const glm::vec3& get_camera_offset_position() const;
-  GLuint get_shadow_texture() const;
   const Sky& get_sky() const;
   UIGraphics& get_ui_graphics();
   const Camera& get_camera() const;
@@ -98,21 +97,20 @@ private:
   void shadow_map();
   void ssao();
 
-  GLuint composite_shader_;
-  GLuint blur_shader_;
-  GLuint final_shader_;
-
   std::unordered_map<std::string, GLuint> textures_;
   std::unordered_map<std::string, GLuint> uniform_buffers_;
   std::unordered_map<std::string, Shader> shaders_;
   std::unordered_map<std::uint32_t, GLuint> vertex_buffer_ids_;
   std::unordered_map<std::uint32_t, GLuint> index_buffer_ids_;
   std::unordered_map<GLuint, GLuint> vbo_to_vao_;
-
+  GLuint pingpong_primary_fbo_;
+  GLuint pingpong_primary_cbo_;
+  GLuint composite_shader_;
+  GLuint blur_shader_;
+  GLuint final_shader_;
   GLuint main_fbo_;
   GLuint main_cbo_;
   GLuint main_dbo_;
-  GLuint main_camera_position_;
   GLuint main_camera_normal_;
   GLuint water_fbo_;
   GLuint water_cbo_;
@@ -127,9 +125,11 @@ private:
   std::array<GLuint, 2> pingpong_fbos_;
   std::array<GLuint, 2> pingpong_cbos_;
   struct CommonBlock {
-    glm::mat4 view_matrix;
-    glm::mat4 projection_matrix;
-    glm::mat4 normal_matrix;
+    glm::mat4 view;
+    glm::mat4 projection;
+    glm::mat4 inv_projection;
+    glm::mat4 normal;
+    int frame;
   } common_block_;
   GLuint common_ubo_;
 
@@ -150,8 +150,9 @@ private:
   GLuint ssao_blur_fbo_;
   GLuint ssao_blur_cbo_;
   GLuint ssao_noise_texture_;
+  GLuint ssao_apply_shader_;
 
-  // shadows
+  // shadow maps
   static constexpr int num_cascades = 3;
   static int shadow_res;
   GLuint shadow_fbo_;
@@ -166,6 +167,7 @@ private:
   static std::array<float, 3> cascade_far_planes;
 
   std::uint32_t next_component_id_ = 0;
+  unsigned int frame_ = 0;
 };
 
 #endif

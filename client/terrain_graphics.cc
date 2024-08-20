@@ -49,13 +49,13 @@ void TerrainGraphics::set_up() {
   std::size_t buckets = Region::max_sz;
   if constexpr (mesh_kind == MeshKind::cubes) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_mesh;
-    mdh.shader = RenderUtils::create_shader("terrain.vs","terrain.fs");
+    mdh.shader = RenderUtils::create_shader("terrain.vs", "terrain.fs");
   } else if constexpr (mesh_kind == MeshKind::irregular) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_irregular_mesh;
-    mdh.shader = RenderUtils::create_shader("irregular.vs","terrain.fs");
+    mdh.shader = RenderUtils::create_shader("irregular.vs", "terrain.fs");
   } else if constexpr (mesh_kind == MeshKind::water) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_water_mesh;
-    mdh.shader = RenderUtils::create_shader("water.vs","water.fs");
+    mdh.shader = RenderUtils::create_shader("water.vs", "water.fs");
   }
   mdh.commands.reserve(buckets);
   mdh.commands_metadata.reserve(buckets);
@@ -104,7 +104,8 @@ TerrainGraphics::TerrainGraphics() {
   stbi_set_flip_vertically_on_load(1);
 
   for (auto [filename, texture] : RenderUtils::named_textures) {
-    std::string path = Options::instance()->getImagePath(filename + std::string(".png"));
+    std::string filename_with_ext = filename + std::string(".png");
+    std::string path = Options::instance()->getImagePath(filename_with_ext);
     auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
     glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texture.get(), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     stbi_image_free(image_data);
@@ -133,7 +134,7 @@ TerrainGraphics::TerrainGraphics() {
 
   // shadow map setup
   cubes_shadow_shader_ = RenderUtils::create_shader(
-    "terrain_shadow.vs","terrain_shadow.gs",
+    "terrain_shadow.vs", "terrain_shadow.gs",
     "terrain_shadow.fs");
   irregular_shadow_shader_ = RenderUtils::create_shader(
     "irregular_shadow.vs", "irregular_shadow.gs",
@@ -270,7 +271,7 @@ void TerrainGraphics::render(const Renderer& renderer, const MultiDrawHandle& md
   auto& camera_offset_position = renderer.get_camera_offset_position();
   glUniform3fv(camera_world_position_loc, 1, glm::value_ptr(camera_offset_position));
 
-  GLuint shadow_texture = renderer.get_shadow_texture();
+  GLuint shadow_texture = renderer.get_texture("ShadowDepth");
   glBindTextureUnit(0, shadow_texture);
   glUniform1i(glGetUniformLocation(mdh.shader, "shadowMap"), 0);
   glBindTextureUnit(1, voxel_texture_array_);
@@ -302,12 +303,15 @@ void TerrainGraphics::shadow_map(const Renderer& renderer) const {
   glBindVertexArray(irregular_draw_handle_.vao);
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, irregular_draw_handle_.ibo);
   glMultiDrawArraysIndirect(GL_TRIANGLES, 0, irregular_draw_handle_.commands.size(), 0);
-
 }
 
 void TerrainGraphics::render(const Renderer& renderer) const {
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, cubes_draw_handle_.loc_ssbo);
   render(renderer, cubes_draw_handle_);
+  //render(renderer, irregular_draw_handle_);
+}
+
+void TerrainGraphics::render_irregular(const Renderer& renderer) const {
   render(renderer, irregular_draw_handle_);
 }
 

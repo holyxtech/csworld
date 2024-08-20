@@ -32,10 +32,8 @@ namespace {
 
 Renderer::Renderer(Sim& sim)
     : sim_(sim), ui_graphics_(sim.get_window(), sim.get_ui()) {
-  projection_ = glm::perspective(fov, aspect_ratio, near_plane, far_plane);
 
-  composite_shader_ = RenderUtils::create_shader("composite.vs", "composite.fs");
-
+  // Shaders
   {
     GLuint id = RenderUtils::create_shader("voxel_highlight.vs", "voxel_highlight.fs");
     Shader voxel_highlight_shader(
@@ -53,33 +51,47 @@ Renderer::Renderer(Sim& sim)
       {{"Common", 0}});
     shaders_["GroundSelection"] = std::move(ground_selection_shader);
   }
-
+  composite_shader_ = RenderUtils::create_shader("quad.vs", "composite.fs");
   blur_shader_ = RenderUtils::create_shader("blur.vs", "blur.fs");
   final_shader_ = RenderUtils::create_shader("final.vs", "final.fs");
   ssao_shader_ = RenderUtils::create_shader("ssao_quad.vs", "ssao.fs");
   ssao_blur_shader_ = RenderUtils::create_shader("ssao_quad.vs", "ssao_blur.fs");
+  ssao_apply_shader_ = RenderUtils::create_shader("quad.vs", "ssao_apply.fs");
 
+  // Generic
+  projection_ = glm::perspective(fov, aspect_ratio, near_plane, far_plane);
+  glCreateBuffers(1, &common_ubo_);
+  common_block_.projection = projection_;
+  common_block_.inv_projection = glm::inverse(projection_);
+  glNamedBufferStorage(common_ubo_, sizeof(CommonBlock), &common_block_, GL_DYNAMIC_STORAGE_BIT);
   glCreateVertexArrays(1, &quad_vao_);
+  glGenFramebuffers(1, &pingpong_primary_fbo_);
+  glBindFramebuffer(GL_FRAMEBUFFER, pingpong_primary_fbo_);
+  glGenTextures(1, &pingpong_primary_cbo_);
+  glBindTexture(GL_TEXTURE_2D, pingpong_primary_cbo_);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_width, window_width, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpong_primary_cbo_, 0);
+
+  // Opaque / water
   auto set_up_framebuffers =
-    [](GLuint& fbo, GLuint& cbo, GLuint& dbo, std::array<std::reference_wrapper<GLuint>, 2> gbufs) -> void {
+    [](GLuint& fbo, GLuint& cbo, GLuint& dbo, std::vector<std::reference_wrapper<GLuint>> gbufs) -> void {
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
     glGenTextures(1, &cbo);
     glBindTexture(GL_TEXTURE_2D, cbo);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_width, window_width, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, cbo, 0);
-
     glGenTextures(1, &dbo);
     glBindTexture(GL_TEXTURE_2D, dbo);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, window_width, window_height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, window_width, window_height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, dbo, 0);
-
-    for (std::size_t i = 0; i < 2; ++i) {
+    for (std::size_t i = 0; i < gbufs.size(); ++i) {
       auto& gbuf = gbufs[i].get();
       glGenTextures(1, &gbuf);
       glBindTexture(GL_TEXTURE_2D, gbuf);
@@ -93,9 +105,8 @@ Renderer::Renderer(Sim& sim)
     std::array<GLuint, 3> attachments = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
     glDrawBuffers(3, attachments.data());
   };
-  set_up_framebuffers(main_fbo_, main_cbo_, main_dbo_, {std::ref(main_camera_position_), std::ref(main_camera_normal_)});
+  set_up_framebuffers(main_fbo_, main_cbo_, main_dbo_, {std::ref(main_camera_normal_)});
   set_up_framebuffers(water_fbo_, water_cbo_, water_dbo_, {std::ref(water_camera_position_), std::ref(water_camera_normal_)});
-
   glGenFramebuffers(1, &composite_fbo_);
   glBindFramebuffer(GL_FRAMEBUFFER, composite_fbo_);
   glGenTextures(2, composite_cbos_.data());
@@ -113,6 +124,7 @@ Renderer::Renderer(Sim& sim)
     glDrawBuffers(2, attachments.data());
   }
 
+  // Blur
   glGenFramebuffers(2, pingpong_fbos_.data());
   glGenTextures(2, pingpong_cbos_.data());
   for (std::size_t i = 0; i < 2; ++i) {
@@ -126,6 +138,7 @@ Renderer::Renderer(Sim& sim)
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpong_cbos_[i], 0);
   }
 
+  // SSR
   float sx = float(window_width) / 2.0;
   float sy = float(window_height) / 2.0;
   auto warp_to_screen_space = glm::mat4(1.0);
@@ -134,10 +147,10 @@ Renderer::Renderer(Sim& sim)
   warp_to_screen_space = glm::transpose(warp_to_screen_space);
   glm::mat4 pixel_projection = warp_to_screen_space * projection_;
   glUseProgram(composite_shader_);
-  auto pixel_projection_loc = glGetUniformLocation(composite_shader_, "uPixelProjection");
+  auto pixel_projection_loc = glGetUniformLocation(composite_shader_, "pixelProjection");
   glUniformMatrix4fv(pixel_projection_loc, 1, GL_FALSE, glm::value_ptr(pixel_projection));
 
-  // shadows
+  // Shadow mapping
   glCreateBuffers(1, &light_space_matrices_ubo_);
   glNamedBufferStorage(light_space_matrices_ubo_, sizeof(glm::mat4) * num_cascades, nullptr, GL_DYNAMIC_STORAGE_BIT);
   glCreateBuffers(1, &shadow_block_ubo_);
@@ -173,16 +186,15 @@ Renderer::Renderer(Sim& sim)
   glDrawBuffer(GL_NONE);
   glReadBuffer(GL_NONE);
 
+  // SSAO
   glGenFramebuffers(1, &ssao_fbo_);
   glBindFramebuffer(GL_FRAMEBUFFER, ssao_fbo_);
-  // SSAO color buffer
   glGenTextures(1, &ssao_cbo_);
   glBindTexture(GL_TEXTURE_2D, ssao_cbo_);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, window_width, window_height, 0, GL_RED, GL_FLOAT, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssao_cbo_, 0);
-  // and blur stage
   glGenFramebuffers(1, &ssao_blur_fbo_);
   glBindFramebuffer(GL_FRAMEBUFFER, ssao_blur_fbo_);
   glGenTextures(1, &ssao_blur_cbo_);
@@ -191,8 +203,6 @@ Renderer::Renderer(Sim& sim)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssao_blur_cbo_, 0);
-  // generate sample kernel
-  // ----------------------
   std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
   std::default_random_engine generator;
   const int num_kernels = 8;
@@ -202,19 +212,12 @@ Renderer::Renderer(Sim& sim)
     sample = glm::normalize(sample);
     sample *= randomFloats(generator);
     float scale = float(i) / num_kernels;
-    // scale samples s.t. they're more aligned to center of kernel
     scale = ourLerp(0.1f, 1.0f, scale * scale);
     sample *= scale;
     ssaoKernel[i] = sample;
-    // std::cout<<sample<<std::endl;
   }
-  /* std::random_device rd;
-  std::mt19937 rng(rd());
-  std::shuffle(ssaoKernel.begin(), ssaoKernel.end(), rng); */
   glUseProgram(ssao_shader_);
-
   glUniform3fv(glGetUniformLocation(ssao_shader_, "samples"), num_kernels, &ssaoKernel[0][0]);
-
   std::vector<glm::vec3> ssaoNoise;
   for (unsigned int i = 0; i < 16; i++) {
     glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f); // rotate around z-axis (in tangent space)
@@ -229,16 +232,12 @@ Renderer::Renderer(Sim& sim)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-  glCreateBuffers(1, &common_ubo_);
-  glNamedBufferStorage(common_ubo_, sizeof(CommonBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
-
-  // hmm...
   textures_["MainDepth"] = main_dbo_;
   textures_["MainColor"] = main_cbo_;
+  textures_["ShadowDepth"] = shadow_texture_;
   uniform_buffers_["Common"] = common_ubo_;
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glEnable(GL_BLEND);
   glLineWidth(2.f);
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
@@ -282,13 +281,13 @@ void Renderer::render_scene() {
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
+  common_block_.normal = glm::transpose(glm::inverse(view_));
+  common_block_.view = view_;
+  common_block_.frame = frame_;
+  glNamedBufferSubData(common_ubo_, 0, sizeof(CommonBlock), &common_block_);
 
   shadow_map();
 
-  common_block_.normal_matrix = glm::transpose(glm::inverse(view_));
-  common_block_.view_matrix = view_;
-  common_block_.projection_matrix = projection_;
-  glNamedBufferSubData(common_ubo_, 0, sizeof(CommonBlock), &common_block_);
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo_);
   glBindBufferBase(GL_UNIFORM_BUFFER, 1, light_space_matrices_ubo_);
   glBindBufferBase(GL_UNIFORM_BUFFER, 2, shadow_block_ubo_);
@@ -298,20 +297,36 @@ void Renderer::render_scene() {
   terrain_.render_water(*this);
   glBindFramebuffer(GL_FRAMEBUFFER, main_fbo_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   terrain_.render(*this);
 
-  // post process starts
   glDepthFunc(GL_LEQUAL);
   glDisable(GL_BLEND);
   ssao();
   glDepthFunc(GL_LESS);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, pingpong_primary_fbo_);
+  glUseProgram(ssao_apply_shader_);
+  glBindTextureUnit(0, main_cbo_);
+  glUniform1i(glGetUniformLocation(ssao_apply_shader_, "MainColor"), 0);
+  glBindTextureUnit(1, ssao_blur_cbo_);
+  glUniform1i(glGetUniformLocation(ssao_apply_shader_, "SSAO"), 1);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+  glBlitNamedFramebuffer(
+    pingpong_primary_fbo_, main_fbo_, 0, 0, window_width, window_height,
+    0, 0, window_width, window_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+  // Things to not be SSAO'd
+  glEnable(GL_BLEND);
+  glBindFramebuffer(GL_FRAMEBUFFER, main_fbo_);
+  terrain_.render_irregular(*this);
+  glDisable(GL_BLEND);
 
   sky_.generate_sky_lut(*this);
   glViewport(0, 0, window_width, window_height);
   glBindFramebuffer(GL_FRAMEBUFFER, main_fbo_);
   sky_.render(*this);
 
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo_);
   glViewport(0, 0, window_width, window_height);
   glBindFramebuffer(GL_FRAMEBUFFER, composite_fbo_);
   glUseProgram(composite_shader_);
@@ -327,13 +342,9 @@ void Renderer::render_scene() {
   glUniform1i(glGetUniformLocation(composite_shader_, "waterCameraPosition"), 4);
   glBindTextureUnit(5, water_camera_normal_);
   glUniform1i(glGetUniformLocation(composite_shader_, "waterCameraNormal"), 5);
-  glBindTextureUnit(6, ssao_blur_cbo_);
-  glUniform1i(glGetUniformLocation(composite_shader_, "ssao"), 6);
-  glUniform1f(glGetUniformLocation(composite_shader_, "jitter"), Common::random_float(0.0, 0.1));
   glBindVertexArray(quad_vao_);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 
-  // apply bloom...
   bool horizontal = true;
   glNamedFramebufferReadBuffer(composite_fbo_, GL_COLOR_ATTACHMENT0 + 1);
   glBlitNamedFramebuffer(
@@ -350,6 +361,7 @@ void Renderer::render_scene() {
     glDrawArrays(GL_TRIANGLES, 0, 6);
     horizontal = !horizontal;
   }
+
   glViewport(0, 0, window_width, window_height);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glClear(GL_DEPTH_BUFFER_BIT);
@@ -361,9 +373,7 @@ void Renderer::render_scene() {
   glUniform1i(glGetUniformLocation(final_shader_, "bloom"), 8);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 
-  // UI
-
-  // ui_graphics_.render();
+  ++frame_;
 }
 
 void Renderer::render(const DrawCommand& command) {
@@ -478,14 +488,14 @@ void Renderer::ssao() {
   glBindFramebuffer(GL_FRAMEBUFFER, ssao_fbo_);
   glClear(GL_COLOR_BUFFER_BIT);
   glUseProgram(ssao_shader_);
-  glBindTextureUnit(0, main_camera_position_);
-  glUniform1i(glGetUniformLocation(ssao_shader_, "gPosition"), 0);
+
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo_);
+  glBindTextureUnit(0, main_dbo_);
+  glUniform1i(glGetUniformLocation(ssao_shader_, "gDepth"), 0);
   glBindTextureUnit(1, main_camera_normal_);
   glUniform1i(glGetUniformLocation(ssao_shader_, "gNormal"), 1);
   glBindTextureUnit(2, ssao_noise_texture_);
   glUniform1i(glGetUniformLocation(ssao_shader_, "texNoise"), 2);
-  auto proj_loc = glGetUniformLocation(ssao_shader_, "projection");
-  glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm::value_ptr(projection_));
   auto noise_scale = glm::vec2(window_width / 4.0, window_height / 4.0);
   glUniform2fv(glGetUniformLocation(ssao_shader_, "noiseScale"), 1, glm::value_ptr(noise_scale));
   glBindVertexArray(quad_vao_);
@@ -595,10 +605,6 @@ const glm::vec3& Renderer::get_camera_offset_position() const {
 
 UIGraphics& Renderer::get_ui_graphics() {
   return ui_graphics_;
-}
-
-GLuint Renderer::get_shadow_texture() const {
-  return shadow_texture_;
 }
 
 const Camera& Renderer::get_camera() const {

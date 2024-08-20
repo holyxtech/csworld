@@ -153,7 +153,7 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
       for (; y < (y_global + Chunk::sz_y) && y <= height; ++y) {
         chunk.set_voxel(x, y - y_global, z, voxel);
       }
-      /* if (landcover != Common::LandCover::bare) {
+      if (landcover != Common::LandCover::bare) {
         double n = noise(x + location[0] * Chunk::sz_x, z + location[2] * Chunk::sz_z);
         if (n > 0.65 && y < (y_global + Chunk::sz_y))
           chunk.set_voxel(x, y - y_global, z, Voxel::grass);
@@ -163,7 +163,7 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
         n = noise(x + location[0] * Chunk::sz_x * 3, z + location[2] * Chunk::sz_z * 3);
         if (n > 0.75 && y < (y_global + Chunk::sz_y))
           chunk.set_voxel(x, y - y_global, z, Voxel::sunflower);
-      } */
+      }
     }
   }
   if (empty_subsections == Chunk::sz_x * Chunk::sz_z)
