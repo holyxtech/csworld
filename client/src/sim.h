@@ -21,7 +21,7 @@
 #include "renderer.h"
 #include "tcp_client.h"
 #include "ui.h"
-#include "user_controller.h"
+#include "UserControllers/user_controller.h"
 #include "world.h"
 #include "WorldGeneration/world_editor.h"
 #include "WorldGeneration/world_generator.h"

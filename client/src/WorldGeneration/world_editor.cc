@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <cyPoint.h>
 #include <cySampleElim.h>
-#include "../sim.h"
+#include "sim.h"
 #include "common.h"
 
 namespace {

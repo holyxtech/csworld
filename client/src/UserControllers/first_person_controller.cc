@@ -1,6 +1,7 @@
 #include "first_person_controller.h"
 #include "build_controller.h"
 #include "disabled_controller.h"
+#include "options_controller.h"
 #include "input.h"
 #include "inventory_controller.h"
 
@@ -117,6 +118,11 @@ void FirstPersonController::process_input(const InputEvent& event) {
 
     if (key_button_event.key == GLFW_KEY_ESCAPE) {
       next_controller_ = std::make_unique<DisabledController>(sim_, std::make_unique<FirstPersonController>(sim_));
+      return;
+    }
+
+    if (key_button_event.key == GLFW_KEY_O) {
+      next_controller_ = std::make_unique<OptionsController>(sim_, std::make_unique<FirstPersonController>(sim_));
       return;
     }
 

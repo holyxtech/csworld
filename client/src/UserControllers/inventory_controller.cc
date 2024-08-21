@@ -23,7 +23,6 @@ void InventoryController::process_input(const InputEvent& event) {
 
   switch (event.kind) {
   case InputEvent::Kind::MouseButtonEvent:
-
     break;
   case InputEvent::Kind::KeyButtonEvent:
     auto& key_button_event = std::any_cast<const KeyButtonEvent&>(event.data);

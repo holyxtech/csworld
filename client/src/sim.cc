@@ -7,11 +7,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "build_controller.h"
+#include "UserControllers/build_controller.h"
 #include "chunk.h"
 #include "common.h"
 #include "common_generated.h"
-#include "first_person_controller.h"
+#include "UserControllers/first_person_controller.h"
 #include "input.h"
 #include "item.h"
 #include "readerwriterqueue.h"

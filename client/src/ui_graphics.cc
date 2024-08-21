@@ -122,11 +122,21 @@ UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
   glfwSetScrollCallback(window, nk_gflw3_scroll_callback);
 }
 
+void UIGraphics::render_options_window() {
+  if (nk_begin(ctx_, "options window", nk_rect(0, 0, 500, 500), NK_WINDOW_BORDER)) {
+    nk_layout_row_static(ctx_, 40, 130, 1);
+    if (nk_button_label(ctx_, "test")) {
+      //action_events_.enqueue(Action{Action::terrain_generation, Action::TerrainGenerationData{}});
+    }
+  }
+  nk_end(ctx_);
+}
+
 void UIGraphics::render_first_person_ui() {
   nk_glfw3_new_frame();
 
   uint32_t flags = 0;
-  if (ui_.is_inv_open()) {
+  if (ui_.is_inv_open() || ui_.is_options_open()) {
     flags |= NK_WINDOW_NO_INPUT;
   }
 
@@ -272,6 +282,10 @@ void UIGraphics::render_first_person_ui() {
     nk_style_pop_vec2(ctx_);
     nk_style_pop_style_item(ctx_);
     nk_end(ctx_);
+  }
+
+  if (ui_.is_options_open()) {
+    render_options_window();
   }
 
   nk_glfw3_render(NK_ANTI_ALIASING_ON);

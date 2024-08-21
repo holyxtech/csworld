@@ -1,7 +1,7 @@
 #ifndef PAWN_H
 #define PAWN_H
 
-#include "../input.h"
+#include "input.h"
 #include "game_object.h"
 
 class Pawn : public GameObject {

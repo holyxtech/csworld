@@ -163,10 +163,6 @@ Sky::Sky() {
   stbi_image_free(image_data);
 }
 
-void Sky::update_sun_dir(const glm::vec3& dir) {
-  sun_dir = dir;
-}
-
 void Sky::generate_sky_lut(const Renderer& renderer) const {
   glDepthFunc(GL_LEQUAL);
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, atmosphere_ubo_);

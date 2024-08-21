@@ -303,7 +303,6 @@ void Renderer::render_scene() {
   glDisable(GL_BLEND);
   ssao();
   glDepthFunc(GL_LESS);
-
   glBindFramebuffer(GL_FRAMEBUFFER, pingpong_primary_fbo_);
   glUseProgram(ssao_apply_shader_);
   glBindTextureUnit(0, main_cbo_);
@@ -315,7 +314,6 @@ void Renderer::render_scene() {
     pingpong_primary_fbo_, main_fbo_, 0, 0, window_width, window_height,
     0, 0, window_width, window_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-  // Things to not be SSAO'd
   glEnable(GL_BLEND);
   glBindFramebuffer(GL_FRAMEBUFFER, main_fbo_);
   terrain_.render_irregular(*this);

@@ -3,7 +3,7 @@
 
 #include <unordered_set>
 #include <vector>
-#include "../types.h"
+#include "types.h"
 #include "pawn.h"
 
 class GroundSelection : public Pawn {

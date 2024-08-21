@@ -1,6 +1,6 @@
 #include "game_object.h"
 #include <cassert>
-#include "../sim.h"
+#include "sim.h"
 
 Sim* GameObject::sim_ = nullptr;
 

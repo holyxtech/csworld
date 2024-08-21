@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <vector>
 #include <array>
-#include "../types.h"
+#include "types.h"
 
 class Sim;
 

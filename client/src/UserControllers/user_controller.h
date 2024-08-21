@@ -10,10 +10,10 @@ class Sim;
 class UserController {
 public:
   UserController(Sim& sim) : sim_(sim) {}
-  virtual void move_camera() = 0;
-  virtual void process_input(const InputEvent& event) = 0;
-  virtual void init() = 0;
-  virtual void end() = 0;
+  virtual void move_camera() {}
+  virtual void process_input(const InputEvent& event) {}
+  virtual void init() {}
+  virtual void end() {}
 
   std::unique_ptr<UserController> get_next_controller() {
     if (next_controller_ == nullptr)

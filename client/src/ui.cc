@@ -46,6 +46,14 @@ void UI::set_inv_open(bool open) {
   inv_open_ = open;
 }
 
+void UI::set_options_open(bool open) {
+  options_open_ = open;
+}
+
+bool UI::is_options_open() const {
+  return options_open_;
+}
+
 bool UI::is_inv_open() const {
   return inv_open_;
 }

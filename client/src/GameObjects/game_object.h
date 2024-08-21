@@ -2,8 +2,8 @@
 #define GAME_OBJECT_H
 
 #include <memory>
-#include "../flag_manager.h"
-#include "../scene_component.h"
+#include "flag_manager.h"
+#include "scene_component.h"
 
 class Sim;
 

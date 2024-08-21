@@ -38,9 +38,10 @@ file(GLOB PROJECT_SOURCE_FILES_CLIENT
 	 "client/*.cc"
 	 "client/*.c"
      "common/*.cc"
-     "common/*.cc"
-     "client/GameObjects/*.cc"
-     "client/WorldGeneration/*.cc"
+     "client/src/*.cc"
+     "client/src/**/*.cc"
+     "client/src/*.c"
+     "client/src/**/*.c" 
 )
 set(projectSources
 	${PROJECT_SOURCE_FILES_CLIENT}
@@ -79,6 +80,7 @@ add_dependencies(client generate_fbs)
 add_dependencies(server generate_fbs)
 
 target_include_directories(client PRIVATE
+    ${CMAKE_SOURCE_DIR}/client/src
     ${CMAKE_SOURCE_DIR}/ext/
     ${CMAKE_SOURCE_DIR}/ext/cy
     ${CMAKE_SOURCE_DIR}/common

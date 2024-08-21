@@ -37,6 +37,9 @@ public:
   std::optional<Item> get_hovering() const;
 
 private:
+  void render_options_window();
+
+
   using UITexture = std::uint32_t;
 
   nk_context* ctx_;
@@ -44,7 +47,6 @@ private:
   std::unordered_map<UITexture, struct nk_image> icons_;
   std::unordered_map<Item, UITexture> item_to_texture_;
 
-  // static float action_bar_padding
   static float action_button_spacing;
   static float action_button_padding;
   static float action_button_border;

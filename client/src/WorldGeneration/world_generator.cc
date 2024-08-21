@@ -1,8 +1,8 @@
 #include "world_generator.h"
 #include <cstdlib>
 #include <iostream>
-#include "../poisson_disk_sampling.h"
-#include "../region.h"
+#include "poisson_disk_sampling.h"
+#include "region.h"
 
 namespace {
   const std::array<std::array<int, 2>, 9> section_order =

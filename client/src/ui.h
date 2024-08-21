@@ -25,8 +25,10 @@ public:
   UI();
   void action_bar_select(std::size_t index);
   void set_inv_open(bool open);
+  void set_options_open(bool open);
   void action_bar_assign(std::size_t index, Item item);
   bool is_inv_open() const;
+  bool is_options_open() const;
   const std::array<std::optional<Item>, action_bar_size> get_action_bar() const;
   std::size_t get_active_index() const;
   const std::vector<Item>& get_inv() const;
@@ -42,6 +44,7 @@ private:
 
   // Write on game thread
   std::atomic<bool> inv_open_{false};
+  std::atomic<bool> options_open_{false};
 
   Brush brush_;
 };

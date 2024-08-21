@@ -1,8 +1,8 @@
 #include "ground_selection.h"
 #include <glm/ext.hpp>
-#include "../input.h"
-#include "../renderer.h"
-#include "../sim.h"
+#include "input.h"
+#include "renderer.h"
+#include "sim.h"
 
 GroundSelection::GroundSelection() {
   set_scene_component(std::make_unique<SceneComponent>());
