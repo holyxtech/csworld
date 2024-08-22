@@ -22,11 +22,12 @@
 #include "action.h"
 #include "ui.h"
 
+class Sim;
 class Renderer;
 
 class UIGraphics {
 public:
-  UIGraphics(GLFWwindow* window, const UI& ui);
+  UIGraphics(Sim& sim);
   void render_first_person_ui();
   void render_build_ui();
   void set_mouse_captured(bool captured);
@@ -37,16 +38,14 @@ public:
   std::optional<Item> get_hovering() const;
 
 private:
+  using UITexture = std::uint32_t;
   void render_options_window();
 
-
-  using UITexture = std::uint32_t;
-
-  nk_context* ctx_;
   std::unordered_map<std::string, UITexture> ui_textures;
   std::unordered_map<UITexture, struct nk_image> icons_;
   std::unordered_map<Item, UITexture> item_to_texture_;
 
+  // Styling options
   static float action_button_spacing;
   static float action_button_padding;
   static float action_button_border;
@@ -60,16 +59,19 @@ private:
   static struct nk_color inv_background_color;
   static struct nk_color build_options_background_color;
 
+  // State
+  nk_context* ctx_;
+  float font_height_;
+  std::optional<Item> hovering_;
+  glm::ivec2 options_window_offset_ = {0,0};
+
+  // External communication
+  moodycamel::ReaderWriterQueue<Action> action_events_;
+  Renderer& renderer_;
+  const UI& ui_;
   // Write on render thread
   std::atomic<bool> mouse_captured_{false};
   std::atomic<bool> key_captured_{false};
-
-  float font_height_;
-
-  const UI& ui_;
-
-  std::optional<Item> hovering_;
-  moodycamel::ReaderWriterQueue<Action> action_events_;
 };
 
 #endif

@@ -52,7 +52,7 @@ void TerrainGraphics::set_up() {
     mdh.shader = RenderUtils::create_shader("terrain.vs", "terrain.fs");
   } else if constexpr (mesh_kind == MeshKind::irregular) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_irregular_mesh;
-    mdh.shader = RenderUtils::create_shader("irregular.vs", "terrain.fs");
+    mdh.shader = RenderUtils::create_shader("irregular.vs", "irregular.fs");
   } else if constexpr (mesh_kind == MeshKind::water) {
     defacto_vertices = MeshGenerator::defacto_vertices_per_water_mesh;
     mdh.shader = RenderUtils::create_shader("water.vs", "water.fs");

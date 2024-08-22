@@ -8,14 +8,16 @@ layout (std140, binding = 2) uniform ShadowBlock {
     uniform vec3 lightDir;
     uniform float farPlane;
     uniform vec4 cascadePlaneDistances[(numCascades + 3) / 4];
+    uniform float baseBias;
 };
 
 const float shadowMagnitude = .7f;
-const float bias = 0.0005;
-float ShadowPCF(vec2 uvs, int cascadeIdx, float lsDepth) {
+float ShadowPCF(vec2 uvs, int cascadeIdx, float lsDepth, float bias) {
+
     float shadow = 0.0;
     float shadowDepth = texture(shadowMap, vec3(uvs, cascadeIdx)).r;
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+    //shadow = (lsDepth - bias) > shadowDepth ? shadowMagnitude : 0.0;
     for (int x = -1; x <= 1; ++x) {
         for (int y = -1; y <= 1; ++y) {
             float pcfDepth = texture(shadowMap, vec3(uvs + vec2(x, y) * texelSize, cascadeIdx)).r;
@@ -27,8 +29,14 @@ float ShadowPCF(vec2 uvs, int cascadeIdx, float lsDepth) {
 }
 
 float ShadowCalculation(vec3 worldPos, vec3 worldNormal, vec3 cameraPos) {
-    if (dot(worldNormal, lightDir) <= 0)
-        return shadowMagnitude; 
+    if (lightDir.y < 0)
+        return shadowMagnitude;
+
+    //float dotNL = dot(worldNormal, lightDir);
+    //float sinTheta = sqrt(1.0 - dotNL * dotNL);
+    //float bias = baseBias * sinTheta;
+    float bias = max(baseBias * (1.0 - dot(worldNormal, lightDir)), 0.0001);
+    //float bias = 0.0001;
 
     float vsDepth = abs(cameraPos.z);
     float vsNextPlaneDistance;
@@ -49,7 +57,7 @@ float ShadowCalculation(vec3 worldPos, vec3 worldNormal, vec3 cameraPos) {
     float lsDepth = projCoords.z;
     if (lsDepth > 1.0)
         return 0.0;
-    float shadowAmount = ShadowPCF(projCoords.xy, layer, lsDepth);
+    float shadowAmount = ShadowPCF(projCoords.xy, layer, lsDepth, bias);
     if (layer == numCascades - 1)
         return shadowAmount;
 
@@ -71,7 +79,7 @@ float ShadowCalculation(vec3 worldPos, vec3 worldNormal, vec3 cameraPos) {
     if (maxCoord > 1)
         return shadowAmount;
     // 2. if it does, calculate the shadow value in that next cascade
-    float shadowAmountNextCascade = ShadowPCF(tsPosNextCascade.xy, layer+1, tsPosNextCascade.z);
+    float shadowAmountNextCascade = ShadowPCF(tsPosNextCascade.xy, layer+1, tsPosNextCascade.z, bias);
     // 3. blend with shadowAmount, according to distToEdge
     float mixAmount = smoothstep(0.0f, 1 - blendStart, distToEdge);
     float totalShadow = mix(shadowAmountNextCascade, shadowAmount, mixAmount);

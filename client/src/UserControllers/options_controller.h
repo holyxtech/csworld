@@ -8,6 +8,7 @@
 class OptionsController : public UserController {
 public:
   OptionsController(Sim& sim, std::unique_ptr<UserController> previous_controller);
+  void move_camera() override;
   void init() override;
   void end() override;
   void process_input(const InputEvent& event) override;

@@ -33,7 +33,7 @@ void main() {
     vec3 hitPoint;
     ivec2 coord = ivec2(gl_FragCoord.xy);
     int frameIdx = frame % 4;
-    int xIndex = (coord.x+frameIdx) & 3;
+    int xIndex = (coord.x) & 3;
     int yIndex = (coord.y) & 3;
     float jitter = (xIndex * 0.0625) + (yIndex * 0.25);
     bool hit = traceScreenSpaceRay(
@@ -45,7 +45,7 @@ void main() {
     } else {
       color = texelFetch(waterColor, texcoord, 0);
     }
-    color = mix(fragMainColor, color, 0.4);
+    color = mix(fragMainColor, color, 0.6);
   }
   float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
   if (brightness > 1.0)

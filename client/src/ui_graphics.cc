@@ -3,6 +3,7 @@
 #include "input.h"
 #include "render_utils.h"
 #include "renderer.h"
+#include "sim.h"
 #define NK_GLFW_GL4_IMPLEMENTATION
 #include "nuklear_glfw_gl4.h"
 #include "options.h"
@@ -24,7 +25,7 @@ struct nk_color UIGraphics::inv_border_hover_color = nk_rgb(255, 200, 30);
 struct nk_color UIGraphics::inv_background_color = nk_rgb(230, 230, 230);
 struct nk_color UIGraphics::build_options_background_color = nk_rgb(80, 80, 80);
 
-UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
+UIGraphics::UIGraphics(Sim& sim) : renderer_(sim.get_renderer()), ui_(sim.get_ui()) {
   std::uint32_t tex_id = 0;
   for (auto [item_name, item_id] : ItemUtils::items) {
     ui_textures.insert({item_name, tex_id});
@@ -34,7 +35,8 @@ UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
 
   int max_vertex_buffer = 512 * 1024;
   int max_element_buffer = 128 * 1024;
-  ctx_ = nk_glfw3_init(window, NK_GLFW3_DEFAULT, max_vertex_buffer, max_element_buffer);
+  GLFWwindow* window = sim.get_window();
+  ctx_ = nk_glfw3_init(window, NK_GLFW3_INSTALL_CHAR_CALLBACK, max_vertex_buffer, max_element_buffer);
   struct nk_font_atlas* atlas;
   nk_glfw3_font_stash_begin(&atlas);
 
@@ -73,6 +75,7 @@ UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
   table[NK_COLOR_SCROLLBAR_CURSOR_HOVER] = nk_rgba(53, 88, 116, 255);
   table[NK_COLOR_SCROLLBAR_CURSOR_ACTIVE] = nk_rgba(58, 93, 121, 255);
   table[NK_COLOR_TAB_HEADER] = nk_rgba(48, 83, 111, 255);
+  ctx_->style.slider.bar_height = 50;
 
   nk_style_from_table(ctx_, table);
 
@@ -123,12 +126,64 @@ UIGraphics::UIGraphics(GLFWwindow* window, const UI& ui) : ui_(ui) {
 }
 
 void UIGraphics::render_options_window() {
-  if (nk_begin(ctx_, "options window", nk_rect(0, 0, 500, 500), NK_WINDOW_BORDER)) {
-    nk_layout_row_static(ctx_, 40, 130, 1);
-    if (nk_button_label(ctx_, "test")) {
-      //action_events_.enqueue(Action{Action::terrain_generation, Action::TerrainGenerationData{}});
-    }
+
+  nk_style_push_float(ctx_, &ctx_->style.slider.bar_height, 50.f);
+  if (nk_begin(ctx_, "Options", nk_rect(options_window_offset_.x, options_window_offset_.y, 500, 500), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE)) {
+    struct nk_rect bounds = nk_window_get_bounds(ctx_);
+    options_window_offset_.x = bounds.x;
+    options_window_offset_.y = bounds.y;
+
+    // Create a static row with one element: the "test" button
+    /*     nk_layout_row_static(ctx_, 50, 100, 1);
+        if (nk_button_label(ctx_, "test")) {
+          // action_events_.enqueue(Action{Action::terrain_generation, Action::TerrainGenerationData{}});
+        }
+     */
+    // Modify slider style to have square knobs
+    struct nk_style_slider* slider_style = &ctx_->style.slider;
+    slider_style->cursor_size = nk_vec2(40, 40); // Make the knob square by setting equal width and height
+
+    const float row_size[] = {100, 300, 50};
+    nk_layout_row(ctx_, NK_STATIC, 50, 3, row_size);
+    auto& sky = renderer_.get_sky();
+
+    auto calculateAzimuthPolar = [](const glm::vec3& dir) {
+      float polar = glm::degrees(atan2(dir.y, dir.x)); // Azimuth angle in degrees
+      float azimuth = glm::degrees(acos(dir.z));       // Polar angle in degrees
+
+      // Ensure azimuth is within [0, 360) range
+
+      return std::make_pair(azimuth, polar);
+    };
+    auto [a, p] = calculateAzimuthPolar(sky.get_sun_dir());
+    static float azimuth_value = a;
+    static float polar_value = p;
+    // Slider for Azimuth Angle
+    nk_label(ctx_, "Azimuth:", NK_TEXT_LEFT);
+    nk_slider_float(ctx_, 0.0f, &azimuth_value, 360.0f, 1.0f);
+    nk_labelf(ctx_, NK_TEXT_LEFT, "%.0f", azimuth_value); // Display slider value as an integer
+
+    // Slider for Polar Angle
+    nk_label(ctx_, "Polar:", NK_TEXT_LEFT);
+    nk_slider_float(ctx_, 0.0f, &polar_value, 180.0f, 1.0f); // Limit range to 0-180 degrees
+    nk_labelf(ctx_, NK_TEXT_LEFT, "%.0f", polar_value);      // Display slider value as an integer
+
+    nk_layout_row_dynamic(ctx_, 30, 1);
+    auto& uniform_value = renderer_.get_uniform_value("ShadowBias");
+
+    static std::string bias_string = std::to_string(std::any_cast<float>(uniform_value.data));
+    static int num_chars = bias_string.length();
+    bias_string.resize(64);
+    nk_label(ctx_, "Shadow Bias:", NK_TEXT_LEFT);
+    nk_edit_string(ctx_, NK_EDIT_SIMPLE, bias_string.data(), &num_chars, 64, nk_filter_float);
+    bias_string[num_chars] = '\0';
+    float bias_value = std::strtof(bias_string.c_str(), nullptr);
+    renderer_.set_uniform_value("ShadowBias", UniformValue{UniformType::Float, bias_value});
+    // Update sky direction with clamped angles
+
+    sky.set_sun_dir(azimuth_value, polar_value);
   }
+  nk_style_pop_float(ctx_);
   nk_end(ctx_);
 }
 

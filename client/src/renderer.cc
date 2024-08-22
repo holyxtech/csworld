@@ -31,7 +31,7 @@ namespace {
 } // namespace
 
 Renderer::Renderer(Sim& sim)
-    : sim_(sim), ui_graphics_(sim.get_window(), sim.get_ui()) {
+    : sim_(sim), ui_graphics_(sim) {
 
   // Shaders
   {
@@ -154,13 +154,12 @@ Renderer::Renderer(Sim& sim)
   glCreateBuffers(1, &light_space_matrices_ubo_);
   glNamedBufferStorage(light_space_matrices_ubo_, sizeof(glm::mat4) * num_cascades, nullptr, GL_DYNAMIC_STORAGE_BIT);
   glCreateBuffers(1, &shadow_block_ubo_);
-  ShadowBlock sb;
-  sb.far_plane = far_plane;
-  sb.light_dir = sky_.get_sun_dir();
+  shadow_block_.far_plane = far_plane;
+  shadow_block_.light_dir = sky_.get_sun_dir();
   for (int i = 0; i < num_cascades; ++i) {
-    sb.cascade_plane_distances[i / 4][i % 4] = cascade_far_planes[i];
+    shadow_block_.cascade_plane_distances[i / 4][i % 4] = cascade_far_planes[i];
   }
-  glNamedBufferStorage(shadow_block_ubo_, sizeof(ShadowBlock), &sb, GL_DYNAMIC_STORAGE_BIT);
+  glNamedBufferStorage(shadow_block_ubo_, sizeof(ShadowBlock), &shadow_block_, GL_DYNAMIC_STORAGE_BIT);
   glGenFramebuffers(1, &shadow_fbo_);
   glGenTextures(1, &shadow_texture_);
   glBindTexture(GL_TEXTURE_2D_ARRAY, shadow_texture_);
@@ -175,8 +174,8 @@ Renderer::Renderer(Sim& sim)
     GL_DEPTH_COMPONENT,
     GL_FLOAT,
     nullptr);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
   constexpr float border_color[] = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -236,6 +235,7 @@ Renderer::Renderer(Sim& sim)
   textures_["MainColor"] = main_cbo_;
   textures_["ShadowDepth"] = shadow_texture_;
   uniform_buffers_["Common"] = common_ubo_;
+  uniform_values_["ShadowBias"] = UniformValue{UniformType::Float, 0.0001f};
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glLineWidth(2.f);
@@ -288,6 +288,9 @@ void Renderer::render_scene() {
 
   shadow_map();
 
+  shadow_block_.light_dir = sky_.get_sun_dir();
+  shadow_block_.bias = std::any_cast<float>(uniform_values_["ShadowBias"].data);
+  glNamedBufferSubData(shadow_block_ubo_, 0, sizeof(ShadowBlock), &shadow_block_);
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo_);
   glBindBufferBase(GL_UNIFORM_BUFFER, 1, light_space_matrices_ubo_);
   glBindBufferBase(GL_UNIFORM_BUFFER, 2, shadow_block_ubo_);
@@ -593,7 +596,7 @@ const glm::mat4& Renderer::get_view_matrix() const {
   return view_;
 }
 
-const Sky& Renderer::get_sky() const {
+Sky& Renderer::get_sky() {
   return sky_;
 }
 
@@ -627,4 +630,15 @@ GLint Renderer::get_uniform_id(const std::string& shader_name, const std::string
   auto& shader = shaders_.at(shader_name);
   GLuint id = shader.get_id();
   return glGetUniformLocation(id, uniform_name.c_str());
+}
+const glm::dvec3& Renderer::get_world_offset() const {
+  return world_offset_;
+}
+
+void Renderer::set_uniform_value(const std::string& uniform_name, const UniformValue& value) {
+  uniform_values_[uniform_name] = value;
+}
+
+const UniformValue& Renderer::get_uniform_value(const std::string& uniform_name) const {
+  return uniform_values_.at(uniform_name);
 }

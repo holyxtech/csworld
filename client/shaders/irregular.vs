@@ -25,7 +25,7 @@ void main() {
     vs_out.uvs = uvs;
     fragTextureId = textureId;
     vs_out.worldPos = position;
-    vs_out.worldNormal = vec3(1.f,0.f,0.f);
+    vs_out.worldNormal = normal;
     vec4 cameraPos = uView * vec4(position, 1.f);
     vs_out.cameraPos = cameraPos.xyz;
     vs_out.cameraNormal = (normalMatrix*vec4(normal,0.f)).xyz;

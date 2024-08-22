@@ -17,6 +17,7 @@ public:
   GLuint get_texture() const;
   const glm::vec3& get_sun_dir() const;
   void set_sun_dir(const glm::vec3& dir);
+  void set_sun_dir(float theta, float phi);
 
 private:
   struct AtmosphereProperties {

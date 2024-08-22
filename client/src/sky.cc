@@ -12,7 +12,7 @@
 glm::ivec2 Sky::transmittance_lut_size = glm::ivec2(1024, 256);
 glm::ivec2 Sky::multiscattering_lut_size = {256, 256};
 glm::ivec2 Sky::sky_lut_size = {512, 256};
-glm::vec3 Sky::sun_dir = glm::normalize(glm::vec3(5.f, 2.04f, 1.f));
+glm::vec3 Sky::sun_dir = glm::vec3(-0.457439, 0.860318, -0.224951);
 glm::vec3 Sky::sun_radiance = glm::vec3(.08f, .3f, 1.f);
 
 namespace {
@@ -50,7 +50,7 @@ namespace {
     std::vector<glm::vec2> result;
     for (auto& p : outputPoints)
       result.push_back({p.x, p.y});
-
+  
     return result;
   }
 
@@ -58,6 +58,7 @@ namespace {
 
 Sky::Sky() {
   cb_shader_ = RenderUtils::create_shader("cb.vs", "cb.fs");
+  set_sun_dir(52,42);
 
   AtmosphereProperties preset_ap;
   AtmosphereProperties std_ap = preset_ap.toStdUnit();
@@ -103,7 +104,7 @@ Sky::Sky() {
   // sky lut
   sky_lut_shader_ = RenderUtils::create_shader(
     "sky_quad.vs",
-   "sky_lut.fs");
+    "sky_lut.fs");
   glCreateFramebuffers(1, &sky_lut_fbo_);
   glCreateRenderbuffers(1, &sky_lut_rbo_);
   glNamedRenderbufferStorage(sky_lut_rbo_, GL_DEPTH24_STENCIL8, sky_lut_size.x, sky_lut_size.y);
@@ -168,10 +169,11 @@ void Sky::generate_sky_lut(const Renderer& renderer) const {
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, atmosphere_ubo_);
 
   SkyLutParams params;
-
+  auto camera_position = renderer.get_camera().get_position();
   params.sun_dir = -sun_dir;
   params.sun_radiance = sun_radiance;
   params.view_pos = renderer.get_camera_offset_position();
+  params.view_pos.y = std::max(static_cast<float>(camera_position.y), 1.f);
   params.ray_march_step_count = 40;
   params.enable_multi_scattering = 1;
   glNamedBufferSubData(sky_lut_params_ubo_, 0, sizeof(SkyLutParams), &params);
@@ -235,4 +237,21 @@ const glm::vec3& Sky::get_sun_dir() const {
 
 void Sky::set_sun_dir(const glm::vec3& dir) {
   sun_dir = dir;
+}
+
+void Sky::set_sun_dir(float azimuth, float polar) {
+  // Convert angles from degrees to radians
+  float azimuth_rads = glm::radians(azimuth); // Azimuth angle (0 to 360 degrees)
+  float polar_rads = glm::radians(polar);     // Polar angle (0 to 180 degrees)
+
+  // Ensure polar is within the valid range [0, 180] degrees
+  polar_rads = glm::clamp(polar_rads, 0.0f, glm::pi<float>());
+
+  // Calculate Cartesian coordinates based on standard spherical coordinate conventions
+  float x = cos(polar_rads) * sin(azimuth_rads);
+  float y = sin(polar_rads) * sin(azimuth_rads);
+  float z = cos(azimuth_rads);
+
+  // Set the sun direction vector
+  sun_dir = glm::vec3(x, y, z);
 }

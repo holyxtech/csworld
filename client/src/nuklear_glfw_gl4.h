@@ -18,7 +18,8 @@
 
 enum nk_glfw_init_state {
   NK_GLFW3_DEFAULT = 0,
-  NK_GLFW3_INSTALL_CALLBACKS
+  NK_GLFW3_INSTALL_CALLBACKS,
+  NK_GLFW3_INSTALL_CHAR_CALLBACK
 };
 
 NK_API struct nk_context* nk_glfw3_init(GLFWwindow* win, enum nk_glfw_init_state, int max_vertex_buffer, int max_element_buffer);
@@ -520,7 +521,10 @@ nk_glfw3_init(GLFWwindow* win, enum nk_glfw_init_state init_state,
     glfwSetScrollCallback(win, nk_gflw3_scroll_callback);
     glfwSetCharCallback(win, nk_glfw3_char_callback);
     glfwSetMouseButtonCallback(win, nk_glfw3_mouse_button_callback);
-  }
+  } else if (init_state == NK_GLFW3_INSTALL_CHAR_CALLBACK) {
+    glfwSetCharCallback(win, nk_glfw3_char_callback);
+   }
+
   nk_init_default(&glfw.ctx, 0);
   glfw.ctx.clip.copy = nk_glfw3_clipboard_copy;
   glfw.ctx.clip.paste = nk_glfw3_clipboard_paste;

@@ -19,10 +19,10 @@ uniform sampler2D normalMap2;
 uniform vec3 cameraWorldPosition;
 uniform float time;
 
-const float normalMapWidth = 8;
-const float normalMapHeight = 8;
-const vec2 normalMap1Scroll = vec2(0.2,0.25) / vec2(3);
-const vec2 normalMap2Scroll = vec2(-0.25,-0.2) / vec2(3);
+const float normalMapWidth = 4;
+const float normalMapHeight = 4;
+const vec2 normalMap1Scroll = vec2(0.25,0.25) / vec2(6);
+const vec2 normalMap2Scroll = vec2(-0.25,-0.25) / vec2(6);
 const float specularStrength = 0.1;
 
 void main() {
@@ -41,7 +41,7 @@ void main() {
   // err...
   vec3 lightDir = normalize(vec3(0.f,1.f,0.f));
   vec3 lightColor = vec3(1.f,1.f,1.f);
-  color = vec4(0.1f,0.2,0.6,.2f);
+  color = vec4(.1f,0.3f,0.6,1.f);
 
   // diffuse
   float diff = max(dot(normal, lightDir), 0.0);
