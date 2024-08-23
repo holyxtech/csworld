@@ -15,8 +15,8 @@ public:
   glm::mat4 get_view(glm::dvec3 camera_offset) const;
   glm::dmat4 get_raw_view() const;
   const glm::dvec3& get_position() const;
-  const glm::vec3& get_front() const;
-  const glm::vec3& get_up() const;
+  const glm::dvec3& get_front() const;
+  const glm::dvec3& get_up() const;
   glm::vec3 get_position(glm::dvec3 world_offset) const;
   void set_position(glm::dvec3 position);
   void scale_translation_speed(double scale);
@@ -27,8 +27,8 @@ protected:
   void update_orientation();
 
   glm::dvec3 position_;
-  glm::vec3 front_;
-  glm::vec3 up_;
+  glm::dvec3 front_;
+  glm::dvec3 up_;
 
   double yaw_ = 0.f;
   double pitch_ = 0.f;

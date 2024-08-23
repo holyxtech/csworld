@@ -21,12 +21,18 @@ void BuildController::move_camera() {
   auto& camera_mutex = sim_.get_camera_mutex();
   auto& camera = sim_.get_render_modes().build->get_camera();
   std::unique_lock<std::mutex> lock(camera_mutex);
-  auto& cursor_pos = Input::instance()->get_cursor_pos();
-  auto& prev_cursor_pos = Input::instance()->get_prev_cursor_pos();
-  if (cursor_pos[0] != prev_cursor_pos[0] || cursor_pos[1] != prev_cursor_pos[1]) {
-    Input::instance()->set_prev_cursor_pos(cursor_pos[0], cursor_pos[1]);
-  }
 
+  auto [xpos, ypos] = Input::instance()->get_cursor_pos();
+  auto [prev_xpos, prev_ypos] = Input::instance()->get_prev_cursor_pos();
+
+  bool right_held = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
+  if (right_held && (xpos != prev_xpos || ypos != prev_ypos)) {
+    camera.rotate(xpos - prev_xpos, prev_ypos - ypos);
+
+  }
+  Input::instance()->set_prev_cursor_pos(xpos, ypos);
+
+  
   if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
     camera.set_base_translation_speed(3);
   } else {

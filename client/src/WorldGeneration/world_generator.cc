@@ -90,7 +90,9 @@ void WorldGenerator::load_features(Section& section) {
 
   float kRadius = 6;
   auto kXMin = std::array<float, 2>{{0.f, 0.f}};
-  auto kXMax = std::array<float, 2>{{Section::sz_x, Section::sz_z}};
+  // this is a ridiculous solution to the problem of generating 32.f
+  // would you believe it, it really happened once and caused an array out of bounds?
+  auto kXMax = std::array<float, 2>{{Section::sz_x-0.001, Section::sz_z-0.001}};
 
   std::hash<int> hasher;
   std::uint32_t seed = 0;

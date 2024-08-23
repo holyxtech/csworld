@@ -6,11 +6,11 @@ Camera::Camera() {
   update_orientation();
 }
 
-const glm::vec3& Camera::get_front() const {
+const glm::dvec3& Camera::get_front() const {
   return front_;
 }
 
-const glm::vec3& Camera::get_up() const {
+const glm::dvec3& Camera::get_up() const {
   return up_;
 };
 
@@ -27,7 +27,7 @@ glm::dmat4 Camera::get_raw_view() const {
 }
 
 glm::mat4 Camera::get_view(glm::dvec3 camera_offset) const {
-  glm::vec3 adjusted_pos = position_ - camera_offset;
+  glm::dvec3 adjusted_pos = position_ - camera_offset;
   return glm::lookAt(adjusted_pos, adjusted_pos + front_, up_);
 }
 
@@ -37,7 +37,7 @@ void Camera::update_orientation() {
   front_.z = -sin(glm::radians(yaw_)) * cos(glm::radians(pitch_));
   front_ = glm::normalize(front_);
 
-  glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), front_));
+  glm::dvec3 right = glm::normalize(glm::cross(glm::dvec3(0, 1, 0), front_));
   up_ = glm::normalize(glm::cross(front_, right));
 }
 

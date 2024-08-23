@@ -34,12 +34,12 @@ void FirstPersonCamera::move_down() {
 }
 
 void FirstPersonCamera::move_left() {
-  glm::vec3 left = glm::normalize(glm::cross(front_, glm::vec3(0, 1, 0)));
+  glm::vec3 left = glm::normalize(glm::cross(front_, glm::dvec3(0, 1, 0)));
   position_ += translation_speed_ * left;
 }
 
 void FirstPersonCamera::move_right() {
-  glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), front_));
+  glm::vec3 right = glm::normalize(glm::cross(glm::dvec3(0, 1, 0), front_));
   position_ += translation_speed_ * right;
 }
 void FirstPersonCamera::turn_left() {
