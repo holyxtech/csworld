@@ -1,9 +1,9 @@
 #include "first_person_controller.h"
 #include "build_controller.h"
 #include "disabled_controller.h"
-#include "options_controller.h"
 #include "input.h"
 #include "inventory_controller.h"
+#include "options_controller.h"
 
 FirstPersonController::FirstPersonController(Sim& sim) : UserController(sim) {
 }
@@ -41,8 +41,8 @@ void FirstPersonController::move_camera() {
 
   if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
     camera.set_base_translation_speed(3);
-  } else if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
-    camera.set_base_translation_speed(0.5);
+  } else if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+    camera.set_base_translation_speed(0.06);
   } else {
     camera.set_base_translation_speed(0.2);
   }
@@ -134,7 +134,7 @@ void FirstPersonController::process_input(const InputEvent& event) {
       camera.print();
     } else if (key_button_event.key == GLFW_KEY_C) {
       camera.set_position(glm::dvec3{4230225.256719, 311.122231, -1220227.127904});
-      camera.set_orientation(-41.5007, -12);
+      camera.set_orientation(-41.5007, -12); 
     }
 
   } break;

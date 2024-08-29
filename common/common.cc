@@ -3,6 +3,7 @@
 #include <iostream>
 #include <random>
 #include <sstream>
+#include <boost/random.hpp>
 
 namespace {
   std::random_device rd;

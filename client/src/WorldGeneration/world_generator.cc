@@ -1,7 +1,9 @@
 #include "world_generator.h"
 #include <cstdlib>
 #include <iostream>
-#include "poisson_disk_sampling.h"
+#include <cy/cyPoint.h>
+#include <cy/cySampleElim.h>
+#include "cs_math.h"
 #include "region.h"
 
 namespace {
@@ -18,7 +20,30 @@ namespace {
 }
 
 WorldGenerator::WorldGenerator() {
-  open_simplex_noise(7, &ctx_);
+  open_simplex_noise(7, &grass_gen_.ctx);
+
+  tree_roots_.resize(tree_root_grid_sz_x * tree_root_grid_sz_z, false);
+  cy::WeightedSampleElimination<cy::Point2d, double, 2> wse;
+  wse.SetParamBeta(0.0);
+  wse.SetBoundsMin(cy::Point2d{0, 0});
+  wse.SetBoundsMax(cy::Point2d{tree_root_grid_sz_x - 1, tree_root_grid_sz_z - 1});
+  wse.SetTiling(true);
+  std::vector<cy::Point2d> input_points;
+  for (double z = 0; z < tree_root_grid_sz_z; ++z) {
+    for (double x = 0; x < tree_root_grid_sz_x; ++x) {
+      input_points.push_back(cy::Point2d{x, z});
+    }
+  }
+  int sparsity = 50;
+  std::vector<cy::Point2d> output_points(input_points.size() / sparsity);
+  wse.Eliminate(
+    input_points.data(), input_points.size(),
+    output_points.data(), output_points.size(), true);
+  for (auto& p : output_points) {
+    int x = static_cast<int>(p.x);
+    int z = static_cast<int>(p.y);
+    tree_roots_[x + tree_root_grid_sz_x * z] = true;
+  }
 }
 
 bool WorldGenerator::ready_to_fill(Location& location, const std::unordered_map<Location2D, Section, Location2DHash>& sections) const {
@@ -88,27 +113,35 @@ std::vector<std::pair<Int3D, Voxel>> WorldGenerator::build_tree(int x, int y, in
 void WorldGenerator::load_features(Section& section) {
   auto& loc = section.get_location();
 
-  float kRadius = 6;
-  auto kXMin = std::array<float, 2>{{0.f, 0.f}};
-  // this is a ridiculous solution to the problem of generating 32.f
-  // would you believe it, it really happened once and caused an array out of bounds?
-  auto kXMax = std::array<float, 2>{{Section::sz_x-0.001, Section::sz_z-0.001}};
-
-  std::hash<int> hasher;
-  std::uint32_t seed = 0;
-  seed ^= hasher(loc[0]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-  seed ^= hasher(loc[1]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-  std::uint32_t max_sample_attempts = 30;
-  auto samples = thinks::PoissonDiskSampling(kRadius, kXMin, kXMax, max_sample_attempts, seed);
-
-  for (auto s : samples) {
-    auto landcover = section.get_landcover(s[0], s[1]);
-    if (landcover != Common::LandCover::trees)
-      continue;
-    int subsection_elevation = section.get_subsection_elevation(s[0], s[1]);
-    auto tree = build_tree(loc[0] * Section::sz_x + static_cast<int>(s[0]), subsection_elevation + 1, loc[1] * Section::sz_z + static_cast<int>(s[1]));
-    for (auto& [coord, voxel] : tree) {
-      section.insert_into_features(coord[0], coord[1], coord[2], voxel);
+  int sec_x_offset = cs_math::mod(loc[0], (tree_root_grid_sz_x / Section::sz_x)) * Section::sz_x;
+  int sec_z_offset = cs_math::mod(loc[1], (tree_root_grid_sz_z / Section::sz_z)) * Section::sz_z;
+  for (int z = 0; z < Section::sz_z; ++z) {
+    for (int x = 0; x < Section::sz_x; ++x) {
+      auto landcover = section.get_landcover(x, z);
+      int subsection_elevation = section.get_subsection_elevation(x, z);
+      int x_global = loc[0] * Section::sz_x + static_cast<int>(x);
+      int z_global = loc[1] * Section::sz_z + static_cast<int>(z);
+      if (landcover == Common::LandCover::trees) {
+        if (tree_roots_[(x + sec_x_offset) + tree_root_grid_sz_x * (z + sec_z_offset)]) {
+          auto tree = build_tree(x_global, subsection_elevation + 1, z_global);
+          for (auto& [coord, voxel] : tree)
+            section.insert_into_features(coord[0], coord[1], coord[2], voxel);
+        } else {
+          auto [n1, n2, n3] = grass_gen_.noises<3>(x, z);
+          if (n1 > 0.6)
+            section.insert_into_features(x_global, subsection_elevation + 1, z_global, Voxel::grass);
+          else if (n2 > 0.7)
+            section.insert_into_features(x_global, subsection_elevation + 1, z_global, Voxel::sunflower);
+          else if (n3 > 0.7)
+            section.insert_into_features(x_global, subsection_elevation + 1, z_global, Voxel::roses);
+        }
+      } else if (
+        landcover == Common::LandCover::grass ||
+        landcover == Common::LandCover::shrubs) {
+        auto n = grass_gen_.noise(x, z);
+        if (n > 0.65)
+          section.insert_into_features(x_global, subsection_elevation + 1, z_global, Voxel::grass);
+      }
     }
   }
 }
@@ -116,9 +149,8 @@ void WorldGenerator::load_features(Section& section) {
 void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Section, Location2DHash>& sections) {
   auto& location = chunk.get_location();
 
-  std::array<int, 3> arr{-1, 0, 1};
-  for (auto x : arr) {
-    for (auto z : arr) {
+  for (auto x : {-1, 0, 1}) {
+    for (auto z : {-1, 0, 1}) {
       auto section_loc = Location2D{location[0] + x, location[2] + z};
       auto& section = sections.at(section_loc);
       if (!section.has_subsection_elevations())
@@ -155,17 +187,6 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
       for (; y < (y_global + Chunk::sz_y) && y <= height; ++y) {
         chunk.set_voxel(x, y - y_global, z, voxel);
       }
-      if (landcover != Common::LandCover::bare) {
-        double n = noise(x + location[0] * Chunk::sz_x, z + location[2] * Chunk::sz_z);
-        if (n > 0.65 && y < (y_global + Chunk::sz_y))
-          chunk.set_voxel(x, y - y_global, z, Voxel::grass);
-        n = noise(x + location[0] * Chunk::sz_x * 2, z + location[2] * Chunk::sz_z * 2);
-        if (n > 0.75 && y < (y_global + Chunk::sz_y))
-          chunk.set_voxel(x, y - y_global, z, Voxel::roses);
-        n = noise(x + location[0] * Chunk::sz_x * 3, z + location[2] * Chunk::sz_z * 3);
-        if (n > 0.75 && y < (y_global + Chunk::sz_y))
-          chunk.set_voxel(x, y - y_global, z, Voxel::sunflower);
-      }
     }
   }
   if (empty_subsections == Chunk::sz_x * Chunk::sz_z)
@@ -181,24 +202,4 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
   }
   if (num_features > 0)
     chunk.unset_flag(ChunkFlags::Empty);
-}
-
-double WorldGenerator::noise(double x, double y) const {
-  double maxAmp = 0;
-  double amp = 1;
-  double freq = scale_;
-  double value = 0;
-
-  for (int i = 0; i < octaves_; ++i) {
-    value += open_simplex_noise2(ctx_, x * freq, y * freq) * amp;
-    maxAmp += amp;
-    amp *= persistence_;
-    freq *= 2;
-  }
-
-  value /= maxAmp;
-
-  value = value * (high_ - low_) / 2 + (high_ + low_) / 2;
-
-  return value;
 }

@@ -2,8 +2,8 @@
 #include <numbers>
 #include <random>
 #include <string>
-#include <cyPoint.h>
-#include <cySampleElim.h>
+#include <cy/cyPoint.h>
+#include <cy/cySampleElim.h>
 #include "options.h"
 #include "render_utils.h"
 #include "renderer.h"

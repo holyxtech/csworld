@@ -3,8 +3,8 @@
 #include <cmath>
 #include <random>
 #include <unordered_map>
-#include <cyPoint.h>
-#include <cySampleElim.h>
+#include <cy/cyPoint.h>
+#include <cy/cySampleElim.h>
 #include "sim.h"
 #include "common.h"
 

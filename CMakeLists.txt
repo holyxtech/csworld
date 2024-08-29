@@ -28,16 +28,20 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(APPLICATION_DATA_DIR "$ENV{HOME}/Library/Application Support/csworld/")
 else()
     set(APPLICATION_DATA_DIR "$ENV{HOME}/.config/csworld/")
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-    endif()
 endif()
+ 
+# Sources for common
+file(GLOB PROJECT_SOURCE_FILES_COMMON
+    "common/*.cc"
+)
+add_library(common STATIC ${PROJECT_SOURCE_FILES_COMMON})
+target_include_directories(common PUBLIC
+    ${CMAKE_SOURCE_DIR}/common
+    ${CMAKE_SOURCE_DIR}/ext
+)
 
-# Sources
+# Sources for client
 file(GLOB PROJECT_SOURCE_FILES_CLIENT
-	 "client/*.cc"
-	 "client/*.c"
-     "common/*.cc"
      "client/src/*.cc"
      "client/src/**/*.cc"
      "client/src/*.c"
@@ -48,15 +52,16 @@ set(projectSources
 )
 add_executable(client ${projectSources})
 
+# Sources for server
 file(GLOB PROJECT_SOURCE_FILES_SERVER 
-    "server/*.cc"
-    "common/*.cc"
+    "server/src/*.cc"
 )
 set(projectSourcesServer
 	${PROJECT_SOURCE_FILES_SERVER}
 )
 add_executable(server ${projectSourcesServer})
 
+# Compile C files as CPP
 file(GLOB_RECURSE CFILES "${CMAKE_SOURCE_DIR}/*.c")
 SET_SOURCE_FILES_PROPERTIES(${CFILES} PROPERTIES LANGUAGE CXX )
 
@@ -75,31 +80,29 @@ add_custom_target(
     generate_fbs
     DEPENDS ${GENERATED_HEADERS} ${GENERATED_FILES}
 )
-
 add_dependencies(client generate_fbs)
 add_dependencies(server generate_fbs)
 
 target_include_directories(client PRIVATE
     ${CMAKE_SOURCE_DIR}/client/src
-    ${CMAKE_SOURCE_DIR}/ext/
-    ${CMAKE_SOURCE_DIR}/ext/cy
+    ${CMAKE_SOURCE_DIR}/ext
     ${CMAKE_SOURCE_DIR}/common
-    ${CMAKE_SOURCE_DIR}/fbs
+    ${CMAKE_SOURCE_DIR}/fbs    
 )
 target_include_directories(server PRIVATE
     ${CMAKE_SOURCE_DIR}/common
     ${CMAKE_SOURCE_DIR}/fbs
 )
 
-target_link_libraries(
-    client PRIVATE
+target_link_libraries(client PRIVATE
+    common
     glfw            
     ${GLEW_LIBRARIES}
     ${OPENGL_LIBRARIES}
     SQLite::SQLite3
 )
-target_link_libraries(
-    server PRIVATE
+target_link_libraries(server PRIVATE
+    common
     CURL::libcurl
 )
 

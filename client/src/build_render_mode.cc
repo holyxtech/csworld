@@ -41,6 +41,7 @@ BuildCamera& BuildRenderMode::get_camera() {
 
 void BuildRenderMode::seed_camera(const Camera& camera) {
   camera_.set_position(camera.get_position());
+  camera_.set_orientation(camera.get_yaw(),camera.get_pitch());
 }
 
 void BuildRenderMode::step() {
