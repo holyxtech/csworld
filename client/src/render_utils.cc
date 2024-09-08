@@ -1,15 +1,14 @@
 #include "render_utils.h"
+#include <algorithm>
+#include <cctype>
 #include <string>
 #include "options.h"
 #include "render_utils.h"
 #include "stb_image.h"
 #include "voxel.h"
-#include <algorithm>
-#include <cctype>
 
 namespace {
-  // Note: nested includes are not supported
-  std::string read_sfile(std::string path, const bool isIncludeFile = false) {
+  std::string read_shader_file(const std::string path) {
     std::ifstream fs(path, std::ios::in);
 
     if (!fs.is_open()) {
@@ -17,37 +16,33 @@ namespace {
       return "";
     }
 
-    if (isIncludeFile) {
-        const auto content = std::string((std::istreambuf_iterator<char>(fs)), (std::istreambuf_iterator<char>()));
-        fs.close();
-        return content;
-    }
-
-    const std::string includeMatch = "#include ";
-    std::stringstream fileContent;
+    const std::string include_match = "#include ";
+    std::stringstream file_content;
 
     std::string line;
     while (std::getline(fs, line)) {
-      std::size_t includeFound = line.find(includeMatch);
-      if (includeFound != std::string::npos) {
+      std::size_t include_found = line.find(include_match);
+      if (include_found != std::string::npos) {
         // erase include prefix
-        line.erase(line.begin(), line.begin()+includeFound+includeMatch.length());
+        line.erase(line.begin(), line.begin() + include_found + include_match.length());
         // erase whitespace, <,> and "
-        line.erase(std::remove_if(line.begin(), line.end(), [](const char c) {
-          return std::isspace(c) || c == '<' || c == '>' || c == '"';
-        }), line.end());
+        line.erase(
+          std::remove_if(line.begin(), line.end(), [](const char c) {
+            return std::isspace(c) || c == '<' || c == '>' || c == '"';
+          }),
+          line.end());
         // what's left is the include name
-        const auto includeFileLocation = Options::instance()->getShaderPath(line);
-        if (std::filesystem::exists(includeFileLocation)) {
-          // call ourselves to just read include
-          fileContent << read_sfile(includeFileLocation, true);
+        const auto include_file_location = Options::instance()->getShaderPath(line);
+        if (std::filesystem::exists(include_file_location)) {
+          file_content << read_shader_file(include_file_location);
         }
-      } else fileContent << line << std::endl;
+      } else
+        file_content << line << std::endl;
     }
 
     fs.close();
 
-    return fileContent.str();
+    return file_content.str();
   }
 } // namespace
 
@@ -55,7 +50,7 @@ namespace RenderUtils {
 
   GLuint compile_shader(const std::string& name, GLenum shader_type) {
     auto path = Options::instance()->getShaderPath(name);
-    auto shader_source = read_sfile(path);
+    auto shader_source = read_shader_file(path);
     std::cout << shader_source << std::endl;
     const auto shader = glCreateShader(shader_type);
 
