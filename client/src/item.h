@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include "voxel.h"
+#include <vector>
 
 using Item = std::uint32_t;
 
