@@ -4,28 +4,50 @@
 #include "render_utils.h"
 #include "stb_image.h"
 #include "voxel.h"
+#include <algorithm>
+#include <cctype>
 
 namespace {
-  std::array<const char*, 1> search_dirs = {"/"};
-  bool shaders_included = false;
-  std::string read_sfile(std::string path) {
+  // Note: nested includes are not supported
+  std::string read_sfile(std::string path, const bool isIncludeFile = false) {
     std::ifstream fs(path, std::ios::in);
 
     if (!fs.is_open()) {
       std::cerr << "Could not read file " << path << ". File does not exist." << std::endl;
       return "";
     }
-    return std::string((std::istreambuf_iterator<char>(fs)), (std::istreambuf_iterator<char>()));
-  }
-  void include_shader(const std::string& path, const std::string& name) {
-    auto source = read_sfile(path);
-    glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, name.c_str(), -1, source.c_str());
-  }
-  void include_all() {
-    include_shader(Options::instance()->getShaderPath("common.glsl"), "/common.glsl");
-    include_shader(Options::instance()->getShaderPath("shadow.glsl"), "/shadow.glsl");
-    include_shader(Options::instance()->getShaderPath("ssr.glsl"), "/ssr.glsl");
-    shaders_included = true;
+
+    if (isIncludeFile) {
+        const auto content = std::string((std::istreambuf_iterator<char>(fs)), (std::istreambuf_iterator<char>()));
+        fs.close();
+        return content;
+    }
+
+    const std::string includeMatch = "#include ";
+    std::stringstream fileContent;
+
+    std::string line;
+    while (std::getline(fs, line)) {
+      std::size_t includeFound = line.find(includeMatch);
+      if (includeFound != std::string::npos) {
+        // erase include prefix
+        line.erase(line.begin(), line.begin()+includeFound+includeMatch.length());
+        // erase whitespace, <,> and "
+        line.erase(std::remove_if(line.begin(), line.end(), [](const char c) {
+          return std::isspace(c) || c == '<' || c == '>' || c == '"';
+        }), line.end());
+        // what's left is the include name
+        const auto includeFileLocation = Options::instance()->getShaderPath(line);
+        if (std::filesystem::exists(includeFileLocation)) {
+          // call ourselves to just read include
+          fileContent << read_sfile(includeFileLocation, true);
+        }
+      } else fileContent << line << std::endl;
+    }
+
+    fs.close();
+
+    return fileContent.str();
   }
 } // namespace
 
@@ -34,11 +56,12 @@ namespace RenderUtils {
   GLuint compile_shader(const std::string& name, GLenum shader_type) {
     auto path = Options::instance()->getShaderPath(name);
     auto shader_source = read_sfile(path);
+    std::cout << shader_source << std::endl;
     const auto shader = glCreateShader(shader_type);
 
     auto* c_str = shader_source.c_str();
     glShaderSource(shader, 1, &c_str, nullptr);
-    glCompileShaderIncludeARB(shader, search_dirs.size(), search_dirs.data(), nullptr);
+    glCompileShader(shader);
     GLint success;
     GLchar info[512];
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
@@ -51,8 +74,6 @@ namespace RenderUtils {
   }
 
   GLuint create_shader(const std::string& compute_shader_name) {
-    if (!shaders_included)
-      include_all();
     GLuint compute_shader = compile_shader(compute_shader_name, GL_COMPUTE_SHADER);
     GLuint shader = glCreateProgram();
 
@@ -65,8 +86,6 @@ namespace RenderUtils {
   }
 
   GLuint create_shader(const std::string& vertex_shader_name, const std::string& geometry_shader_name, const std::string& fragment_shader_name) {
-    if (!shaders_included)
-      include_all();
     GLuint vertex_shader = compile_shader(vertex_shader_name, GL_VERTEX_SHADER);
     GLuint fragment_shader = compile_shader(fragment_shader_name, GL_FRAGMENT_SHADER);
     GLuint geometry_shader = compile_shader(geometry_shader_name, GL_GEOMETRY_SHADER);
@@ -82,8 +101,6 @@ namespace RenderUtils {
   }
 
   GLuint create_shader(const std::string& vertex_shader_name, const std::string& fragment_shader_name) {
-    if (!shaders_included)
-      include_all();
     GLuint vertex_shader = compile_shader(vertex_shader_name, GL_VERTEX_SHADER);
     GLuint fragment_shader = compile_shader(fragment_shader_name, GL_FRAGMENT_SHADER);
     GLuint shader = glCreateProgram();

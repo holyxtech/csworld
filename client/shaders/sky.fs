@@ -20,7 +20,7 @@ layout(binding = 0) uniform sampler2D SkyView;
 
 uniform float WOverH;
 
-vec3 whitePointColorMapping(float exposure, in out vec3 color){
+vec3 whitePointColorMapping(float exposure, inout vec3 color){
     const vec3 white_point = vec3(1.08241, 0.96756, 0.95003);
     return pow(vec3(1.0) - exp(-color / white_point * exposure), vec3(1.0 / 2.2));
 }
