@@ -86,7 +86,7 @@ UIGraphics::UIGraphics(Sim& sim) : renderer_(sim.get_renderer()), ui_(sim.get_ui
   GLsizei num_mipmaps = 1;
 
   for (auto [texture_name, texture_id] : ui_textures) {
-    std::string path = Options::instance()->getImagePath(texture_name + ".png");
+    std::string path = Options::instance()->get_image_path(texture_name + ".png");
     int width, height, channels;
     auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
     int num_pixels = width * height;

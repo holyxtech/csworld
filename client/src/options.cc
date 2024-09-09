@@ -2,53 +2,37 @@
 
 #include <iostream>
 
-std::shared_ptr<Options> Options::instance(int argc, char* argv[]) {
-  if (Options::options_ != nullptr)
-    return Options::options_;
-
-  Options::options_ = std::shared_ptr<Options>(new Options(argc, argv));
-
-  return Options::options_;
+Options* Options::instance(int argc, char* argv[]) {
+  static Options* instance = new Options(argc, argv);
+  return instance;
 }
 
 Options::Options(int argc, char* argv[]) {
-  if (argc <= 1)
-    return;
+  if (argc < 2)
+    throw std::invalid_argument("No path provided to assets.");
 
-  std::filesystem::path tmpPath = argv[APP_DIR];
-
-  if (std::filesystem::exists(tmpPath) && std::filesystem::is_directory(tmpPath)) {
-    this->dir = tmpPath;
-  }
+  std::filesystem::path dir = argv[1];
+  if (std::filesystem::exists(dir) && std::filesystem::is_directory(dir))
+    this->dir = dir;
+  else
+    throw std::invalid_argument("Path provided is not an existing directory.");
 }
 
-std::string Options::getShaderPath(const std::string& name) {
-  return this->getPath(name, SHADERS_DIR);
+std::string Options::get_shader_path(const std::string& name) {
+  return get_path(name, shaders_dir);
 }
 
-std::string Options::getImagePath(const std::string& name) {
-  return this->getPath(name, IMAGES_DIR);
+std::string Options::get_image_path(const std::string& name) {
+  return get_path(name, images_dir);
 }
 
-std::string Options::getFontPath(const std::string& name) {
-  return this->getPath(name, FONTS_DIR);
+std::string Options::get_font_path(const std::string& name) {
+  return get_path(name, fonts_dir);
 }
 
-std::string Options::getPath(const std::string& name, const std::string& type) {
-  std::filesystem::path tmpPath = ((this->dir.has_value() ? this->dir.value() : std::filesystem::current_path()) / type);
-
+std::string Options::get_path(const std::string& name, const std::string& type) {
+  std::filesystem::path dir = ((this->dir.has_value() ? this->dir.value() : std::filesystem::current_path()) / type);
   if (name.empty())
-    return tmpPath.string();
-
-  return (tmpPath / name).string();
+    return dir.string();
+  return (dir / name).string();
 }
-
-bool Options::hasValidShaderPath() {
-  std::filesystem::path actualDir = this->dir.has_value() ? this->dir.value() : std::filesystem::current_path();
-
-  return std::filesystem::exists(actualDir / SHADERS_DIR) && std::filesystem::is_directory(actualDir / SHADERS_DIR);
-}
-
-Options::~Options() {}
-
-std::shared_ptr<Options> Options::options_ = nullptr;

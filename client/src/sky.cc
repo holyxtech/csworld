@@ -154,7 +154,7 @@ Sky::Sky() {
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, sun_texture_);
   int width, height, channels;
-  const std::string& path = Options::instance()->getImagePath("sun.png");
+  const std::string& path = Options::instance()->get_image_path("sun.png");
   auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);

@@ -1,32 +1,28 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#define SHADERS_DIR "shaders"
-#define IMAGES_DIR "assets/images"
-#define FONTS_DIR "assets/fonts"
-#define APP_DIR 1
-
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <string>
 
 class Options final {
 public:
-  static std::shared_ptr<Options> instance(int argc = 0, char* argv[] = nullptr);
+  static Options* instance(int argc = 0, char* argv[] = nullptr);
 
-  ~Options();
   Options(const Options& other) = delete;
   Options* operator=(const Options* other) = delete;
 
-  std::string getShaderPath(const std::string& name);
-  std::string getImagePath(const std::string& name);
-  std::string getFontPath(const std::string& name);
-  bool hasValidShaderPath();
+  std::string get_shader_path(const std::string& name);
+  std::string get_image_path(const std::string& name);
+  std::string get_font_path(const std::string& name);
 
 private:
-  static std::shared_ptr<Options> options_;
+  static constexpr const char* shaders_dir = "shaders";
+  static constexpr const char* images_dir = "assets/images";
+  static constexpr const char* fonts_dir = "assets/fonts";
 
-  std::string getPath(const std::string& name, const std::string& type);
+  std::string get_path(const std::string& name, const std::string& type);
   Options(int argc = 0, char* argv[] = nullptr);
 
   std::optional<std::filesystem::path> dir;

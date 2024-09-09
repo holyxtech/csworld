@@ -8,7 +8,7 @@
 #include "voxel.h"
 
 namespace {
-  std::string read_shader_file(const std::string path) {
+  std::string read_shader_file(const std::string& path) {
     std::ifstream fs(path, std::ios::in);
 
     if (!fs.is_open()) {
@@ -32,7 +32,7 @@ namespace {
           }),
           line.end());
         // what's left is the include name
-        const auto include_file_location = Options::instance()->getShaderPath(line);
+        const auto include_file_location = Options::instance()->get_shader_path(line);
         if (std::filesystem::exists(include_file_location)) {
           file_content << read_shader_file(include_file_location);
         }
@@ -49,9 +49,8 @@ namespace {
 namespace RenderUtils {
 
   GLuint compile_shader(const std::string& name, GLenum shader_type) {
-    auto path = Options::instance()->getShaderPath(name);
+    auto path = Options::instance()->get_shader_path(name);
     auto shader_source = read_shader_file(path);
-    std::cout << shader_source << std::endl;
     const auto shader = glCreateShader(shader_type);
 
     auto* c_str = shader_source.c_str();

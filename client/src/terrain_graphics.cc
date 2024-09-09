@@ -105,7 +105,7 @@ TerrainGraphics::TerrainGraphics() {
 
   for (auto [filename, texture] : RenderUtils::named_textures) {
     std::string filename_with_ext = filename + std::string(".png");
-    std::string path = Options::instance()->getImagePath(filename_with_ext);
+    std::string path = Options::instance()->get_image_path(filename_with_ext);
     auto* image_data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
     glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texture.get(), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     stbi_image_free(image_data);
@@ -119,7 +119,7 @@ TerrainGraphics::TerrainGraphics() {
     std::make_pair("waterNM1", std::ref(normal_map1)),
     std::make_pair("waterNM2", std::ref(normal_map2))};
   for (auto [filename, texture] : normal_maps) {
-    std::string path = Options::instance()->getImagePath(filename + ".png");
+    std::string path = Options::instance()->get_image_path(filename + ".png");
     unsigned char* image_data;
     image_data = stbi_load(path.c_str(), &width, &height, &channels, 3);
     glGenTextures(1, &texture);

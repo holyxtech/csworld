@@ -15,7 +15,6 @@
 #define NK_IMPLEMENTATION
 #include <nuklear.h>
 #undef NK_IMPLEMENTATION
-
 #ifdef _WIN32
 #include <SDKDDKVer.h>
 #endif
@@ -48,9 +47,11 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 }
 
 int main(int argc, char* argv[]) {
-  if (!Options::instance(argc, argv)->hasValidShaderPath()) {
-    std::cerr << "Couldn't find App Path for Shaders, Images, etc..." << std::endl;
-    return -1;
+  try {
+    Options::instance(argc, argv);
+  } catch (const std::invalid_argument& e) {
+    std::cerr << "Error: " << e.what() << '\n';
+    return -1; // Return non-zero exit code on error
   }
 
   if (!glfwInit()) {
@@ -64,8 +65,8 @@ int main(int argc, char* argv[]) {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-  auto window = glfwCreateWindow(Renderer::window_width, Renderer::window_height, "World", nullptr, nullptr);
-  if (!window) {
+  GLFWwindow* window = glfwCreateWindow(Renderer::window_width, Renderer::window_height, "World", nullptr, nullptr);
+  if (window == nullptr) {
     std::cerr << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
     return -1;
@@ -96,7 +97,7 @@ int main(int argc, char* argv[]) {
 
   Sim sim(window, tcp_client);
   bool quit = false;
-  std::thread build_thread([&sim, &quit]() {
+  std::thread game_thread([&sim, &quit]() {
     auto start = std::chrono::high_resolution_clock::now();
     while (!quit) {
       auto end = std::chrono::high_resolution_clock::now();
@@ -122,7 +123,7 @@ int main(int argc, char* argv[]) {
     }
   }
   sim.exit();
-  build_thread.join();
+  game_thread.join();
   sim.save();
   glfwTerminate();
   io_context.stop();
