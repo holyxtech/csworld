@@ -6,7 +6,7 @@
 class TCPServer {
 public:
   TCPServer(asio::io_context& io_context);
-  void write(MessageWithId msg_with_id);
+  void write(const MessageWithId& msg_with_id);
   moodycamel::ReaderWriterQueue<MessageWithId>& get_queue();
 
 private:

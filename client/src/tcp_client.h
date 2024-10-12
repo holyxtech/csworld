@@ -16,19 +16,19 @@ class TCPClient {
 
 public:
   TCPClient(asio::io_context& io_context);
-  void write(Message&& message);
+  void write(const Message& message);
   moodycamel::ReaderWriterQueue<Message>& get_queue();
 
 private:
   void handle_connect(const asio::error_code& error);
   void handle_read_header(const asio::error_code& error);
-  void handle_read_body(const asio::error_code& error, uint32_t body_length);
+  void handle_read_body(const asio::error_code& error, std::uint32_t body_length);
   void handle_write();
 
   asio::io_context& io_context_;
   tcp::socket socket_;
   std::array<std::uint8_t, Common::max_msg_buffer_size> read_buffer_;
-  static constexpr int header_length_ = 4;
+  static constexpr int header_length = 4;
   moodycamel::ReaderWriterQueue<Message> q_;
 };
 

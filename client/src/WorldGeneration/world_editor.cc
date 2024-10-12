@@ -127,6 +127,7 @@ void WorldEditor::generate(const std::unordered_set<Int3D, LocationHash>& surfac
     return;
   auto& world_generator = sim_.get_world_generator();
   auto& region = sim_.get_region();
+  region.start_counting_swaps();
 
   std::unordered_map<Int2D, int, Location2DHash> recover;
   std::vector<cy::Point2d> rawPoints;
@@ -170,26 +171,9 @@ void WorldEditor::generate(const std::unordered_set<Int3D, LocationHash>& surfac
   auto try_to_place_voxel_at_coord = [&region, &dirty](const Int3D& coord, Voxel voxel) {
     auto loc = Region::location_from_global_coord(coord);
     auto local_coord = Chunk::to_local(coord);
-    int idx = Chunk::get_index(local_coord);
-    bool success = region.set_voxel_if_possible(loc, idx, voxel);
-    if (success) {
-      dirty.insert(loc);
-      if (local_coord[0] == 0) {
-        dirty.insert(Location{loc[0] - 1, loc[1], loc[2]});
-      } else if (local_coord[0] == Chunk::sz_x - 1) {
-        dirty.insert(Location{loc[0] + 1, loc[1], loc[2]});
-      }
-      if (local_coord[1] == 0) {
-        dirty.insert(Location{loc[0], loc[1] - 1, loc[2]});
-      } else if (local_coord[1] == Chunk::sz_y - 1) {
-        dirty.insert(Location{loc[0], loc[1] + 1, loc[2]});
-      }
-      if (local_coord[2] == 0) {
-        dirty.insert(Location{loc[0], loc[1], loc[2] - 1});
-      } else if (local_coord[2] == Chunk::sz_z - 1) {
-        dirty.insert(Location{loc[0], loc[1], loc[2] + 1});
-      }
-    }
+    bool success = region.set_voxel_with_history(coord, voxel);
+    if (success)
+      region.tag_dirty_locs(dirty, loc, local_coord);
   };
 
   for (auto& p : outputPoints) {

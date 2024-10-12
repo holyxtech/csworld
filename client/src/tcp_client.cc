@@ -9,7 +9,7 @@ TCPClient::TCPClient(asio::io_context& io_context)
   handle_connect(asio::error_code());
 }
 
-void TCPClient::write(Message&& message) {
+void TCPClient::write(const Message& message) {
   asio::async_write(
     socket_,
     asio::buffer(message.data(), message.size()),
@@ -25,7 +25,7 @@ void TCPClient::handle_connect(const asio::error_code& error) {
 
   asio::async_read(
     socket_,
-    asio::buffer(read_buffer_, header_length_),
+    asio::buffer(read_buffer_, header_length),
     boost::bind(
       &TCPClient::handle_read_header, this,
       asio::placeholders::error));
@@ -36,7 +36,7 @@ moodycamel::ReaderWriterQueue<Message>& TCPClient::get_queue() {
 }
 
 void TCPClient::handle_read_header(const asio::error_code& error) {
-  uint32_t body_length;
+  std::uint32_t body_length;
   std::memcpy(&body_length, read_buffer_.data(), sizeof(body_length));
 
   asio::async_read(
@@ -47,7 +47,7 @@ void TCPClient::handle_read_header(const asio::error_code& error) {
       asio::placeholders::error, body_length));
 }
 
-void TCPClient::handle_read_body(const asio::error_code& error, uint32_t body_length) {
+void TCPClient::handle_read_body(const asio::error_code& error, std::uint32_t body_length) {
 
   Message message(body_length);
   std::memcpy(message.data(), read_buffer_.data(), body_length);
@@ -55,7 +55,7 @@ void TCPClient::handle_read_body(const asio::error_code& error, uint32_t body_le
 
   asio::async_read(
     socket_,
-    asio::buffer(read_buffer_, header_length_),
+    asio::buffer(read_buffer_, header_length),
     boost::bind(
       &TCPClient::handle_read_header, this,
       asio::placeholders::error));

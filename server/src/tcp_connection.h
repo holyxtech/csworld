@@ -21,13 +21,13 @@ public:
 
   static pointer create(asio::io_context& io_context, int id, moodycamel::ReaderWriterQueue<MessageWithId>& q);
 
-  void write(Message message);
+  void write(const Message& message);
   void start();
 
 private:
   TCPConnection(asio::io_context& io_context, int id, moodycamel::ReaderWriterQueue<MessageWithId>& q);
   void handle_read_header(const ::asio::error_code& error);
-  void handle_read_body(const asio::error_code& error, uint32_t body_length);
+  void handle_read_body(const asio::error_code& error, std::uint32_t body_length);
   void handle_write(); 
 
   int id_;

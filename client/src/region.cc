@@ -392,7 +392,7 @@ void Region::signal_chunk_update(const Location& loc) {
   if (adjacents_missing_[loc] != 0)
     return;
   if (!chunks_sent_.contains(loc)) {
-    chunk_to_mesh_generator(loc);    
+    chunk_to_mesh_generator(loc);
   } else {
     diffs_.emplace_back(loc, Diff::creation);
   }
@@ -400,10 +400,72 @@ void Region::signal_chunk_update(const Location& loc) {
 }
 
 bool Region::set_voxel_if_possible(const Location& loc, int idx, Voxel voxel) {
+
   auto it = chunks_.find(loc);
   if (it == chunks_.end())
     return false;
   auto& chunk = it->second;
+
   chunk.set_voxel(idx, voxel);
   return true;
+}
+
+bool Region::set_voxel_with_history(const Int3D& coord, Voxel voxel) {
+  auto loc = Region::location_from_global_coord(coord);
+  auto it = chunks_.find(loc);
+  if (it == chunks_.end())
+    return false;
+  auto& chunk = it->second;
+  auto local_coord = Chunk::to_local(coord);
+  int idx = Chunk::get_index(local_coord);
+  Voxel before = chunk.get_voxel(idx);
+  chunk.set_voxel(idx, voxel);
+  update_history_.emplace(coord, before);
+  ++update_sizes_.top();
+  return true;
+}
+
+void Region::start_counting_swaps() {
+  update_sizes_.emplace(0);
+}
+
+void Region::undo_last_update() {
+  if (update_sizes_.size() == 0)
+    return;
+  std::unordered_set<Location, LocationHash> dirty;
+  int size = update_sizes_.top();
+  for (int i = 0; i < size; ++i) {
+    auto& swap = update_history_.top();
+    auto loc = Region::location_from_global_coord(swap.coord);
+    auto local_coord = Chunk::to_local(swap.coord);
+    int idx = Chunk::get_index(local_coord);
+    bool success = set_voxel_if_possible(loc, idx, swap.voxel);
+    if (success)
+      tag_dirty_locs(dirty, loc, local_coord);
+    update_history_.pop();
+  }
+
+  update_sizes_.pop();
+
+  for (auto& loc : dirty)
+    signal_chunk_update(loc);
+}
+
+void Region::tag_dirty_locs(std::unordered_set<Location, LocationHash>& dirty, const Location& loc, const Int3D& local_coord) {
+  dirty.insert(loc);
+  if (local_coord[0] == 0) {
+    dirty.insert(Location{loc[0] - 1, loc[1], loc[2]});
+  } else if (local_coord[0] == Chunk::sz_x - 1) {
+    dirty.insert(Location{loc[0] + 1, loc[1], loc[2]});
+  }
+  if (local_coord[1] == 0) {
+    dirty.insert(Location{loc[0], loc[1] - 1, loc[2]});
+  } else if (local_coord[1] == Chunk::sz_y - 1) {
+    dirty.insert(Location{loc[0], loc[1] + 1, loc[2]});
+  }
+  if (local_coord[2] == 0) {
+    dirty.insert(Location{loc[0], loc[1], loc[2] - 1});
+  } else if (local_coord[2] == Chunk::sz_z - 1) {
+    dirty.insert(Location{loc[0], loc[1], loc[2] + 1});
+  }
 }

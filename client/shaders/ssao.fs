@@ -18,7 +18,7 @@ uniform vec2 noiseScale;
 // parameters (you'd probably want to use them as uniforms to more easily tweak the effect)
 
 float radius = .5;
-float bias = .0;
+float bias = .01;
 
 // tile noise texture over screen based on screen dimensions divided by noise size
 //const vec2 noiseScale = vec2(2560.0/4.0, 1440.0/4.0); 

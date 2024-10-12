@@ -1,3 +1,10 @@
+#ifdef _WIN32
+#include <windows.h>
+
+#include <SDKDDKVer.h>
+#include <shellapi.h>
+#include "UI/cefui_win.h"
+#endif
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -15,9 +22,7 @@
 #define NK_IMPLEMENTATION
 #include <nuklear.h>
 #undef NK_IMPLEMENTATION
-#ifdef _WIN32
-#include <SDKDDKVer.h>
-#endif
+
 #include <asio.hpp>
 #include <boost/bind/bind.hpp>
 #include <glm/glm.hpp>
@@ -46,18 +51,52 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
   Input::instance()->cursor_position_callback(window, xpos, ypos);
 }
 
+// Helper function to convert wide-char arguments to char* argv[]
+char** convert_wide_args(int argc, LPWSTR* wargv) {
+  // Allocate memory for argv
+  char** argv = new char*[argc];
+
+  for (int i = 0; i < argc; ++i) {
+    // Get the size needed to store the converted narrow string
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, NULL, 0, NULL, NULL);
+
+    // Allocate memory for each argument (char*)
+    argv[i] = new char[size_needed];
+
+    // Convert wide char to narrow char (UTF-8)
+    WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, argv[i], size_needed, NULL, NULL);
+  }
+
+  return argv;
+}
+
+#ifdef _WIN32
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
+  int argc;
+  LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
+  char** argv = convert_wide_args(argc, wargv);
+  LocalFree(wargv);
+#else
 int main(int argc, char* argv[]) {
+#endif
+
   try {
     Options::instance(argc, argv);
   } catch (const std::invalid_argument& e) {
     std::cerr << "Error: " << e.what() << '\n';
-    return -1; // Return non-zero exit code on error
+    return -1;
   }
-
   if (!glfwInit()) {
     std::cerr << "Failed to initialize GLFW" << std::endl;
     return -1;
   }
+
+#ifdef _WIN32
+  /*   std::thread cef_thread([&hInstance]() {
+
+    }); */
+  cefui::main(hInstance);
+#endif
 
   glfwSetErrorCallback(error_callback);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -112,6 +151,7 @@ int main(int argc, char* argv[]) {
   auto start = std::chrono::high_resolution_clock::now();
   while (!quit) {
     glfwPollEvents();
+    cefui::domessage();
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
       quit = true;
     auto end = std::chrono::high_resolution_clock::now();
@@ -128,5 +168,6 @@ int main(int argc, char* argv[]) {
   glfwTerminate();
   io_context.stop();
   t.join();
+  cefui::shutdown();
   return 0;
 }

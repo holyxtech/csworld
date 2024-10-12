@@ -11,7 +11,7 @@ layout (std140, binding = 2) uniform ShadowBlock {
     uniform float baseBias;
 };
 
-const float shadowMagnitude = .7f;
+const float shadowMagnitude = .65f;
 float ShadowPCF(vec2 uvs, int cascadeIdx, float lsDepth, float bias) {
 
     float shadow = 0.0;

@@ -17,7 +17,7 @@ void TCPConnection::start() {
     boost::bind(&TCPConnection::handle_read_header, this, asio::placeholders::error));
 }
 
-void TCPConnection::write(Message message) {
+void TCPConnection::write(const Message& message) {
   asio::error_code ignored_error;
   asio::async_write(
     socket_,
@@ -26,29 +26,29 @@ void TCPConnection::write(Message message) {
 }
 
 void TCPConnection::handle_read_header(const ::asio::error_code& error) {
-  if (!error) {
-    uint32_t body_length;
-    std::memcpy(&body_length, read_buffer_.data(), sizeof(body_length));
+  if (error)
+    return;
 
-    asio::async_read(
-      socket_,
-      asio::buffer(read_buffer_, body_length),
-      boost::bind(&TCPConnection::handle_read_body, this, asio::placeholders::error, body_length));
+  std::uint32_t body_length;
+  std::memcpy(&body_length, read_buffer_.data(), sizeof(body_length));
 
-  }
+  asio::async_read(
+    socket_,
+    asio::buffer(read_buffer_, body_length),
+    boost::bind(&TCPConnection::handle_read_body, this, asio::placeholders::error, body_length));
 }
 
-void TCPConnection::handle_read_body(const asio::error_code& error, uint32_t body_length) {
-  if (!error) {
-    MessageWithId msg_with_id = {Message(body_length), id_};
-    std::memcpy(msg_with_id.message.data(), read_buffer_.data(), body_length);
-    q_.enqueue(std::move(msg_with_id));
+void TCPConnection::handle_read_body(const asio::error_code& error, std::uint32_t body_length) {
+  if (error)
+    return;
+  MessageWithId msg_with_id = {Message(body_length), id_};
+  std::memcpy(msg_with_id.message.data(), read_buffer_.data(), body_length);
+  q_.enqueue(std::move(msg_with_id));
 
-    asio::async_read(
-      socket_,
-      asio::buffer(read_buffer_, header_length),
-      boost::bind(&TCPConnection::handle_read_header, this, asio::placeholders::error));
-  }
+  asio::async_read(
+    socket_,
+    asio::buffer(read_buffer_, header_length),
+    boost::bind(&TCPConnection::handle_read_header, this, asio::placeholders::error));
 }
 
 void TCPConnection::handle_write() {}

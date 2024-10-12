@@ -6,7 +6,7 @@ TCPServer::TCPServer(asio::io_context& io_context)
   start_accept();
   std::cout << "Started listening on port 7331" << std::endl;
 }
-void TCPServer::write(MessageWithId msg_with_id) {
+void TCPServer::write(const MessageWithId& msg_with_id) {
   auto connection = connections_[msg_with_id.id];
   connection->write(msg_with_id.message);
 }

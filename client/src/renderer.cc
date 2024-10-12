@@ -34,23 +34,16 @@ Renderer::Renderer(Sim& sim)
     : sim_(sim), ui_graphics_(sim) {
 
   // Shaders
-  {
-    GLuint id = RenderUtils::create_shader("voxel_highlight.vs", "voxel_highlight.fs");
-    Shader voxel_highlight_shader(
-      id,
+  shaders_["VoxelHighlight"] =
+    Shader(
+      RenderUtils::create_shader("voxel_highlight.vs", "voxel_highlight.fs"),
       {{"MainDepth", 0}},
       {{"Common", 0}});
-    shaders_["VoxelHighlight"] = std::move(voxel_highlight_shader);
-  }
-  {
-    GLuint id = RenderUtils::create_shader("ground_selection.vs", "ground_selection.fs");
-    Shader ground_selection_shader(
-      id,
-      {{"MainDepth", 0},
-       {"MainColor", 1}},
-      {{"Common", 0}});
-    shaders_["GroundSelection"] = std::move(ground_selection_shader);
-  }
+  shaders_["GroundSelection"] = Shader(
+    RenderUtils::create_shader("ground_selection.vs", "ground_selection.fs"),
+    {{"MainDepth", 0},
+     {"MainColor", 1}},
+    {{"Common", 0}});
   composite_shader_ = RenderUtils::create_shader("quad.vs", "composite.fs");
   blur_shader_ = RenderUtils::create_shader("blur.vs", "blur.fs");
   final_shader_ = RenderUtils::create_shader("final.vs", "final.fs");
@@ -119,10 +112,8 @@ Renderer::Renderer(Sim& sim)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, composite_cbos_[i], 0);
   }
-  {
-    std::array<GLuint, 2> attachments = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-    glDrawBuffers(2, attachments.data());
-  }
+  std::array<GLuint, 2> attachments = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+  glDrawBuffers(2, attachments.data());
 
   // Blur
   glGenFramebuffers(2, pingpong_fbos_.data());
@@ -301,7 +292,6 @@ void Renderer::render_scene() {
   glBindFramebuffer(GL_FRAMEBUFFER, main_fbo_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   terrain_.render(*this);
-
   glDepthFunc(GL_LEQUAL);
   glDisable(GL_BLEND);
   ssao();

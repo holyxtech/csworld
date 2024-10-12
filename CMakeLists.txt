@@ -21,18 +21,37 @@ function(escape_backslashes input_path output_path)
     set(${output_path} "${escaped_path}" PARENT_SCOPE)
 endfunction()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+# Determine the platform.
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(OS_MAC 1)
+    set(OS_MACOSX 1)  # For backwards compatibility.
+    set(OS_POSIX 1)
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    set(OS_LINUX 1)
+    set(OS_POSIX 1)
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    set(OS_WINDOWS 1)
+else()
+    message(FATAL_ERROR "Unsupported target platform")
+endif()
+
+# Set application data directory
+# Obviously this won't work in production
+if(OS_WINDOWS)
     set(APPLICATION_DATA_DIR "$ENV{APPDATA}\\csworld\\")
     escape_backslashes("${APPLICATION_DATA_DIR}" APPLICATION_DATA_DIR)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+elseif(OS_MAC)
     set(APPLICATION_DATA_DIR "$ENV{HOME}/Library/Application Support/csworld/")
-else()
+elseif(OS_LINUX)
     set(APPLICATION_DATA_DIR "$ENV{HOME}/.config/csworld/")
 endif()
+configure_file(common/config.h.in "${CMAKE_SOURCE_DIR}/common/config.h")
+file(MAKE_DIRECTORY ${APPLICATION_DATA_DIR})
  
 # Sources for common
 file(GLOB PROJECT_SOURCE_FILES_COMMON
     "common/*.cc"
+    "ext/*.c"
 )
 add_library(common STATIC ${PROJECT_SOURCE_FILES_COMMON})
 target_include_directories(common PUBLIC
@@ -40,11 +59,29 @@ target_include_directories(common PUBLIC
     ${CMAKE_SOURCE_DIR}/ext
 )
 
+# CEF
+set(CEF_USE_SANDBOX OFF)
+include(${CMAKE_SOURCE_DIR}/ext/cef-cmake/cmake/cef_cmake.cmake)
+add_subdirectory(${CMAKE_SOURCE_DIR}/ext/cef-cmake)
+set(CEF_SUBPROCESS_NAME "cef_subprocess")
+if (OS_WINDOWS)
+    set(CEF_SUBPROCESS_NAME_WITH_EXT "${CEF_SUBPROCESS_NAME}.exe")
+else()
+    set(CEF_SUBPROCESS_NAME_WITH_EXT "${CEF_SUBPROCESS_NAME}")
+endif()
+file(GLOB PROJECT_SOURCE_FILES_CEF_SUBPROCESS
+    "cef_subprocess/*.cc"
+    "client/src/UI/*.cc"
+)
+set(projectSourcesCefSubprocess
+	${PROJECT_SOURCE_FILES_CEF_SUBPROCESS}
+)
+add_executable(cef_subprocess ${projectSourcesCefSubprocess})
+
 # Sources for client
 file(GLOB PROJECT_SOURCE_FILES_CLIENT
      "client/src/*.cc"
      "client/src/**/*.cc"
-     "client/src/*.c"
      "client/src/**/*.c" 
 )
 set(projectSources
@@ -89,6 +126,10 @@ target_include_directories(client PRIVATE
     ${CMAKE_SOURCE_DIR}/common
     ${CMAKE_SOURCE_DIR}/fbs    
 )
+target_include_directories(cef_subprocess PRIVATE
+    ${CMAKE_SOURCE_DIR}/client/src/UI
+    ${CMAKE_SOURCE_DIR}/ext
+)
 target_include_directories(server PRIVATE
     ${CMAKE_SOURCE_DIR}/common
     ${CMAKE_SOURCE_DIR}/fbs
@@ -100,6 +141,10 @@ target_link_libraries(client PRIVATE
     ${GLEW_LIBRARIES}
     ${OPENGL_LIBRARIES}
     SQLite::SQLite3
+    cefdll_wrapper
+)
+target_link_libraries(cef_subprocess PRIVATE
+    cefdll_wrapper
 )
 target_link_libraries(server PRIVATE
     common
@@ -109,12 +154,21 @@ target_link_libraries(server PRIVATE
 target_compile_definitions(server PRIVATE
     ASIO_HAS_BOOST_BIND
 )
+target_compile_definitions(cef_subprocess PRIVATE
+    UNICODE
+)
 target_compile_definitions(client PRIVATE
     GLM_FORCE_LEFT_HANDED
     GLM_ENABLE_EXPERIMENTAL
     ASIO_HAS_BOOST_BIND
+    UNICODE
+    CEF_SUBPROCESS_NAME="${CEF_SUBPROCESS_NAME}"
+    CEF_SUBPROCESS_NAME_WITH_EXT="${CEF_SUBPROCESS_NAME_WITH_EXT}"
 )
 
-# Obviously this won't work in production
-configure_file(common/config.h.in "${CMAKE_SOURCE_DIR}/common/config.h")
-file(MAKE_DIRECTORY ${APPLICATION_DATA_DIR})
+if(OS_WINDOWS AND MSVC)
+    set_target_properties(client PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
+    set_target_properties(server PROPERTIES LINK_FLAGS "/SUBSYSTEM:CONSOLE")
+    set_target_properties(cef_subprocess PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
+endif()
+

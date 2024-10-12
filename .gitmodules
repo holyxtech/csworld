@@ -1,0 +1,3 @@
+[submodule "ext/cef-cmake"]
+	path = ext/cef-cmake
+	url = https://github.com/iboB/cef-cmake.git

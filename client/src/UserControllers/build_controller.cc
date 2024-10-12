@@ -28,7 +28,6 @@ void BuildController::move_camera() {
   bool right_held = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
   if (right_held && (xpos != prev_xpos || ypos != prev_ypos)) {
     camera.rotate(xpos - prev_xpos, prev_ypos - ypos);
-
   }
   Input::instance()->set_prev_cursor_pos(xpos, ypos);
 
@@ -66,6 +65,7 @@ void BuildController::process_input(const InputEvent& event) {
   auto& world_editor = sim_.get_world_editor();
   auto& camera_mutex = sim_.get_camera_mutex();
   auto& camera = sim_.get_render_modes().build->get_camera();
+  auto& region = sim_.get_region();
 
   // check held left mouse
   /* bool left_pressed = Input::instance()->is_mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT);
@@ -95,6 +95,10 @@ void BuildController::process_input(const InputEvent& event) {
     if (key_button_event.key == GLFW_KEY_F) {
       next_controller_ = std::make_unique<FirstPersonController>(sim_);
       return;
+    }
+    if (key_button_event.key == GLFW_KEY_Z) {
+      // undo
+      region.undo_last_update();
     }
     break;
   }
