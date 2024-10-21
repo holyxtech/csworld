@@ -2,6 +2,7 @@
 #include <glm/ext.hpp>
 #include "input.h"
 #include "renderer.h"
+#include "options.h"
 #include "sim.h"
 
 GroundSelection::GroundSelection() {
@@ -54,8 +55,8 @@ void GroundSelection::step() {
   auto& mesh_generator = sim.get_mesh_generator();
 
   auto [mouse_x, mouse_y] = Input::instance()->get_cursor_pos();
-  float ndc_x = (2.0f * mouse_x) / Renderer::window_width - 1.0f;
-  float ndc_y = 1.0f - (2.0f * mouse_y) / Renderer::window_height;
+  float ndc_x = (2.0f * mouse_x) / Options::window_width - 1.0f;
+  float ndc_y = 1.0f - (2.0f * mouse_y) / Options::window_height;
   glm::dvec4 ndc_space_pos(ndc_x, ndc_y, -1.0f, 1.0f);
   glm::dmat4 inverted_projection = glm::inverse(renderer.get_projection_matrix());
   // this is the position on the near plane with these mouse coordinates

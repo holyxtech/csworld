@@ -33,6 +33,8 @@ UIGraphics::UIGraphics(Sim& sim) : renderer_(sim.get_renderer()), ui_(sim.get_ui
     tex_id++;
   }
 
+  return;
+
   int max_vertex_buffer = 512 * 1024;
   int max_element_buffer = 128 * 1024;
   GLFWwindow* window = sim.get_window();
@@ -126,7 +128,7 @@ UIGraphics::UIGraphics(Sim& sim) : renderer_(sim.get_renderer()), ui_(sim.get_ui
 }
 
 void UIGraphics::render_options_window() {
-
+  return;
   nk_style_push_float(ctx_, &ctx_->style.slider.bar_height, 50.f);
   if (nk_begin(ctx_, "Options", nk_rect(options_window_offset_.x, options_window_offset_.y, 500, 500), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE)) {
     struct nk_rect bounds = nk_window_get_bounds(ctx_);
@@ -188,6 +190,7 @@ void UIGraphics::render_options_window() {
 }
 
 void UIGraphics::render_first_person_ui() {
+  return;
   nk_glfw3_new_frame();
 
   uint32_t flags = 0;
@@ -205,17 +208,17 @@ void UIGraphics::render_first_person_ui() {
   nk_style_push_vec2(ctx_, &ctx_->style.window.scrollbar_size, {0.f, 0.f});
   nk_style_push_vec2(ctx_, &ctx_->style.button.padding, {action_button_padding, action_button_padding});
   nk_style_push_style_item(ctx_, &ctx_->style.window.fixed_background, nk_style_item_color(nk_rgba(0, 0, 0, 0)));
-  if (nk_begin(ctx_, "nuklear window", nk_rect(0, 0, Renderer::window_width, Renderer::window_height), flags)) {
+  if (nk_begin(ctx_, "nuklear window", nk_rect(0, 0, Options::window_width, Options::window_height), flags)) {
     nk_layout_set_min_row_height(ctx_, 0);
     nk_layout_space_begin(ctx_, NK_STATIC, 0, 1);
-    float action_bar_height = Renderer::window_height * 0.08;
+    float action_bar_height = Options::window_height * 0.08;
     float action_image_width = action_bar_height - (2 * action_button_border);
     float action_button_width = action_bar_height;
     float spacing = (UI::action_bar_size - 1) * action_button_spacing;
     float action_bar_width = action_button_width * UI::action_bar_size + spacing;
-    float width_offset = Renderer::window_width / 2 - action_bar_width / 2;
-    float height_offset = (Renderer::window_height)-action_bar_height; // - action_button_spacing;
-    auto action_bar_rect = nk_rect(width_offset, height_offset, action_bar_width, Renderer::window_height);
+    float width_offset = Options::window_width / 2 - action_bar_width / 2;
+    float height_offset = (Options::window_height)-action_bar_height; // - action_button_spacing;
+    auto action_bar_rect = nk_rect(width_offset, height_offset, action_bar_width, Options::window_height);
     nk_layout_space_push(ctx_, action_bar_rect);
     nk_style_push_vec2(ctx_, &ctx_->style.window.spacing, {action_button_spacing, action_button_spacing});
     if (nk_group_begin(ctx_, "action_bar", 0)) {
@@ -261,8 +264,8 @@ void UIGraphics::render_first_person_ui() {
       int crosshair_width = 10;
       int crosshair_height = 10;
       float border_width = 0.f;
-      int width_offset = Renderer::window_width / 2 - crosshair_width / 2 - border_width;
-      int height_offset = Renderer::window_height / 2 - crosshair_width / 2 - border_width;
+      int width_offset = Options::window_width / 2 - crosshair_width / 2 - border_width;
+      int height_offset = Options::window_height / 2 - crosshair_width / 2 - border_width;
       auto crosshair_rect = nk_rect(width_offset, height_offset, crosshair_width, crosshair_height);
       nk_layout_space_push(ctx_, crosshair_rect);
 
@@ -297,10 +300,10 @@ void UIGraphics::render_first_person_ui() {
     nk_style_push_float(ctx_, &ctx_->style.window.border, 0.f);
     nk_style_push_float(ctx_, &ctx_->style.button.border, inv_button_border);
     nk_style_push_vec2(ctx_, &ctx_->style.button.padding, nk_vec2(inv_button_padding, inv_button_padding));
-    int inv_height = Renderer::window_height * 0.5;
+    int inv_height = Options::window_height * 0.5;
     int inv_width = inv_height;
-    int width_offset = (Renderer::window_width - inv_width) / 2;
-    int height_offset = (Renderer::window_height - inv_height) / 2;
+    int width_offset = (Options::window_width - inv_width) / 2;
+    int height_offset = (Options::window_height - inv_height) / 2;
     if (nk_begin(ctx_, "inv window", nk_rect(width_offset, height_offset, inv_width, inv_height), NK_WINDOW_BORDER)) {
       int num_cols = 7;
       int icon_size = (inv_width - inv_scrollbar_width) / num_cols;
@@ -347,10 +350,11 @@ void UIGraphics::render_first_person_ui() {
 }
 
 void UIGraphics::render_build_ui() {
+  return;
   nk_glfw3_new_frame();
   if (
     nk_begin(
-      ctx_, "Build Options", nk_rect(0, 0, Renderer::window_width / 8, Renderer::window_height / 2),
+      ctx_, "Build Options", nk_rect(0, 0, Options::window_width / 8, Options::window_height / 2),
       NK_WINDOW_MOVABLE | NK_WINDOW_BORDER | NK_WINDOW_TITLE)) {
     nk_layout_row_static(ctx_, 40, 130, 1);
     if (nk_button_label(ctx_, "Generate")) {

@@ -22,7 +22,7 @@ void SimServer::step() {
     auto* sections = request->sections();
 
     // construct new update
-    flatbuffers::FlatBufferBuilder builder(Common::max_msg_buffer_size);
+    flatbuffers::FlatBufferBuilder builder(common::max_msg_buffer_size);
     std::vector<flatbuffers::Offset<fbs_update::Section>> returning_sections;
 
     for (int i = 0; i < sections->size(); ++i) {

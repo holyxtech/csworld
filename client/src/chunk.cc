@@ -11,8 +11,8 @@ Chunk::Chunk(const Location& loc, const unsigned char* data, int data_size) : lo
   for (int i = 0; i < data_size; i += 4) {
     // memory alignment...
     std::uint32_t run = *(int*)(&data[i]);
-    auto voxel = static_cast<Voxel>((Common::chunk_data_voxel_mask & run) >> 16);
-    std::uint32_t run_length = Common::chunk_data_run_length_mask & run;
+    auto voxel = static_cast<Voxel>((common::chunk_data_voxel_mask & run) >> 16);
+    std::uint32_t run_length = common::chunk_data_run_length_mask & run;
     for (int n = 0; n < run_length; ++n) {
       auto [x, y, z] = flat_index_to_3d_zxy(vidx++);
       set_voxel(x, y, z, voxel);

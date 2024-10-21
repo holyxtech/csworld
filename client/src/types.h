@@ -160,12 +160,12 @@ public:
   }
 
 private:
-  static constexpr unsigned int xpos_mask = Common::create_bitmask(0, 3);
-  static constexpr unsigned int ypos_mask = Common::create_bitmask(4, 8);
-  static constexpr unsigned int zpos_mask = Common::create_bitmask(9, 12);
-  static constexpr unsigned int normal_mask = Common::create_bitmask(13, 15);
-  static constexpr unsigned int uvs_mask = Common::create_bitmask(16, 17);
-  static constexpr unsigned int texture_mask = Common::create_bitmask(18, 31);
+  static constexpr unsigned int xpos_mask = common::create_bitmask(0, 3);
+  static constexpr unsigned int ypos_mask = common::create_bitmask(4, 8);
+  static constexpr unsigned int zpos_mask = common::create_bitmask(9, 12);
+  static constexpr unsigned int normal_mask = common::create_bitmask(13, 15);
+  static constexpr unsigned int uvs_mask = common::create_bitmask(16, 17);
+  static constexpr unsigned int texture_mask = common::create_bitmask(18, 31);
 };
 
 class CubeVertex {
@@ -182,12 +182,12 @@ public:
   }
 
 private:
-  static constexpr unsigned int xpos_mask = Common::create_bitmask(0, 5);
-  static constexpr unsigned int ypos_mask = Common::create_bitmask(6, 11);
-  static constexpr unsigned int zpos_mask = Common::create_bitmask(12, 17);
-  static constexpr unsigned int normal_mask = Common::create_bitmask(18, 20);
-  static constexpr unsigned int uvs_mask = Common::create_bitmask(21, 22);
-  static constexpr unsigned int texture_mask = Common::create_bitmask(23, 31);
+  static constexpr unsigned int xpos_mask = common::create_bitmask(0, 5);
+  static constexpr unsigned int ypos_mask = common::create_bitmask(6, 11);
+  static constexpr unsigned int zpos_mask = common::create_bitmask(12, 17);
+  static constexpr unsigned int normal_mask = common::create_bitmask(18, 20);
+  static constexpr unsigned int uvs_mask = common::create_bitmask(21, 22);
+  static constexpr unsigned int texture_mask = common::create_bitmask(23, 31);
 };
 
 namespace QuadCoord {

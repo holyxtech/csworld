@@ -124,7 +124,7 @@ Sky::Sky() {
   glCreateBuffers(1, &sky_params_ubo_);
   glNamedBufferData(sky_params_ubo_, sizeof(SkyParams), nullptr, GL_DYNAMIC_DRAW);
   glUseProgram(sky_shader_);
-  float ratio = (Renderer::window_width) / static_cast<float>(Renderer::window_height);
+  float ratio = (Options::window_width) / static_cast<float>(Options::window_height);
   glUniform1fv(glGetUniformLocation(sky_shader_, "WOverH"), 1, &ratio);
 
   std::vector<CBVertex> mesh;

@@ -13,15 +13,13 @@
 #include "stb_image.h"
 #include "types.h"
 
-int Renderer::window_width = 2560;
-int Renderer::window_height = 1440;
-double Renderer::aspect_ratio = Renderer::window_width / static_cast<double>(Renderer::window_height);
+double Renderer::aspect_ratio = Options::window_width / static_cast<double>(Options::window_height);
 double Renderer::fov = glm::radians(45.);
 double Renderer::near_plane = .1;
 double Renderer::far_plane = 1000.;
 int Renderer::shadow_res = 2048;
-GLuint Renderer::blur_texture_width = Renderer::window_width / 8;
-GLuint Renderer::blur_texture_height = Renderer::window_height / 8;
+GLuint Renderer::blur_texture_width = Options::window_width / 8;
+GLuint Renderer::blur_texture_height = Options::window_height / 8;
 std::array<float, Renderer::num_cascades> Renderer::cascade_far_planes = {40, 200, 1000};
 
 namespace {
@@ -46,6 +44,7 @@ Renderer::Renderer(Sim& sim)
     {{"Common", 0}});
   composite_shader_ = RenderUtils::create_shader("quad.vs", "composite.fs");
   blur_shader_ = RenderUtils::create_shader("blur.vs", "blur.fs");
+
   final_shader_ = RenderUtils::create_shader("final.vs", "final.fs");
   ssao_shader_ = RenderUtils::create_shader("ssao_quad.vs", "ssao.fs");
   ssao_blur_shader_ = RenderUtils::create_shader("ssao_quad.vs", "ssao_blur.fs");
@@ -64,7 +63,7 @@ Renderer::Renderer(Sim& sim)
   glBindTexture(GL_TEXTURE_2D, pingpong_primary_cbo_);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_width, window_width, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, Options::window_width, Options::window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpong_primary_cbo_, 0);
 
   // Opaque / water
@@ -76,19 +75,19 @@ Renderer::Renderer(Sim& sim)
     glBindTexture(GL_TEXTURE_2D, cbo);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_width, window_width, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, Options::window_width, Options::window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, cbo, 0);
     glGenTextures(1, &dbo);
     glBindTexture(GL_TEXTURE_2D, dbo);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, window_width, window_height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, Options::window_width, Options::window_height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, dbo, 0);
     for (std::size_t i = 0; i < gbufs.size(); ++i) {
       auto& gbuf = gbufs[i].get();
       glGenTextures(1, &gbuf);
       glBindTexture(GL_TEXTURE_2D, gbuf);
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_width, window_height, 0, GL_RGBA, GL_FLOAT, NULL);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, Options::window_width, Options::window_height, 0, GL_RGBA, GL_FLOAT, NULL);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -105,7 +104,7 @@ Renderer::Renderer(Sim& sim)
   glGenTextures(2, composite_cbos_.data());
   for (std::size_t i = 0; i < 2; ++i) {
     glBindTexture(GL_TEXTURE_2D, composite_cbos_[i]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_width, window_height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, Options::window_width, Options::window_height, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -130,8 +129,8 @@ Renderer::Renderer(Sim& sim)
   }
 
   // SSR
-  float sx = float(window_width) / 2.0;
-  float sy = float(window_height) / 2.0;
+  float sx = float(Options::window_width) / 2.0;
+  float sy = float(Options::window_height) / 2.0;
   auto warp_to_screen_space = glm::mat4(1.0);
   warp_to_screen_space[0] = glm::vec4(sx, 0, 0, sx);
   warp_to_screen_space[1] = glm::vec4(0, sy, 0, sy);
@@ -181,7 +180,7 @@ Renderer::Renderer(Sim& sim)
   glBindFramebuffer(GL_FRAMEBUFFER, ssao_fbo_);
   glGenTextures(1, &ssao_cbo_);
   glBindTexture(GL_TEXTURE_2D, ssao_cbo_);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, window_width, window_height, 0, GL_RED, GL_FLOAT, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, Options::window_width, Options::window_height, 0, GL_RED, GL_FLOAT, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssao_cbo_, 0);
@@ -189,7 +188,7 @@ Renderer::Renderer(Sim& sim)
   glBindFramebuffer(GL_FRAMEBUFFER, ssao_blur_fbo_);
   glGenTextures(1, &ssao_blur_cbo_);
   glBindTexture(GL_TEXTURE_2D, ssao_blur_cbo_);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, window_width, window_height, 0, GL_RED, GL_FLOAT, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, Options::window_width, Options::window_height, 0, GL_RED, GL_FLOAT, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssao_blur_cbo_, 0);
@@ -285,7 +284,7 @@ void Renderer::render_scene() {
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo_);
   glBindBufferBase(GL_UNIFORM_BUFFER, 1, light_space_matrices_ubo_);
   glBindBufferBase(GL_UNIFORM_BUFFER, 2, shadow_block_ubo_);
-  glViewport(0, 0, window_width, window_height);
+  glViewport(0, 0, Options::window_width, Options::window_height);
   glBindFramebuffer(GL_FRAMEBUFFER, water_fbo_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   terrain_.render_water(*this);
@@ -304,8 +303,8 @@ void Renderer::render_scene() {
   glUniform1i(glGetUniformLocation(ssao_apply_shader_, "SSAO"), 1);
   glDrawArrays(GL_TRIANGLES, 0, 6);
   glBlitNamedFramebuffer(
-    pingpong_primary_fbo_, main_fbo_, 0, 0, window_width, window_height,
-    0, 0, window_width, window_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    pingpong_primary_fbo_, main_fbo_, 0, 0, Options::window_width, Options::window_height,
+    0, 0, Options::window_width, Options::window_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
   glEnable(GL_BLEND);
   glBindFramebuffer(GL_FRAMEBUFFER, main_fbo_);
@@ -313,12 +312,12 @@ void Renderer::render_scene() {
   glDisable(GL_BLEND);
 
   sky_.generate_sky_lut(*this);
-  glViewport(0, 0, window_width, window_height);
+  glViewport(0, 0, Options::window_width, Options::window_height);
   glBindFramebuffer(GL_FRAMEBUFFER, main_fbo_);
   sky_.render(*this);
 
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo_);
-  glViewport(0, 0, window_width, window_height);
+  glViewport(0, 0, Options::window_width, Options::window_height);
   glBindFramebuffer(GL_FRAMEBUFFER, composite_fbo_);
   glUseProgram(composite_shader_);
   glBindTextureUnit(0, main_cbo_);
@@ -339,7 +338,7 @@ void Renderer::render_scene() {
   bool horizontal = true;
   glNamedFramebufferReadBuffer(composite_fbo_, GL_COLOR_ATTACHMENT0 + 1);
   glBlitNamedFramebuffer(
-    composite_fbo_, pingpong_fbos_[horizontal], 0, 0, window_width, window_height,
+    composite_fbo_, pingpong_fbos_[horizontal], 0, 0, Options::window_width, Options::window_height,
     0, 0, blur_texture_width, blur_texture_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
   glUseProgram(blur_shader_);
   glViewport(0, 0, blur_texture_width, blur_texture_height);
@@ -353,7 +352,7 @@ void Renderer::render_scene() {
     horizontal = !horizontal;
   }
 
-  glViewport(0, 0, window_width, window_height);
+  glViewport(0, 0, Options::window_width, Options::window_height);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glClear(GL_DEPTH_BUFFER_BIT);
   glUseProgram(final_shader_);
@@ -487,7 +486,7 @@ void Renderer::ssao() {
   glUniform1i(glGetUniformLocation(ssao_shader_, "gNormal"), 1);
   glBindTextureUnit(2, ssao_noise_texture_);
   glUniform1i(glGetUniformLocation(ssao_shader_, "texNoise"), 2);
-  auto noise_scale = glm::vec2(window_width / 4.0, window_height / 4.0);
+  auto noise_scale = glm::vec2(Options::window_width / 4.0, Options::window_height / 4.0);
   glUniform2fv(glGetUniformLocation(ssao_shader_, "noiseScale"), 1, glm::value_ptr(noise_scale));
   glBindVertexArray(quad_vao_);
 

@@ -3,10 +3,10 @@
 #include <filesystem>
 #include <string>
 #include <vector>
-#include "config.h"
+#include "common.h"
 
 DbManager::DbManager() {
-  auto path = APPLICATION_DATA_DIR + std::string("db.sqlite");
+  auto path = common::get_data_dir() + std::string("/db.sqlite");
   bool initialize_db = false;
   std::filesystem::path fs_path(path);
   if (!std::filesystem::exists(fs_path)) {

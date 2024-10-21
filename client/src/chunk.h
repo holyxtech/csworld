@@ -35,10 +35,10 @@ public:
 
   static Int3D to_local(Int3D coord);
 
-  static constexpr int sz_x = Common::chunk_sz_x;
-  static constexpr int sz_y = Common::chunk_sz_y;
-  static constexpr int sz_z = Common::chunk_sz_z;
-  static constexpr int sz = Common::chunk_sz;
+  static constexpr int sz_x = common::chunk_sz_x;
+  static constexpr int sz_y = common::chunk_sz_y;
+  static constexpr int sz_z = common::chunk_sz_z;
+  static constexpr int sz = common::chunk_sz;
 
 private:
   static std::array<int, 3> flat_index_to_3d_zxy(int i);

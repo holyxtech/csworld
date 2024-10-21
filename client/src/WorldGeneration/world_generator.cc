@@ -62,12 +62,12 @@ std::vector<std::pair<Int3D, Voxel>> WorldGenerator::build_tree(int x, int y, in
   int i, j, k;
 
   // the randomness needs to be seeded by x,y,z, so the results don't depend on when this is called
-  int tree_height = Common::random_int(5, 8);
+  int tree_height = common::random_int(5, 8);
   int height_without_leaves;
   if (tree_height >= 7) {
-    height_without_leaves = Common::random_int(3, 4);
+    height_without_leaves = common::random_int(3, 4);
   } else {
-    height_without_leaves = Common::random_int(2, 3);
+    height_without_leaves = common::random_int(2, 3);
   }
 
   i = x, j = y, k = z;
@@ -121,7 +121,7 @@ void WorldGenerator::load_features(Section& section) {
       int subsection_elevation = section.get_subsection_elevation(x, z);
       int x_global = loc[0] * Section::sz_x + static_cast<int>(x);
       int z_global = loc[1] * Section::sz_z + static_cast<int>(z);
-      if (landcover == Common::LandCover::trees) {
+      if (landcover == common::LandCover::trees) {
         if (tree_roots_[(x + sec_x_offset) + tree_root_grid_sz_x * (z + sec_z_offset)]) {
           auto tree = build_tree(x_global, subsection_elevation + 1, z_global);
           for (auto& [coord, voxel] : tree)
@@ -136,8 +136,8 @@ void WorldGenerator::load_features(Section& section) {
             section.insert_into_features(x_global, subsection_elevation + 1, z_global, Voxel::roses);
         }
       } else if (
-        landcover == Common::LandCover::grass ||
-        landcover == Common::LandCover::shrubs) {
+        landcover == common::LandCover::grass ||
+        landcover == common::LandCover::shrubs) {
         auto n = grass_gen_.noise(x, z);
         if (n > 0.65)
           section.insert_into_features(x_global, subsection_elevation + 1, z_global, Voxel::grass);
@@ -175,9 +175,9 @@ void WorldGenerator::fill_chunk(Chunk& chunk, std::unordered_map<Location2D, Sec
 
       auto landcover = section.get_landcover(x, z);
       Voxel voxel;
-      if (landcover == Common::LandCover::bare) {
+      if (landcover == common::LandCover::bare) {
         voxel = Voxel::stone;
-      } else if (landcover == Common::LandCover::water) {
+      } else if (landcover == common::LandCover::water) {
         voxel = Voxel::water_full;
       } else {
         voxel = Voxel::dirt;

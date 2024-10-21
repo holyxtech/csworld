@@ -56,7 +56,7 @@ struct hash_pair final {
 struct Section {
   Location2D location;
   int elevation;
-  std::array<Common::LandCover, Common::landcover_tiles_per_sector> landcover;
+  std::array<common::LandCover, common::landcover_tiles_per_sector> landcover;
 };
 
 #endif

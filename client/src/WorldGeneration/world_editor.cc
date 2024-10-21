@@ -209,7 +209,7 @@ void WorldEditor::generate(const std::unordered_set<Int3D, LocationHash>& surfac
     int z = static_cast<int>(p.y) + min_z;
     int y = recover.at(Int2D{x, z}) + 1;
     Voxel voxel = Voxel::grass;
-    float probability = Common::random_probability();
+    float probability = common::random_probability();
     if (probability > 0.66) {
       voxel = Voxel::sunflower;
     } else if (probability > 0.33) {

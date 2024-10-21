@@ -46,7 +46,7 @@ void MeshGenerator::mesh_noncube(std::vector<Vertex>& mesh, glm::vec3& position,
   seed ^= 0x9e3779b9 + (int)k;
 
   int layer;
-  float r = Common::RangeRand(-0.2f, 0.4f, seed);
+  float r = common::RangeRand(-0.2f, 0.4f, seed);
   i += r;
   k += r;
   switch (voxel) {

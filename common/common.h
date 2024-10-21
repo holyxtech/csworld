@@ -5,10 +5,12 @@
 #include <cstdint>
 #include <string>
 
-namespace Common {
+namespace common {
   std::string decimal_to_dms(double val);
   double dms_to_decimal(const std::string& dms);
   std::array<double, 3> lat_lng_to_world_pos(const std::string& lat_dms, const std::string& lng_dms);
+  std::string get_working_dir();
+  std::string get_data_dir();
 
   std::uint32_t Hash(const std::uint32_t seed);
   std::uint32_t Rand(std::uint32_t const seed);
@@ -28,7 +30,7 @@ namespace Common {
 
   constexpr std::size_t max_msg_buffer_size = 10000;
 
-  enum class LandCover : uint8_t {
+  enum class LandCover : std::uint8_t {
     bare,
     water,
     trees,

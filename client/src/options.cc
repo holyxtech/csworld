@@ -2,6 +2,9 @@
 
 #include <iostream>
 
+int Options::window_width = 2560;
+int Options::window_height = 1440;
+
 Options* Options::instance(int argc, char* argv[]) {
   static Options* instance = new Options(argc, argv);
   return instance;

@@ -32,8 +32,8 @@ void SimpleApp::OnContextInitialized() {
   auto cef_shutdown_lambda = [this]() { cef_shutdown_complete_ = true; };
   handler->SetOnAllBrowsersClosed(cef_shutdown_lambda);
 
-  std::string url = "https://www.google.com";
-
+  
+  std::string url = "https://github.com/chromiumembedded/cef";
   CefBrowserHost::CreateBrowser(window_info, handler, url, browser_settings, nullptr, nullptr);
 }
 

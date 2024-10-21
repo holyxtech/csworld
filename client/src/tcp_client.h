@@ -27,7 +27,7 @@ private:
 
   asio::io_context& io_context_;
   tcp::socket socket_;
-  std::array<std::uint8_t, Common::max_msg_buffer_size> read_buffer_;
+  std::array<std::uint8_t, common::max_msg_buffer_size> read_buffer_;
   static constexpr int header_length = 4;
   moodycamel::ReaderWriterQueue<Message> q_;
 };

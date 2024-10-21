@@ -43,7 +43,7 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
 
   /*
   //glm::dvec3 starting_pos{4230225.256719, 311.122231, -1220227.127904};
-  // auto starting_pos = Common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
+  // auto starting_pos = common::lat_lng_to_world_pos("-25-20-13", "131-02-00");
   // starting_pos[1] = 530;
     camera.set_position(starting_pos);
    camera.set_orientation(-41.5007, -12); */
@@ -266,7 +266,7 @@ void Sim::step(std::int64_t ms) {
 }
 
 void Sim::request_sections(std::vector<Location2D>& locs) {
-  flatbuffers::FlatBufferBuilder builder(Common::max_msg_buffer_size);
+  flatbuffers::FlatBufferBuilder builder(common::max_msg_buffer_size);
 
   std::vector<fbs_common::Location2D> locations;
 

@@ -4,7 +4,7 @@
 #include "include/cef_sandbox_win.h"
 #include "simple_app.h"
 #include "simple_handler.h"
-
+#include "common.h"
 namespace {
   // Global pointer to the SimpleApp instance
   CefRefPtr<SimpleApp> app;
@@ -27,7 +27,7 @@ namespace cefui {
     CefScopedSandboxInfo scoped_sandbox;
     sandbox_info = scoped_sandbox.sandbox_info();
 #endif
-
+ 
     // Create the main arguments for CEF
     CefMainArgs main_args(hInstance);
 
@@ -36,15 +36,13 @@ namespace cefui {
     settings.command_line_args_disabled = true;
 
     // Get the path to the CEF subprocess executable
-    wchar_t buffer[MAX_PATH];
-    GetModuleFileName(nullptr, buffer, MAX_PATH);
-    std::wstring exe_dir(buffer);
-    std::wstring dir = exe_dir.substr(0, exe_dir.find_last_of(L"\\/"));
-    std::string path = std::string(CEF_SUBPROCESS_NAME_WITH_EXT);
-    std::wstring exe_path = dir + L"\\" + std::wstring(path.begin(), path.end());
-    CefString cef_subprocess_path(exe_path);
+    std::string dir = common::get_working_dir();
+    std::string exe_path = dir + "/" + CEF_SUBPROCESS_NAME_WITH_EXT;
+    std::wstring wdir(dir.begin(), dir.end());
+    std::wstring wexe_path(exe_path.begin(), exe_path.end());
+    CefString cef_subprocess_path(wexe_path);
     cef_string_copy(cef_subprocess_path.GetStruct()->str, cef_subprocess_path.GetStruct()->length, &settings.browser_subprocess_path);
-    std::wstring log_path = dir + L"\\cef_log.log";
+    std::wstring log_path = wdir + L"\\cef_log.log";
     CefString cef_log_path(log_path);
     cef_string_copy(cef_log_path.GetStruct()->str, cef_log_path.GetStruct()->length, &settings.log_file);
 
@@ -71,7 +69,7 @@ namespace cefui {
   // Shutdown CEF and clean up resources
   void shutdown() {
 
-    CefRefPtr<SimpleHandler> handler = static_cast<SimpleHandler*>(app->GetDefaultClient().get());
+    CefRefPtr<SimpleHandler> handler = SimpleHandler::GetInstance();
     if (handler) {
       handler->CloseAllBrowsers(true);
       // Wait for all browsers to close
@@ -87,5 +85,50 @@ namespace cefui {
   void domessage() {
     if (!cef_shutdown_complete)
       CefDoMessageLoopWork();
+  }
+
+  // render from simplerhandler
+  void render() {
+    CefRefPtr<SimpleHandler> handler = SimpleHandler::GetInstance();
+    if (handler)
+      handler->render();
+  }
+
+  // onmousemove
+  void onmousemove(int x, int y, bool mouseLeave) {
+    CefRefPtr<SimpleHandler> handler = SimpleHandler::GetInstance();
+    if (handler)
+      handler->OnMouseMove(x, y, mouseLeave);
+  }
+  // on mouse button
+  void onmousedown(int x, int y, int button) {
+    CefRefPtr<SimpleHandler> handler = SimpleHandler::GetInstance();
+    if (handler)
+      handler->OnMouseButton(x, y, button, true, 1);
+  }
+
+  // on mouse up
+  void onmouseup(int x, int y, int button) {
+    CefRefPtr<SimpleHandler> handler = SimpleHandler::GetInstance();
+    if (handler)
+      handler->OnMouseButton(x, y, button, false, 1);
+  }
+  // on mouse wheel
+  void onmousewheel(int x, int y, double deltaX, double deltaY) {
+    CefRefPtr<SimpleHandler> handler = SimpleHandler::GetInstance();
+    if (handler)
+      handler->OnMouseWheel(x, y, deltaX, deltaY);
+  }
+  // on key event
+  void onkeyevent(int key, bool down, int modifiers) {
+    CefRefPtr<SimpleHandler> handler = SimpleHandler::GetInstance();
+    if (handler)
+      handler->OnKeyEvent(key, down, modifiers);
+  }
+  // on char event
+  void oncharevent(int char_code) {
+    CefRefPtr<SimpleHandler> handler = SimpleHandler::GetInstance();
+    if (handler)
+      handler->OnCharEvent(char_code);
   }
 } // namespace cefui

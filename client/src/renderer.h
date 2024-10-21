@@ -98,8 +98,6 @@ public:
   const UniformValue& get_uniform_value(const std::string& uniform_name) const;
   void set_uniform_value(const std::string& uniform_name, const UniformValue& value);
 
-  static int window_width;
-  static int window_height;
   static double aspect_ratio;
   static double fov;
   static double near_plane;

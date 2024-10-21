@@ -22,9 +22,9 @@ public:
     : (Level == LodLevel::lod2) ? 4
     : (Level == LodLevel::lod3) ? 8
                                 : 16;
-  static constexpr int sz_x = Common::chunk_sz_x / scale;
-  static constexpr int sz_z = Common::chunk_sz_z / scale;
-  static constexpr int sz_y = Common::chunk_sz_y;
+  static constexpr int sz_x = common::chunk_sz_x / scale;
+  static constexpr int sz_z = common::chunk_sz_z / scale;
+  static constexpr int sz_y = common::chunk_sz_y;
   static constexpr int sz = sz_x * sz_y * sz_z;
 
   ChunkLod() = default;

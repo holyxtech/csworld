@@ -33,7 +33,7 @@ private:
   int id_;
   tcp::socket socket_;
   static constexpr int header_length = 4;
-  std::array<std::uint8_t,Common::max_msg_buffer_size> read_buffer_;
+  std::array<std::uint8_t,common::max_msg_buffer_size> read_buffer_;
   moodycamel::ReaderWriterQueue<MessageWithId>& q_;
 };
 

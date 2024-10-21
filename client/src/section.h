@@ -9,15 +9,15 @@
 
 class Section {
 public:
-  static constexpr int sz_x = Common::chunk_sz_x;
-  static constexpr int sz_z = Common::chunk_sz_z;
-  static constexpr int sz = Common::chunk_sz_x * Common::chunk_sz_z;
+  static constexpr int sz_x = common::chunk_sz_x;
+  static constexpr int sz_z = common::chunk_sz_z;
+  static constexpr int sz = common::chunk_sz_x * common::chunk_sz_z;
 
   Section(const fbs_update::Section* section);
   const Location2D& get_location() const;
   int get_elevation() const;
-  const std::vector<Common::LandCover>& get_landcover() const;
-  Common::LandCover get_landcover(int x, int z) const;
+  const std::vector<common::LandCover>& get_landcover() const;
+  common::LandCover get_landcover(int x, int z) const;
   void set_elevation(int elevation);
   void compute_subsection_elevations(std::unordered_map<Location2D, Section, Location2DHash>& sections);
   bool has_subsection_elevations() const;
@@ -31,7 +31,7 @@ public:
 private:
   Location2D location_;
   int elevation_;
-  std::vector<Common::LandCover> landcover_;
+  std::vector<common::LandCover> landcover_;
 
   std::vector<int> subsection_elevations_;
   bool computed_subsection_elevations_ = false;

@@ -1,9 +1,20 @@
-#include "common.h"
+#ifdef _WIN32
+#include <windows.h>
+#include <shlobj.h>
+#endif
+#ifdef __linux__
+#include <unistd.h>
+#endif
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <random>
 #include <sstream>
 #include <boost/random.hpp>
+#include "common.h"
 
 namespace {
   std::random_device rd;
@@ -12,7 +23,7 @@ namespace {
 
 } // namespace
 
-namespace Common {
+namespace common {
 
   double dms_to_decimal(const std::string& dms) {
     return 0;
@@ -55,6 +66,64 @@ namespace Common {
     return pos;
   }
 
+  std::string get_working_dir() {
+    std::filesystem::path exe_path;
+
+#ifdef _WIN32
+    char buffer[MAX_PATH];
+    if (GetModuleFileName(nullptr, buffer, MAX_PATH) != 0) {
+      exe_path = buffer;
+    }
+#elif __linux__
+    char buffer[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+    if (len != -1) {
+      buffer[len] = '\0';
+      exe_path = buffer;
+    }
+#elif __APPLE__
+    char buffer[PATH_MAX];
+    uint32_t size = sizeof(buffer);
+    if (_NSGetExecutablePath(buffer, &size) == 0) {
+      char real_path[PATH_MAX];
+      if (realpath(buffer, real_path) != nullptr) {
+        exe_path = real_path;
+      }
+    }
+#endif
+
+    if (!exe_path.empty()) {
+      return exe_path.parent_path().string();
+    }
+
+    return std::filesystem::current_path().string();
+  }
+
+  std::string get_data_dir() {
+    std::filesystem::path dir;
+#ifdef _WIN32
+    char data_dir[MAX_PATH];
+    HRESULT result = SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, data_dir);
+    if (SUCCEEDED(result)) {
+      dir = std::filesystem::path(data_dir) / "csworld";
+    }
+#elif __APPLE__
+    if (const char* home = std::getenv("HOME")) {
+      dir = std::filesystem::path(home) / "Library/Application Support/csworld";
+    }
+#elif __linux__
+    if (const char* xdgConfigHome = std::getenv("XDG_CONFIG_HOME")) {
+      dir = std::filesystem::path(xdgConfigHome) / "csworld";
+    } else if (const char* home = std::getenv("HOME")) {
+      dir = std::filesystem::path(home) / ".config/csworld";
+    }
+#endif
+
+    std::filesystem::create_directories(dir);
+
+    return dir.string();
+  }
+
   float random_probability() {
     return uniform_probability(gen);
   }
@@ -92,7 +161,7 @@ namespace Common {
 
   // Returns a pseduo-random number in the range [0, 1].
   float NormRand(std::uint32_t const seed) {
-    return (1 / static_cast<float>(std::numeric_limits<std::uint32_t>::max())) *
+    return (1 / static_cast<float>((std::numeric_limits<std::uint32_t>::max)())) *
            static_cast<float>(Rand(seed));
   }
 
@@ -103,4 +172,4 @@ namespace Common {
     return offset + range * NormRand(seed);
   }
 
-} // namespace Common
+} // namespace common

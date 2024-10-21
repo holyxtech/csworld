@@ -7,9 +7,9 @@ Section::Section(const fbs_update::Section* section) {
   location_ = Location2D{loc->x(), loc->y()};
   elevation_ = section->elevation();
   subsection_elevations_.reserve(sz);
-  landcover_.reserve(Common::landcover_tiles_per_sector);
-  for (int i = 0; i < Common::landcover_tiles_per_sector; ++i)
-    landcover_.push_back(static_cast<Common::LandCover>(section->landcover()->Get(i)));
+  landcover_.reserve(common::landcover_tiles_per_sector);
+  for (int i = 0; i < common::landcover_tiles_per_sector; ++i)
+    landcover_.push_back(static_cast<common::LandCover>(section->landcover()->Get(i)));
 }
 
 const Location2D& Section::get_location() const {
@@ -20,7 +20,7 @@ int Section::get_elevation() const {
   return elevation_;
 }
 
-const std::vector<Common::LandCover>& Section::get_landcover() const {
+const std::vector<common::LandCover>& Section::get_landcover() const {
   return landcover_;
 }
 
@@ -102,10 +102,10 @@ int Section::get_subsection_elevation(int x, int z) const {
   return subsection_elevations_[x + sz_x * z];
 }
 
-Common::LandCover Section::get_landcover(int x, int z) const {
-  int col = x * Common::landcover_cols_per_sector / Section::sz_x;
-  int row = z * Common::landcover_rows_per_sector / Section::sz_z;
-  return landcover_[col + row * Common::landcover_cols_per_sector];
+common::LandCover Section::get_landcover(int x, int z) const {
+  int col = x * common::landcover_cols_per_sector / Section::sz_x;
+  int row = z * common::landcover_rows_per_sector / Section::sz_z;
+  return landcover_[col + row * common::landcover_cols_per_sector];
 }
 
 void Section::insert_into_features(int x, int y, int z, Voxel voxel) {
