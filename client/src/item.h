@@ -8,7 +8,7 @@
 
 using Item = std::uint32_t;
 
-namespace ItemUtils {
+namespace items {
   const std::unordered_map<std::string, Item> items = []() {
     std::unordered_map<std::string, Item> items;
     std::uint32_t item_id = 0;
@@ -42,6 +42,6 @@ namespace ItemUtils {
     {items.at("bricks"), Voxel::bricks},
   };
 
-} // namespace ItemUtils
+} // namespace items
 
 #endif

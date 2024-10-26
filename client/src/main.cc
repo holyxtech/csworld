@@ -3,7 +3,6 @@
 
 #include <SDKDDKVer.h>
 #include <shellapi.h>
-#include "UI/cefui_win.h"
 #endif
 #include <chrono>
 #include <fstream>
@@ -12,6 +11,7 @@
 #include <thread>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
 #define NK_INCLUDE_STANDARD_VARARGS
@@ -34,6 +34,7 @@
 #include "renderer.h"
 #include "sim.h"
 #include "tcp_client.h"
+#include "UI/cefui.h"
 
 /*
   Notes on input handling:
@@ -54,32 +55,32 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
   const std::array<double, 2>& cursor_pos = Input::instance()->get_cursor_pos();
   // 2. call cefui::onmousedown with the cursor pos and button
   if (action == GLFW_PRESS)
-    cefui::onmousedown(cursor_pos[0], cursor_pos[1], button);
+    cefui::OnMouseDown(cursor_pos[0], cursor_pos[1], button);
   else if (action == GLFW_RELEASE)
-    cefui::onmouseup(cursor_pos[0], cursor_pos[1], button);
+    cefui::OnMouseUp(cursor_pos[0], cursor_pos[1], button);
 }
 
 void key_callback(GLFWwindow* window, int key, int, int action, int mods) {
   Input::instance()->key_callback(window, key, action);
   if (action == GLFW_PRESS)
-    cefui::onkeyevent(key, true, mods);
+    cefui::OnKeyEvent(key, true, mods);
   else if (action == GLFW_RELEASE)
-    cefui::onkeyevent(key, false, mods);
+    cefui::OnKeyEvent(key, false, mods);
 }
 
 void char_callback(GLFWwindow* window, unsigned int codepoint) {
-  cefui::oncharevent(codepoint);
+  cefui::OnCharEvent(codepoint);
 }
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
   Input::instance()->cursor_position_callback(window, xpos, ypos);
-  cefui::onmousemove(xpos, ypos, false);
+  cefui::OnMouseMove(xpos, ypos, false);
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
   int x, y;
   const std::array<double, 2>& cursor_pos = Input::instance()->get_cursor_pos();
-  cefui::onmousewheel(cursor_pos[0], cursor_pos[1], xoffset, yoffset);
+  cefui::OnMouseWheel(cursor_pos[0], cursor_pos[1], xoffset, yoffset);
 }
 
 // Helper function to convert wide-char arguments to char* argv[]
@@ -161,7 +162,10 @@ int main(int argc, char* argv[]) {
   asio::thread t(boost::bind(&asio::io_context::run, &io_context));
 
 #ifdef _WIN32
-  cefui::main(hInstance);
+  cefui::Main(hInstance);
+#endif
+#if defined(__linux__) || defined(__APPLE__)
+  cefui::Main(argc, argv);
 #endif
 
   Sim sim(window, tcp_client);
@@ -186,10 +190,10 @@ int main(int argc, char* argv[]) {
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     if (duration.count() >= 16) {
-      cefui::domessage();
+      cefui::DoMessageLoopWork();
       sim.draw(duration.count());
       // draw cefui
-      cefui::render();
+      cefui::Render();
       glfwSwapBuffers(window);
       start = std::chrono::high_resolution_clock::now();
     }
@@ -200,6 +204,6 @@ int main(int argc, char* argv[]) {
   glfwTerminate();
   io_context.stop();
   t.join();
-  cefui::shutdown();
+  cefui::Shutdown();
   return 0;
 }

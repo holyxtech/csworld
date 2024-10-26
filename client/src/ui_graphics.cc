@@ -27,7 +27,7 @@ struct nk_color UIGraphics::build_options_background_color = nk_rgb(80, 80, 80);
 
 UIGraphics::UIGraphics(Sim& sim) : renderer_(sim.get_renderer()), ui_(sim.get_ui()) {
   std::uint32_t tex_id = 0;
-  for (auto [item_name, item_id] : ItemUtils::items) {
+  for (auto [item_name, item_id] : items::items) {
     ui_textures.insert({item_name, tex_id});
     item_to_texture_.insert({item_id, tex_id});
     tex_id++;

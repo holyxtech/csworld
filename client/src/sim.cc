@@ -7,18 +7,19 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+//#include "UI/cefui.h"
 #include "UserControllers/build_controller.h"
+#include "UserControllers/first_person_controller.h"
+#include "UserControllers/options_controller.h"
 #include "chunk.h"
 #include "common.h"
 #include "common_generated.h"
-#include "UserControllers/first_person_controller.h"
 #include "input.h"
 #include "item.h"
 #include "readerwriterqueue.h"
 #include "request_generated.h"
 #include "section.h"
 #include "update_generated.h"
-#include "UserControllers/options_controller.h"
 
 Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
     : window_(window),
@@ -33,10 +34,10 @@ Sim::Sim(GLFWwindow* window, TCPClient& tcp_client)
   }
 
   user_controller_ = std::make_unique<FirstPersonController>(*this);
-  //user_controller_ = std::make_unique<BuildController>(*this);
-  //user_controller_ = std::make_unique<OptionsController>(*this, std::make_unique<FirstPersonController>(*this));
+  // user_controller_ = std::make_unique<BuildController>(*this);
+  // user_controller_ = std::make_unique<OptionsController>(*this, std::make_unique<FirstPersonController>(*this));
   user_controller_->init();
-  //render_modes_.set_mode(render_modes_.build);
+  // render_modes_.set_mode(render_modes_.build);
 
   auto& camera = render_modes_.first_person->get_camera();
   db_manager_.load_camera(camera);
@@ -242,7 +243,7 @@ void Sim::step(std::int64_t ms) {
   render_modes_.cur->step();
 
   {
-    { 
+    {
       std::unique_lock<std::mutex> lock(mutex_);
       cv_.wait(lock, [this] { return ready_to_mesh_; });
     }
@@ -258,7 +259,6 @@ void Sim::step(std::int64_t ms) {
       continue;
     auto& chunk = region_.get_chunk(loc);
     db_manager_.save_chunk(chunk);
-
   }
   region_.reset_updated_since_reset();
 

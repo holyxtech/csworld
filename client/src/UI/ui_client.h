@@ -2,27 +2,42 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#ifndef CEF_TESTS_CEFSIMPLE_SIMPLE_HANDLER_H_
-#define CEF_TESTS_CEFSIMPLE_SIMPLE_HANDLER_H_
+#ifndef CEF_TESTS_CEFSIMPLE_ui_client_H_
+#define CEF_TESTS_CEFSIMPLE_ui_client_H_
+
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <functional>
 #include <list>
 #include <GL/glew.h>
+#include <string>
+#include <atomic>
+#include <future>
 
+#include "dev_tools_handler.h"
 #include "include/cef_client.h"
 #include "include/cef_render_handler.h"
+#include "readerwriterqueue.h"
+#include "nlohmann/json.hpp"
 
-class SimpleHandler : public CefClient,
-                      public CefDisplayHandler,
-                      public CefLifeSpanHandler,
-                      public CefLoadHandler,
-                      public CefRenderHandler,
-                      public CefFocusHandler {
+class UIClient
+    : public CefClient,
+      public CefDisplayHandler,
+      public CefLifeSpanHandler,
+      public CefLoadHandler,
+      public CefRenderHandler,
+      public CefFocusHandler,
+      public CefRequestHandler,
+      public CefResourceRequestHandler {
 public:
-  explicit SimpleHandler();
-  ~SimpleHandler() override;
+  explicit UIClient();
+  ~UIClient() override;
 
   // Provide access to the single global instance of this object.
-  static SimpleHandler* GetInstance();
+  static UIClient* GetInstance();
 
   // CefClient methods:
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override { return this; }
@@ -30,6 +45,13 @@ public:
   CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
   CefRefPtr<CefRenderHandler> GetRenderHandler() override { return this; }
   CefRefPtr<CefFocusHandler> GetFocusHandler() override { return this; }
+  CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }
+  bool OnProcessMessageReceived(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    CefProcessId source_process,
+    CefRefPtr<CefProcessMessage> message) override;
+
   // CefDisplayHandler methods:
   void OnTitleChange(CefRefPtr<CefBrowser> browser,
                      const CefString& title) override;
@@ -38,18 +60,32 @@ public:
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
   bool DoClose(CefRefPtr<CefBrowser> browser) override;
   void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
+  void OnBeforeDevToolsPopup(
+    CefRefPtr<CefBrowser> browser,
+    CefWindowInfo& windowInfo,
+    CefRefPtr<CefClient>& client,
+    CefBrowserSettings& settings,
+    CefRefPtr<CefDictionaryValue>& extra_info,
+    bool* use_default_window) override;
 
   // CefLoadHandler methods:
-  void OnLoadError(CefRefPtr<CefBrowser> browser,
-                   CefRefPtr<CefFrame> frame,
-                   ErrorCode errorCode,
-                   const CefString& errorText,
-                   const CefString& failedUrl) override;
+  void OnLoadError(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    ErrorCode errorCode,
+    const CefString& errorText,
+    const CefString& failedUrl) override;
+
+  void OnLoadStart(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    TransitionType transition_type) override;
 
   // Request that all existing browser windows close.
   void CloseAllBrowsers(bool force_close);
   bool IsClosing() const { return is_closing_; }
   void SetOnAllBrowsersClosed(std::function<void()> callback);
+  void SetBrowserCreatedPromise(std::promise<void>* promise);
 
   // CefRenderHandler methods:
   bool GetRootScreenRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
@@ -96,7 +132,7 @@ public:
 
   void render();
 
-  // Add these method declarations in the SimpleHandler class
+  // Add these method declarations in the UIClient class
   void OnMouseMove(int x, int y, bool mouseLeave);
   void OnMouseButton(int x, int y, int button, bool down, int clickCount);
   void OnMouseWheel(int x, int y, double deltaX, double deltaY);
@@ -106,16 +142,60 @@ public:
   bool OnSetFocus(CefRefPtr<CefBrowser> browser, FocusSource source) override;
   void OnTakeFocus(CefRefPtr<CefBrowser> browser, bool next) override;
 
+  CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    CefRefPtr<CefRequest> request,
+    bool is_navigation,
+    bool is_download,
+    const CefString& request_initiator,
+    bool& disable_default_handling) override;
+  CefRefPtr<CefResourceHandler> GetResourceHandler(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    CefRefPtr<CefRequest> request) override;
+  bool OnBeforeBrowse(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    CefRefPtr<CefRequest> request,
+    bool user_gesture,
+    bool is_redirect) override;
+
+  void SendMessageToJS(const nlohmann::json& message);
+
+  moodycamel::ReaderWriterQueue<nlohmann::json>& GetMessageQueue() {
+    return message_queue_;
+  }
+
 private:
   // Platform-specific implementation.
+
+#ifdef _WIN32
   void PlatformTitleChange(CefRefPtr<CefBrowser> browser,
-                           const CefString& title);
-  void PlatformShowWindow(CefRefPtr<CefBrowser> browser);
+                           const CefString& title) {
+    CefWindowHandle hwnd = browser->GetHost()->GetWindowHandle();
+    if (hwnd) {
+      SetWindowText(hwnd, std::wstring(title).c_str());
+    }
+  }
+#endif
+
+#ifndef __APPLE__
+  void PlatformShowWindow(CefRefPtr<CefBrowser> browser) {
+    NOTIMPLEMENTED();
+  }
+#endif
+
+  nlohmann::json ConvertCefDictionaryToJson(CefRefPtr<CefDictionaryValue> dict);
+  nlohmann::json ConvertCefListToJson(CefRefPtr<CefListValue> list);
+  nlohmann::json ConvertCefValueToJson(CefRefPtr<CefValue> value);
 
   // List of existing browser windows. Only accessed on the CEF UI thread.
   typedef std::list<CefRefPtr<CefBrowser>> BrowserList;
   BrowserList browser_list_;
+  CefRefPtr<CefBrowser> browser_;
   std::function<void()> on_all_browsers_closed_;
+  std::promise<void>* browser_created_promise_ = nullptr;
 
   bool new_frame_available_ = false;
   bool is_mouse_down_ = false;
@@ -125,11 +205,11 @@ private:
   GLuint texture_id_;
   GLuint shader_;
   GLuint vao_;
-  // Include the default reference counting implementation.
-  IMPLEMENT_REFCOUNTING(SimpleHandler);
 
-  // Add this member variable to the SimpleHandler class
-  CefRefPtr<CefBrowser> browser_;
+  moodycamel::ReaderWriterQueue<nlohmann::json> message_queue_;
+
+  // Include the default reference counting implementation.
+  IMPLEMENT_REFCOUNTING(UIClient);
 };
 
-#endif // CEF_TESTS_CEFSIMPLE_SIMPLE_HANDLER_H_
+#endif // CEF_TESTS_CEFSIMPLE_ui_client_H_

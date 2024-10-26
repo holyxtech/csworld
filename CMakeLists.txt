@@ -58,9 +58,6 @@ else()
 endif()
 file(GLOB PROJECT_SOURCE_FILES_CEF_SUBPROCESS
     "cef_subprocess/*.cc"
-    "client/src/UI/*.cc"
-    "client/src/shader_utils.cc"
-    "client/src/options.cc"
 )
 set(projectSourcesCefSubprocess
 	${PROJECT_SOURCE_FILES_CEF_SUBPROCESS}
@@ -116,10 +113,6 @@ target_include_directories(client PRIVATE
     ${CMAKE_SOURCE_DIR}/fbs    
 )
 target_include_directories(cef_subprocess PRIVATE
-    ${CMAKE_SOURCE_DIR}/client/src
-    ${CMAKE_SOURCE_DIR}/client/src/UI
-    ${CMAKE_SOURCE_DIR}/ext
-    ${CMAKE_SOURCE_DIR}/common
 )
 target_include_directories(server PRIVATE
     ${CMAKE_SOURCE_DIR}/common
@@ -135,11 +128,7 @@ target_link_libraries(client PRIVATE
     cefdll_wrapper
 )
 target_link_libraries(cef_subprocess PRIVATE
-    common
     cefdll_wrapper
-    glfw
-    ${GLEW_LIBRARIES}
-    ${OPENGL_LIBRARIES}
 )
 target_link_libraries(server PRIVATE
     common

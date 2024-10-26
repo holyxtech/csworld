@@ -4,6 +4,7 @@
 #include "input.h"
 #include "inventory_controller.h"
 #include "options_controller.h"
+#include "UI/cefui.h"
 
 FirstPersonController::FirstPersonController(Sim& sim) : UserController(sim) {
 }
@@ -93,7 +94,7 @@ void FirstPersonController::process_input(const InputEvent& event) {
         std::unique_lock<std::mutex> lock(camera_mutex);
         auto item = ui.get_active_item();
         if (item.has_value()) {
-          auto voxel = ItemUtils::item_to_voxel.at(item.value());
+          auto voxel = items::item_to_voxel.at(item.value());
           region.raycast_place(camera.get_position(), camera.get_front(), voxel);
         }
       }
@@ -124,6 +125,11 @@ void FirstPersonController::process_input(const InputEvent& event) {
     if (key_button_event.key == GLFW_KEY_O) {
       next_controller_ = std::make_unique<OptionsController>(sim_, std::make_unique<FirstPersonController>(sim_));
       return;
+    }
+
+    if (key_button_event.key == GLFW_KEY_M) {
+      cefui::SendMessageToJS(nlohmann::json{{"message", "hello"}});
+      return;  
     }
 
     if (key_button_event.key >= GLFW_KEY_0 && key_button_event.key <= GLFW_KEY_9) {

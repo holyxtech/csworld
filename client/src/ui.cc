@@ -1,34 +1,38 @@
+#include "UI/cefmsg.h"
 #include "ui.h"
 #include <vector>
 #include "render_utils.h"
 #include "renderer.h"
 
 UI::UI() {
-  auto& m = ItemUtils::items;
-  std::vector<Item> items =
-    {m.at("dirt"),
-     m.at("bricks"),
-     m.at("water"),
-     m.at("stone"),
-     m.at("sandstone"),
-     m.at("sunflower"),
-     m.at("roses"),
-     m.at("standing_grass"),
-     m.at("leaves"),
-     m.at("tree_trunk")};
+  // create vector of item names:
+  std::vector<std::string> item_names = {
+    "dirt",
+    "bricks",
+    "water",
+    "stone",
+    "sandstone",
+    "sunflower",
+    "roses",
+    "standing_grass",
+    "leaves",
+    "tree_trunk"
+  };
 
   std::size_t i = 0;
-  for (; i < items.size(); ++i) {
-    action_bar_[i] = items[i];
+  for (; i < item_names.size(); ++i) {
+    auto item = items::items.at(item_names[i]);
+    action_bar_[i] = item;
+    cefmsg::ActionBarSlotChange(i, item_names[i]);
   }
   for (; i < action_bar_size; ++i)
     action_bar_[i] = {};
-  std::size_t index = 0;
+  active_index_ = 0;
 
-  active_index_ = index;
+
 
   //  for (int g = 0; g < 20; ++g) {
-  for (int i = 0; i < static_cast<int>(m.size()); ++i) {
+  for (int i = 0; i < static_cast<int>(items::items.size()); ++i) {
     inv_.push_back(i);
   }
   //}

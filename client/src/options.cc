@@ -33,6 +33,10 @@ std::string Options::get_font_path(const std::string& name) {
   return get_path(name, fonts_dir);
 }
 
+std::string Options::get_ui_path(const std::string& name) {
+  return get_path(name, ui_dir);
+}
+
 std::string Options::get_path(const std::string& name, const std::string& type) {
   std::filesystem::path dir = ((this->dir.has_value() ? this->dir.value() : std::filesystem::current_path()) / type);
   if (name.empty())
