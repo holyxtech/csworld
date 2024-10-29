@@ -4,6 +4,7 @@
 #include "input.h"
 #include "inventory_controller.h"
 #include "options_controller.h"
+#include "UI/cefmsg.h"
 #include "UI/cefui.h"
 
 FirstPersonController::FirstPersonController(Sim& sim) : UserController(sim) {
@@ -21,6 +22,8 @@ void FirstPersonController::init() {
   }
   modes.set_mode(modes.first_person);
   window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::disable_cursor});
+  cefui::SetEnableInput(false);
+  cefmsg::ViewChange("firstPerson");
 }
 
 void FirstPersonController::move_camera() {
@@ -128,7 +131,6 @@ void FirstPersonController::process_input(const InputEvent& event) {
     }
 
     if (key_button_event.key == GLFW_KEY_M) {
-      cefui::SendMessageToJS(nlohmann::json{{"message", "hello"}});
       return;  
     }
 

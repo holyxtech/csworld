@@ -13,7 +13,6 @@
 #include "sky.h"
 #include "terrain_graphics.h"
 #include "ui.h"
-#include "ui_graphics.h"
 #include "world.h"
 
 class Sim;
@@ -84,7 +83,6 @@ public:
   const glm::vec3& get_camera_offset_position() const;
   const glm::dvec3& get_world_offset() const;
   Sky& get_sky();
-  UIGraphics& get_ui_graphics();
   const Camera& get_camera() const;
 
   std::uint32_t register_scene_component(const SceneComponent& scene_component);
@@ -149,7 +147,6 @@ private:
   glm::mat4 projection_;
   glm::mat4 view_;
   Sky sky_;
-  UIGraphics ui_graphics_;
   TerrainGraphics terrain_;
   Sim& sim_;
 

@@ -30,6 +30,11 @@ namespace cefui {
   void OnCharEvent(int char_code);
   void SendMessageToJS(const nlohmann::json& message);
   moodycamel::ReaderWriterQueue<nlohmann::json>& GetMessageQueue();
+  void SetEnableInput(bool enable);
+  bool IsMouseCaptured();
+  bool IsKeyCaptured();
+  void SetMouseCaptured(bool captured);
+  void SetKeyCaptured(bool captured);
 
 } // namespace cefui
 

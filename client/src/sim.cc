@@ -7,7 +7,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-//#include "UI/cefui.h"
+#include "UI/cefui.h"
+#include "UI/cefmsg.h"
 #include "UserControllers/build_controller.h"
 #include "UserControllers/first_person_controller.h"
 #include "UserControllers/options_controller.h"
@@ -206,9 +207,11 @@ void Sim::step(std::int64_t ms) {
     }
   };
 
-  auto& ui_graphics = renderer_.get_ui_graphics();
-  bool mouse_captured = ui_graphics.is_mouse_captured();
-  bool key_captured = ui_graphics.is_key_captured();
+  /*   auto& ui_graphics = renderer_.get_ui_graphics();
+    bool mouse_captured = ui_graphics.is_mouse_captured();
+    bool key_captured = ui_graphics.is_key_captured(); */
+  bool mouse_captured = cefui::IsMouseCaptured();
+  bool key_captured = cefui::IsKeyCaptured();
   if (mouse_captured || key_captured) {
     world_.interrupt_pawns();
   }
@@ -224,21 +227,53 @@ void Sim::step(std::int64_t ms) {
   } else {
     process_inputs(key_button_events, InputEvent::Kind::KeyButtonEvent);
   }
-  auto& ui_action_events = ui_graphics.get_action_events();
-  Action event;
-  success = ui_action_events.try_dequeue(event);
+  // deal with messages from UI
+  auto& ui_message_queue = cefui::GetMessageQueue();
+  nlohmann::json ui_message;
+  success = ui_message_queue.try_dequeue(ui_message);
   while (success) {
-    switch (event.kind) {
-    case Action::terrain_generation: {
-      auto& ground_selection = render_modes_.build->get_ground_selection();
-      auto& surface = ground_selection->get_selected();
-      world_editor_.generate(surface);
-    } break;
+    bool isarray = ui_message.is_array();
+    std::string message_type = ui_message[0]["type"];
+    if (message_type == "itemSelectorInit") {
+      ui_.item_selector_init();
+    } else if (message_type == "actionBarSlotChange") {
+      int index = ui_message[0]["payload"]["index"];
+      std::string item = ui_message[0]["payload"]["item"];
+      if (item == "") {
+        ui_.action_bar_assign(index, std::nullopt);
+      } else {
+        ui_.action_bar_assign(index, items::items.at(item));
+      }
+    } else if (message_type == "javascriptLoaded") {
+      cefmsg::ViewChange("firstPerson"); // initial view
+    } else if (message_type == "actionBarInit") {
+      ui_.action_bar_init();
+    } else if (message_type == "cursorEnter") {
+      std::string element_id = ui_message[0]["payload"]["elementId"];
+      cefui::SetMouseCaptured(true);
+    } else if (message_type == "cursorLeave") {
+      std::string element_id = ui_message[0]["payload"]["elementId"];
+      cefui::SetMouseCaptured(false);
     }
 
-    success = ui_action_events.try_dequeue(event);
+    success = ui_message_queue.try_dequeue(ui_message);
   }
 
+  /*   auto& ui_action_events = ui_graphics.get_action_events();
+    Action event;
+    success = ui_action_events.try_dequeue(event);
+    while (success) {
+      switch (event.kind) {
+      case Action::terrain_generation: {
+        auto& ground_selection = render_modes_.build->get_ground_selection();
+        auto& surface = ground_selection->get_selected();
+        world_editor_.generate(surface);
+      } break;
+      }
+
+      success = ui_action_events.try_dequeue(event);
+    }
+   */
   world_.step();
   render_modes_.cur->step();
 

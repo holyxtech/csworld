@@ -13,7 +13,7 @@ BuildRenderMode::BuildRenderMode(Sim& sim) : RenderMode(sim) {
 
 void BuildRenderMode::render() const {
   auto& renderer = sim_.get_renderer();
-  auto& ui_graphics = renderer.get_ui_graphics();
+  //auto& ui_graphics = renderer.get_ui_graphics();
   auto& draw_generator = sim_.get_draw_generator();
 
   // need to send ground_selection_ to upload vertex data if changed
@@ -32,7 +32,7 @@ void BuildRenderMode::render() const {
   // draw generator...
   draw_generator.generate_and_dispatch(*scene_component);
 
-  ui_graphics.render_build_ui();
+  //ui_graphics.render_build_ui();
 }
 
 BuildCamera& BuildRenderMode::get_camera() {

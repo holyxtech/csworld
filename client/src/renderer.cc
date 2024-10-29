@@ -29,7 +29,7 @@ namespace {
 } // namespace
 
 Renderer::Renderer(Sim& sim)
-    : sim_(sim), ui_graphics_(sim) {
+    : sim_(sim){
 
   // Shaders
   shaders_["VoxelHighlight"] =
@@ -591,10 +591,6 @@ Sky& Renderer::get_sky() {
 
 const glm::vec3& Renderer::get_camera_offset_position() const {
   return camera_offset_position_;
-}
-
-UIGraphics& Renderer::get_ui_graphics() {
-  return ui_graphics_;
 }
 
 const Camera& Renderer::get_camera() const {

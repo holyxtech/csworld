@@ -29,6 +29,7 @@ void UIApp::OnContextInitialized() {
   // Get the path to the local index.html file
   // use fake domain to avoid CORS
   CefString url("https://fake.domain.com/" + Options::instance()->get_ui_path("index.html"));
+  //CefString url("https://youtube.com");
 
   // Create the browser with the request
   CefBrowserHost::CreateBrowser(window_info, handler, url, browser_settings, nullptr, nullptr);

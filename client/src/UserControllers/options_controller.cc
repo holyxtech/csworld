@@ -1,4 +1,5 @@
 #include "options_controller.h"
+#include "UI/cefui.h"
 
 OptionsController::OptionsController(Sim& sim, std::unique_ptr<UserController> previous_controller)
     : UserController(sim), previous_controller_(std::move(previous_controller)) {}

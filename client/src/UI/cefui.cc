@@ -11,6 +11,9 @@
 
 namespace {
   std::atomic<bool> cef_shutdown_complete(false);
+  bool enable_input = false;
+  bool mouse_captured = false;
+  bool key_captured = false;
 }
 
 #if defined(CEF_USE_SANDBOX)
@@ -99,36 +102,48 @@ namespace cefui {
   }
 
   void OnMouseMove(int x, int y, bool mouseLeave) {
+    if (!enable_input)
+      return;
     CefRefPtr<UIClient> handler = UIClient::GetInstance();
     if (handler)
       handler->OnMouseMove(x, y, mouseLeave);
   }
 
   void OnMouseDown(int x, int y, int button) {
-    CefRefPtr<UIClient> handler = UIClient::GetInstance();
+    if (!enable_input)
+      return;
+      CefRefPtr<UIClient> handler = UIClient::GetInstance();
     if (handler)
       handler->OnMouseButton(x, y, button, true, 1);
   }
 
   void OnMouseUp(int x, int y, int button) {
+    if (!enable_input)
+      return;
     CefRefPtr<UIClient> handler = UIClient::GetInstance();
     if (handler)
       handler->OnMouseButton(x, y, button, false, 1);
   }
 
   void OnMouseWheel(int x, int y, double deltaX, double deltaY) {
+    if (!enable_input)
+      return;
     CefRefPtr<UIClient> handler = UIClient::GetInstance();
     if (handler)
       handler->OnMouseWheel(x, y, deltaX, deltaY);
   }
 
   void OnKeyEvent(int key, bool down, int modifiers) {
+    if (!enable_input)
+      return;
     CefRefPtr<UIClient> handler = UIClient::GetInstance();
     if (handler)
       handler->OnKeyEvent(key, down, modifiers);
   }
 
   void OnCharEvent(int char_code) {
+    if (!enable_input)
+      return;
     CefRefPtr<UIClient> handler = UIClient::GetInstance();
     if (handler)
       handler->OnCharEvent(char_code);
@@ -146,6 +161,26 @@ namespace cefui {
       return handler->GetMessageQueue();
     else
       throw std::runtime_error("UIClient not initialized");
+  }
+
+  void SetEnableInput(bool enable) {
+    enable_input = enable;
+  }
+
+  bool IsMouseCaptured() {
+    return mouse_captured;
+  }
+
+  bool IsKeyCaptured() {
+    return key_captured;
+  }
+
+  void SetMouseCaptured(bool captured) {
+    mouse_captured = captured;
+  }
+
+  void SetKeyCaptured(bool captured) {
+    key_captured = captured;
   }
 
 } // namespace cefui

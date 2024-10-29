@@ -2,6 +2,7 @@
 #include <memory>
 #include "first_person_controller.h"
 #include "input.h"
+#include "UI/cefui.h"
 
 InventoryController::InventoryController(Sim& sim) : UserController(sim) {
 }
@@ -10,6 +11,7 @@ void InventoryController::init() {
   auto& window_events = sim_.get_window_events();
   ui.set_inv_open(true);
   window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::enable_cursor});
+  cefui::SetEnableInput(true);
 }
 void InventoryController::end() {
   auto& ui = sim_.get_ui();
@@ -34,14 +36,14 @@ void InventoryController::process_input(const InputEvent& event) {
       next_controller_ = std::make_unique<FirstPersonController>(sim_);
       return;
     }
-    if (key_button_event.key >= GLFW_KEY_0 && key_button_event.key <= GLFW_KEY_9) {
+/*     if (key_button_event.key >= GLFW_KEY_0 && key_button_event.key <= GLFW_KEY_9) {
       auto& ui_graphics = renderer.get_ui_graphics();
       auto hovering = ui_graphics.get_hovering();
       if (hovering.has_value()) {
         std::size_t index = key_button_event.key > GLFW_KEY_0 ? key_button_event.key - GLFW_KEY_1 : UI::action_bar_size - 1;
         ui.action_bar_assign(index, hovering.value());
       }
-    }
+    } */
     break;
   }
   return;

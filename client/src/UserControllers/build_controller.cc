@@ -1,3 +1,5 @@
+#include "UI/cefui.h"
+#include "UI/cefmsg.h"
 #include "build_controller.h"
 #include <memory>
 #include "first_person_controller.h"
@@ -14,6 +16,8 @@ void BuildController::init() {
   build_mode->seed_camera(modes.first_person->get_camera());
   modes.set_mode(build_mode);
   window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::enable_cursor});
+  cefmsg::ViewChange("build");
+  cefui::SetEnableInput(true);
 }
 
 void BuildController::move_camera() {

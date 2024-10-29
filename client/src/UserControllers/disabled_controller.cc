@@ -1,6 +1,7 @@
 #include "disabled_controller.h"
 #include "first_person_controller.h"
 #include "input.h"
+#include "UI/cefui.h"
 
 DisabledController::DisabledController(Sim& sim, std::unique_ptr<UserController> previous_controller)
     : UserController(sim), previous_controller_(std::move(previous_controller)) {
@@ -8,8 +9,11 @@ DisabledController::DisabledController(Sim& sim, std::unique_ptr<UserController>
 void DisabledController::init() {
   auto& window_events = sim_.get_window_events();
   window_events.enqueue(Sim::WindowEvent{Sim::WindowEvent::enable_cursor});
+  cefui::SetEnableInput(true);
 }
-void DisabledController::end() {}
+void DisabledController::end() {
+
+}
 
 void DisabledController::move_camera() {}
 void DisabledController::process_input(const InputEvent& event) {

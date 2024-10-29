@@ -22,7 +22,7 @@
 #include "include/cef_render_handler.h"
 #include "readerwriterqueue.h"
 #include "nlohmann/json.hpp"
-
+#include <glm/glm.hpp>
 class UIClient
     : public CefClient,
       public CefDisplayHandler,
@@ -205,6 +205,15 @@ private:
   GLuint texture_id_;
   GLuint shader_;
   GLuint vao_;
+  
+  GLuint drag_texture_id_ = 0;
+  GLuint drag_shader_ = 0;
+  GLuint drag_vao_ = 0;
+  glm::vec2 drag_position_; // To store the current drag position
+  glm::vec2 drag_size_; // To store the current drag size
+  glm::vec2 image_size_; // To store the current image size
+
+  bool dragging_ = false;
 
   moodycamel::ReaderWriterQueue<nlohmann::json> message_queue_;
 

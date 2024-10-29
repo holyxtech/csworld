@@ -26,7 +26,9 @@ public:
   void action_bar_select(std::size_t index);
   void set_inv_open(bool open);
   void set_options_open(bool open);
-  void action_bar_assign(std::size_t index, Item item);
+  void action_bar_init();
+  void item_selector_init();
+  void action_bar_assign(std::size_t index, std::optional<Item> item);
   bool is_inv_open() const;
   bool is_options_open() const;
   const std::array<std::optional<Item>, action_bar_size> get_action_bar() const;

@@ -46,6 +46,7 @@ FirstPersonRenderMode::FirstPersonRenderMode(Sim& sim) : RenderMode(sim) {
   auto& renderer = sim_.get_renderer();
   std::uint32_t component_id = renderer.register_scene_component(*scene_component);
   scene_component->set_id(component_id);
+
 }
 
 void FirstPersonRenderMode::step() {
@@ -75,20 +76,20 @@ void FirstPersonRenderMode::step() {
 
 void FirstPersonRenderMode::render() const {
   auto& renderer = sim_.get_renderer();
-  auto& ui_graphics = renderer.get_ui_graphics();
+  //auto& ui_graphics = renderer.get_ui_graphics();
   auto& draw_generator = sim_.get_draw_generator();
-  auto& scene_component = voxel_highlight_.get_scene_component();
+  auto& voxel_scene_component = voxel_highlight_.get_scene_component();
+
   renderer.render_scene();
-  draw_generator.generate_and_dispatch(*scene_component);
-  ui_graphics.render_first_person_ui();
+  draw_generator.generate_and_dispatch(*voxel_scene_component);
+
+//  ui_graphics.render_first_person_ui();
 }
 
 FirstPersonCamera& FirstPersonRenderMode::get_camera() {
   return camera_;
 }
 void FirstPersonRenderMode::init() {
-  
 }
 void FirstPersonRenderMode::end() {
-
 }

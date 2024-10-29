@@ -47,6 +47,52 @@ UIClient::UIClient() : width_{Options::window_width}, height_{Options::window_he
   glGenVertexArrays(1, &vao_);
   glBindVertexArray(vao_);
   glBindVertexArray(0);
+
+  // Initialize drag shader
+  drag_shader_ = shader_utils::create_shader("drag_quad.vs", "drag_quad.fs");
+
+  // Set up drag VAO
+  glGenVertexArrays(1, &drag_vao_);
+  glBindVertexArray(drag_vao_);
+
+  GLuint drag_vbo;
+  glGenBuffers(1, &drag_vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, drag_vbo);
+  // convert to triangles
+
+  float drag_vertices[] = {
+    // First triangle
+    0.0f, 0.0f, 0.0f, 0.0f, // bottom left
+    1.0f, 1.0f, 1.0f, 1.0f, // top right
+    1.0f, 0.0f, 1.0f, 0.0f, // bottom right
+    // Second triangle
+    0.0f, 0.0f, 0.0f, 0.0f, // bottom left
+    0.0f, 1.0f, 0.0f, 1.0f, // top left
+    1.0f, 1.0f, 1.0f, 1.0f, // top right
+  };
+  glBufferData(GL_ARRAY_BUFFER, sizeof(drag_vertices), drag_vertices, GL_STATIC_DRAW);
+
+  // Position attribute
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+  // TexCoord attribute
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+
+  // create drag_texture_id_
+  glGenTextures(1, &drag_texture_id_);
+  glBindTexture(GL_TEXTURE_2D, drag_texture_id_);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  // set drag position to center
+
+  // upload drag position to shader
+  glUseProgram(drag_shader_);
+  glUniform2fv(glGetUniformLocation(drag_shader_, "u_DragPosition"), 1, glm::value_ptr(drag_position_));
+  glUseProgram(0);
 }
 
 UIClient::~UIClient() {
@@ -89,7 +135,7 @@ void UIClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
     // CefRefPtr<CefClient> devtools_handler = new DevToolsHandler(this);
     // why does the devtools first use this handler, and not the devtools_handler?
 
-    host->ShowDevTools(windowInfo, nullptr, settings, CefPoint());
+    //host->ShowDevTools(windowInfo, nullptr, settings, CefPoint());
     /*     if (browser_created_promise_) {
           browser_created_promise_->set_value();
           browser_created_promise_ = nullptr;
@@ -255,6 +301,8 @@ void UIClient::OnPaint(
 
 void UIClient::render() {
   CEF_REQUIRE_UI_THREAD();
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
   glUseProgram(shader_);
   glBindTextureUnit(0, texture_id_);
   glUniform1i(glGetUniformLocation(shader_, "UIColor"), 0);
@@ -264,6 +312,27 @@ void UIClient::render() {
   glBindVertexArray(0);
 
   glBindTexture(GL_TEXTURE_2D, 0);
+
+  // Render drag quad if dragging
+  if (!(dragging_ && drag_texture_id_ != 0))
+    return;
+
+  glDisable(GL_BLEND);
+  glUseProgram(drag_shader_);
+
+  // Update drag position uniform
+  glUniform2fv(glGetUniformLocation(drag_shader_, "u_DragPosition"), 1, glm::value_ptr(drag_position_));
+
+  glBindTextureUnit(0, drag_texture_id_);
+  glUniform1i(glGetUniformLocation(drag_shader_, "u_DragTexture"), 0);
+
+  glBindVertexArray(drag_vao_);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+  glBindVertexArray(0);
+
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glUseProgram(0);
+  GLenum error = glGetError();
 }
 
 bool UIClient::GetRootScreenRect(CefRefPtr<CefBrowser> browser, CefRect& rect) {
@@ -309,13 +378,66 @@ bool UIClient::StartDragging(
   CefRefPtr<CefDragData> drag_data,
   DragOperationsMask allowed_ops,
   int x, int y) {
-  return false;
+
+  CefMouseEvent event;
+  event.x = x;
+  event.y = y;
+  bool has_image = drag_data->HasImage();
+
+  browser_->GetHost()->DragTargetDragEnter(drag_data, event, allowed_ops);
+  dragging_ = true;
+
+  // get image
+  if (!has_image)
+    return true;
+
+  CefRefPtr<CefImage> image = drag_data->GetImage();
+  int image_width = 0;
+  int image_height = 0;
+  CefRefPtr<CefBinaryValue> bmp =
+    image->GetAsBitmap(1.0f, CEF_COLOR_TYPE_BGRA_8888, CEF_ALPHA_TYPE_OPAQUE, image_width, image_height);
+  // Delete existing drag texture if any
+  if (drag_texture_id_ != 0) {
+    glDeleteTextures(1, &drag_texture_id_);
+  }
+
+  // Generate and bind new drag texture
+  glGenTextures(1, &drag_texture_id_);
+  glBindTexture(GL_TEXTURE_2D, drag_texture_id_);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  ///
+  /// Read up to |buffer_size| number of bytes into |buffer|. Reading begins at
+  /// the specified byte |data_offset|. Returns the number of bytes read.
+  ///
+  size_t size = bmp->GetSize();
+  const void* buf = bmp->GetRawData();
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, image_width);
+  glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+  glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, buf);
+
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  // drag position should be midpoint of the image
+  image_size_ = glm::vec2(image_width, image_height);
+  drag_position_ = glm::vec2(
+    (static_cast<float>(x - image_size_.x / 2) / static_cast<float>(width_)) * 2.0f - 1.0f,
+    1.0f - (static_cast<float>(y + image_size_.y / 2) / static_cast<float>(height_)) * 2.0f);
+  drag_size_ = glm::vec2(
+    2.0f * static_cast<float>(image_size_.x) / static_cast<float>(width_),
+    2.0f * static_cast<float>(image_size_.y) / static_cast<float>(height_));
+  // upload drag size uniform
+  glUseProgram(drag_shader_);
+  glUniform2fv(glGetUniformLocation(drag_shader_, "u_DragSize"), 1, glm::value_ptr(drag_size_));
+  glUseProgram(0);
+
+  return true;
 }
 
 void UIClient::UpdateDragCursor(
   CefRefPtr<CefBrowser> browser,
   DragOperation operation) {
-  // Not implemented for basic usage
 }
 
 void UIClient::OnScrollOffsetChanged(
@@ -356,9 +478,19 @@ void UIClient::OnMouseMove(int x, int y, bool mouseLeave) {
 
   if (is_mouse_down_) {
     event.modifiers |= EVENTFLAG_LEFT_MOUSE_BUTTON;
+  } else {
+    //    event.modifiers |= EVENTFLAG_RIGHT_MOUSE_BUTTON;
   }
 
   browser_->GetHost()->SendMouseMoveEvent(event, mouseLeave);
+
+  if (dragging_) {
+    browser_->GetHost()->DragTargetDragOver(event, DRAG_OPERATION_EVERY);
+    // Update drag position, mapped to Normalized Device Coordinates (NDC)
+    drag_position_ = glm::vec2(
+      (static_cast<float>(x - image_size_.x / 2) / static_cast<float>(width_)) * 2.0f - 1.0f,
+      1.0f - (static_cast<float>(y + image_size_.y / 2) / static_cast<float>(height_)) * 2.0f);
+  }
 }
 
 void UIClient::OnMouseButton(int x, int y, int button, bool down, int clickCount) {
@@ -368,18 +500,20 @@ void UIClient::OnMouseButton(int x, int y, int button, bool down, int clickCount
   CefMouseEvent event;
   event.x = x;
   event.y = y;
-  event.modifiers = 0;
 
   CefBrowserHost::MouseButtonType btnType;
   switch (button) {
   case GLFW_MOUSE_BUTTON_LEFT:
     btnType = MBT_LEFT;
+    event.modifiers |= EVENTFLAG_LEFT_MOUSE_BUTTON;
     break;
   case GLFW_MOUSE_BUTTON_MIDDLE:
     btnType = MBT_MIDDLE;
+    event.modifiers |= EVENTFLAG_MIDDLE_MOUSE_BUTTON;
     break;
   case GLFW_MOUSE_BUTTON_RIGHT:
     btnType = MBT_RIGHT;
+    event.modifiers |= EVENTFLAG_RIGHT_MOUSE_BUTTON;
     break;
   default:
     return;
@@ -389,7 +523,19 @@ void UIClient::OnMouseButton(int x, int y, int button, bool down, int clickCount
 
   if (down) {
     browser_->GetHost()->SendMouseClickEvent(event, btnType, false, clickCount);
-    // browser_->GetHost()->SetFocus(true);
+  } else if (dragging_) {
+    //  browser_->GetHost()->DragTargetDragLeave();
+    browser_->GetHost()->DragTargetDrop(event);
+    // browser_->GetHost()->DragSourceSystemDragEnded();
+    browser_->GetHost()->DragSourceEndedAt(x, y, DRAG_OPERATION_NONE);
+    browser_->GetHost()->DragSourceSystemDragEnded();
+    dragging_ = false;
+
+    // Delete drag texture
+    if (drag_texture_id_ != 0) {
+      glDeleteTextures(1, &drag_texture_id_);
+      drag_texture_id_ = 0;
+    }
   } else {
     browser_->GetHost()->SendMouseClickEvent(event, btnType, true, clickCount);
   }
@@ -425,7 +571,8 @@ void UIClient::OnKeyEvent(int key, bool down, int modifiers) {
     break;
   case GLFW_KEY_R:
     if (modifiers & GLFW_MOD_SHIFT) {
-      browser_->Reload();
+      // reload url
+      browser_->ReloadIgnoreCache();
       return;
     }
   case GLFW_KEY_BACKSLASH: {
@@ -537,7 +684,11 @@ CefRefPtr<CefResourceHandler> UIClient::GetResourceHandler(
   CefRefPtr<CefRequest> request) {
 
   std::string url = request->GetURL().ToString();
-
+  // look for a # in the url and remove everything after it, including the #
+  std::string::size_type hash_pos = url.find('#');
+  if (hash_pos != std::string::npos) {
+    url = url.substr(0, hash_pos);
+  }
   // remove the prefix https://fake.domain.com/
   std::string suffix = url.substr(url.find("https://fake.domain.com/") + std::string("https://fake.domain.com/").length());
   std::string file_path = Options::instance()->get_ui_path(suffix);

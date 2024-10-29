@@ -1,11 +1,32 @@
-#include "UI/cefmsg.h"
 #include "ui.h"
 #include <vector>
+#include "UI/cefmsg.h"
 #include "render_utils.h"
 #include "renderer.h"
 
 UI::UI() {
   // create vector of item names:
+
+  // std::vector<std::string> item_selector_names;
+  for (auto [item_name, item_id] : items::items) {
+    // get name of item
+    // item_selector_names.push_back(item_name);
+    inv_.push_back(item_id);
+  }
+  active_index_ = 0;
+  //  cefmsg::ItemSelectorInit(item_selector_names);
+}
+
+void UI::action_bar_select(std::size_t index) {
+  active_index_ = index;
+  cefmsg::ActionBarActiveIndex(active_index_);
+}
+
+void UI::action_bar_assign(std::size_t index, std::optional<Item> item) {
+  action_bar_[index] = item;
+}
+
+void UI::action_bar_init() {
   std::vector<std::string> item_names = {
     "dirt",
     "bricks",
@@ -16,38 +37,31 @@ UI::UI() {
     "roses",
     "standing_grass",
     "leaves",
-    "tree_trunk"
-  };
+    "tree_trunk"};
 
   std::size_t i = 0;
   for (; i < item_names.size(); ++i) {
     auto item = items::items.at(item_names[i]);
     action_bar_[i] = item;
-    cefmsg::ActionBarSlotChange(i, item_names[i]);
   }
   for (; i < action_bar_size; ++i)
     action_bar_[i] = {};
-  active_index_ = 0;
 
+  cefmsg::ActionBarActiveIndex(active_index_);
+  cefmsg::ActionBarInit(item_names);
+}
 
-
-  //  for (int g = 0; g < 20; ++g) {
-  for (int i = 0; i < static_cast<int>(items::items.size()); ++i) {
-    inv_.push_back(i);
+void UI::item_selector_init() {
+  std::vector<std::string> item_selector_names;
+  for (auto [item_name, item_id] : items::items) {
+    item_selector_names.push_back(item_name);
   }
-  //}
-}
-
-void UI::action_bar_select(std::size_t index) {
-  active_index_ = index;
-}
-
-void UI::action_bar_assign(std::size_t index, Item item) {
-  action_bar_[index] = item;
-}
+  cefmsg::ItemSelectorInit(item_selector_names);
+};
 
 void UI::set_inv_open(bool open) {
   inv_open_ = open;
+  cefmsg::ItemSelectorShow(open);
 }
 
 void UI::set_options_open(bool open) {
